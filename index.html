@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Hadooney — The Blob Runner</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: #0a0a2e;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+canvas {
+  display: block;
+  margin: 0 auto;
+  image-rendering: pixelated;
+}
+#ui-overlay {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  pointer-events: none; z-index: 10;
+}
+#ui-overlay.active { pointer-events: all; }
+.menu-screen, .game-over-screen, .char-select-screen {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(10, 10, 46, 0.95);
+  color: white; text-align: center;
+  transition: opacity 0.3s;
+}
+.hidden { display: none !important; }
+h1 { font-size: 3em; margin-bottom: 10px; text-shadow: 0 0 20px rgba(100,200,255,0.8); }
+h2 { font-size: 1.5em; margin-bottom: 20px; color: #88aaff; }
+.subtitle { font-size: 1em; color: #aaa; margin-bottom: 30px; }
+.btn {
+  background: linear-gradient(135deg, #4a90d9, #357abd);
+  color: white; border: none; border-radius: 12px;
+  padding: 15px 40px; font-size: 1.2em; cursor: pointer;
+  margin: 8px; transition: transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(74,144,217,0.4);
+  pointer-events: all;
+}
+.btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(74,144,217,0.6); }
+.btn:active { transform: scale(0.95); }
+.btn-secondary { background: linear-gradient(135deg, #555, #444); box-shadow: 0 4px 15px rgba(100,100,100,0.3); }
+.char-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 15px; margin: 20px; max-width: 400px;
+}
+.char-card {
+  background: rgba(255,255,255,0.1); border-radius: 12px;
+  padding: 15px; cursor: pointer; border: 3px solid transparent;
+  transition: all 0.2s; pointer-events: all;
+}
+.char-card:hover { background: rgba(255,255,255,0.2); }
+.char-card.selected { border-color: #4a90d9; background: rgba(74,144,217,0.2); }
+.char-card.locked { opacity: 0.5; cursor: not-allowed; }
+.char-name { font-size: 1.2em; font-weight: bold; }
+.char-desc { font-size: 0.8em; color: #aaa; margin-top: 5px; }
+.char-emoji { font-size: 2.5em; margin-bottom: 5px; }
+#hud {
+  position: fixed; top: 10px; left: 0; width: 100%;
+  display: flex; justify-content: space-between; padding: 0 20px;
+  color: white; font-size: 1.1em; z-index: 5;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.hud-item { background: rgba(0,0,0,0.4); border-radius: 20px; padding: 5px 15px; }
+.score-display { color: #ffdd57; font-weight: bold; }
+.high-score { color: #ff9f43; }
+.how-to-play { font-size: 0.85em; color: #888; max-width: 350px; line-height: 1.6; margin: 10px 0; }
+.how-to-play kbd {
+  background: rgba(255,255,255,0.15); border-radius: 4px;
+  padding: 2px 8px; font-family: monospace;
+}
+.game-over-score { font-size: 2.5em; color: #ffdd57; margin: 15px 0; }
+.game-over-detail { font-size: 1em; color: #aaa; margin: 5px 0; }
+.new-record { color: #ff6b6b; font-weight: bold; font-size: 1.2em; animation: pulse 0.5s infinite alternate; }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="hud" class="hidden">
+  <div class="hud-item score-display" id="scoreDisplay">0</div>
+  <div class="hud-item" id="laneIndicator">● ○ ○</div>
+  <div class="hud-item high-score" id="highScoreHud">🏆 0</div>
+</div>
+
+<div id="ui-overlay" class="active">
+  <!-- Main Menu -->
+  <div class="menu-screen" id="mainMenu">
+    <h1>🌀 Hadooney</h1>
+    <p class="subtitle">The Blob Runner</p>
+    <div class="how-to-play">
+      <kbd>←</kbd> <kbd>→</kbd> Switch lanes &nbsp;|&nbsp; <kbd>Space</kbd> Jump<br>
+      On phone: <kbd>Swipe</kbd> left/right/up<br><br>
+      Dodge obstacles, collect coins, survive!
+    </div>
+    <button class="btn" id="playBtn">▶ Play</button>
+    <button class="btn btn-secondary" id="charBtn">🎨 Characters</button>
+    <div style="margin-top:15px; font-size:0.8em; color:#555;">
+      High Score: <span id="menuHighScore">0</span>
+    </div>
+  </div>
+
+  <!-- Character Select -->
+  <div class="char-select-screen hidden" id="charSelect">
+    <h2>Choose Your Hadooney</h2>
+    <div class="char-grid" id="charGrid"></div>
+    <button class="btn btn-secondary" id="backBtn">← Back</button>
+  </div>
+
+  <!-- Game Over -->
+  <div class="game-over-screen hidden" id="gameOver">
+    <h2>Game Over!</h2>
+    <div class="game-over-score" id="finalScore">0</div>
+    <div class="game-over-detail">Distance: <span id="finalDist">0</span>m</div>
+    <div class="game-over-detail">Coins: <span id="finalCoins">0</span></div>
+    <div class="new-record hidden" id="newRecord">🎉 New High Score! 🎉</div>
+    <button class="btn" id="retryBtn">↻ Play Again</button>
+    <button class="btn btn-secondary" id="menuBtn">☰ Menu</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// HADOONEY — THE BLOB RUNNER
+// A game combining Subway Surfers (endless runner),
+// Polytopia (character variety/strategy), and Chess (lane strategy)
+// ============================================================
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// --- CHARACTERS (Polytopia-style variety) ---
+const CHARACTERS = [
+  { id: 'ember',  name: 'Ember',  emoji: '🔥', color: '#ff6b35', bodyColor: '#ff9f43', desc: 'Bold & fast. 1.2x speed boost!', unlockScore: 0,    speedMult: 1.2, jumpMult: 1.0 },
+  { id: 'frost',  name: 'Frost',  emoji: '❄️', color: '#48dbfb', bodyColor: '#0abde3', desc: 'Calm. Slides through 1 obstacle.', unlockScore: 500,  speedMult: 1.0, jumpMult: 1.0, shield: 1 },
+  { id: 'sprout', name: 'Sprout', emoji: '🌿', color: '#2ecc71', bodyColor: '#27ae60', desc: 'Friendly. Coins worth 2x!', unlockScore: 1500, speedMult: 1.0, jumpMult: 1.0, coinMult: 2 },
+  { id: 'zapp',   name: 'Zapp',   emoji: '⚡', color: '#f1c40f', bodyColor: '#f39c12', desc: 'Chaotic. Double jump!', unlockScore: 3000, speedMult: 1.1, jumpMult: 2.0 },
+  { id: 'shadow', name: 'Shadow', emoji: '👁️', color: '#8e44ad', bodyColor: '#6c3483', desc: 'Mysterious. Shrinks to dodge.', unlockScore: 5000, speedMult: 0.9, jumpMult: 1.0, canDuck: true },
+  { id: 'nova',   name: 'Nova',   emoji: '💫', color: '#e84393', bodyColor: '#fd79a8', desc: 'Powerful. Magnet pulls coins!', unlockScore: 8000, speedMult: 1.0, jumpMult: 1.0, magnet: true },
+];
+
+// --- GAME STATE ---
+const STATE = { MENU: 0, PLAYING: 1, GAMEOVER: 2, CHARSELECT: 3 };
+let gameState = STATE.MENU;
+let score = 0;
+let coins = 0;
+let distance = 0;
+let highScore = parseInt(localStorage.getItem('hadooney_high') || '0');
+let selectedChar = parseInt(localStorage.getItem('hadooney_char') || '0');
+let gameSpeed = 4;
+let frameCount = 0;
+
+// --- PLAYER ---
+let player = {
+  lane: 1,        // 0=left, 1=center, 2=right
+  targetLane: 1,
+  x: 0, y: 0,
+  width: 40, height: 40,
+  jumping: false,
+  jumpVel: 0,
+  jumpHeight: 0,
+  grounded: true,
+  shields: 0,
+  ducking: false,
+  bobPhase: 0,
+};
+
+// --- WORLD ---
+const LANE_COUNT = 3;
+const LANE_WIDTH = 80;
+let roadOffset = 0;
+let obstacles = [];
+let coinItems = [];
+let particles = [];
+let bgStars = [];
+
+// --- LAYOUT ---
+let W, H, roadLeft, roadRight, roadCenter;
+let laneXs = [];
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  roadLeft = W / 2 - (LANE_WIDTH * 1.5 + 20);
+  roadRight = W / 2 + (LANE_WIDTH * 1.5 + 20);
+  roadCenter = W / 2;
+  laneXs = [
+    roadCenter - LANE_WIDTH,
+    roadCenter,
+    roadCenter + LANE_WIDTH,
+  ];
+  player.x = laneXs[player.lane];
+  player.y = H - 120;
+  // Generate bg stars
+  if (bgStars.length === 0) {
+    for (let i = 0; i < 60; i++) {
+      bgStars.push({ x: Math.random() * W, y: Math.random() * H * 0.6, size: Math.random() * 2 + 0.5, twinkle: Math.random() * Math.PI * 2 });
+    }
+  }
+}
+window.addEventListener('resize', resize);
+resize();
+
+// --- SAVE/LOAD ---
+function saveHighScore() {
+  localStorage.setItem('hadooney_high', highScore);
+}
+function saveCharSelect() {
+  localStorage.setItem('hadooney_char', selectedChar);
+}
+
+// --- UI ELEMENTS ---
+const mainMenu = document.getElementById('mainMenu');
+const charSelect = document.getElementById('charSelect');
+const gameOver = document.getElementById('gameOver');
+const overlay = document.getElementById('ui-overlay');
+const hud = document.getElementById('hud');
+const scoreDisplay = document.getElementById('scoreDisplay');
+const highScoreHud = document.getElementById('highScoreHud');
+const laneIndicator = document.getElementById('laneIndicator');
+const menuHighScore = document.getElementById('menuHighScore');
+const finalScore = document.getElementById('finalScore');
+const finalDist = document.getElementById('finalDist');
+const finalCoins = document.getElementById('finalCoins');
+const newRecord = document.getElementById('newRecord');
+
+function showMenu() {
+  gameState = STATE.MENU;
+  overlay.classList.add('active');
+  mainMenu.classList.remove('hidden');
+  charSelect.classList.add('hidden');
+  gameOver.classList.add('hidden');
+  hud.classList.add('hidden');
+  menuHighScore.textContent = highScore;
+}
+function showCharSelect() {
+  gameState = STATE.CHARSELECT;
+  mainMenu.classList.add('hidden');
+  charSelect.classList.remove('hidden');
+  buildCharGrid();
+}
+function showGameOver() {
+  gameState = STATE.GAMEOVER;
+  overlay.classList.add('active');
+  gameOver.classList.remove('hidden');
+  hud.classList.add('hidden');
+  finalScore.textContent = score;
+  finalDist.textContent = Math.floor(distance);
+  finalCoins.textContent = coins;
+  if (score > highScore) {
+    highScore = score;
+    saveHighScore();
+    newRecord.classList.remove('hidden');
+  } else {
+    newRecord.classList.add('hidden');
+  }
+}
+function startGame() {
+  gameState = STATE.PLAYING;
+  overlay.classList.remove('active');
+  mainMenu.classList.add('hidden');
+  charSelect.classList.add('hidden');
+  gameOver.classList.add('hidden');
+  hud.classList.remove('hidden');
+  score = 0; coins = 0; distance = 0; frameCount = 0;
+  gameSpeed = 4;
+  obstacles = []; coinItems = []; particles = [];
+  player.lane = 1; player.targetLane = 1;
+  player.jumping = false; player.jumpHeight = 0; player.grounded = true;
+  player.ducking = false; player.bobPhase = 0;
+  const ch = CHARACTERS[selectedChar];
+  player.shields = ch.shield || 0;
+}
+
+// --- CHARACTER GRID ---
+function buildCharGrid() {
+  const grid = document.getElementById('charGrid');
+  grid.innerHTML = '';
+  CHARACTERS.forEach((ch, i) => {
+    const locked = highScore < ch.unlockScore;
+    const card = document.createElement('div');
+    card.className = 'char-card' + (i === selectedChar ? ' selected' : '') + (locked ? ' locked' : '');
+    card.innerHTML = `
+      <div class="char-emoji">${ch.emoji}</div>
+      <div class="char-name">${ch.name}</div>
+      <div class="char-desc">${ch.desc}</div>
+      ${locked ? `<div class="char-desc">🔓 Score ${ch.unlockScore} to unlock</div>` : ''}
+    `;
+    if (!locked) {
+      card.onclick = () => { selectedChar = i; saveCharSelect(); buildCharGrid(); };
+    }
+    grid.appendChild(card);
+  });
+}
+
+// --- BUTTON EVENTS ---
+document.getElementById('playBtn').onclick = startGame;
+document.getElementById('charBtn').onclick = showCharSelect;
+document.getElementById('backBtn').onclick = showMenu;
+document.getElementById('retryBtn').onclick = startGame;
+document.getElementById('menuBtn').onclick = showMenu;
+
+// --- INPUT ---
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (gameState === STATE.PLAYING) {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') moveLane(-1);
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') moveLane(1);
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') jump();
+    if (e.code === 'ArrowDown' || e.code === 'KeyS') duck(true);
+  }
+  if (e.code === 'Space') e.preventDefault();
+});
+document.addEventListener('keyup', e => {
+  keys[e.code] = false;
+  if (e.code === 'ArrowDown' || e.code === 'KeyS') duck(false);
+});
+
+// Touch / Swipe
+let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+document.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  touchStartX = t.clientX;
+  touchStartY = t.clientY;
+  touchStartTime = Date.now();
+  e.preventDefault();
+}, { passive: false });
+document.addEventListener('touchend', e => {
+  if (gameState !== STATE.PLAYING) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStartX;
+  const dy = t.clientY - touchStartY;
+  const dt = Date.now() - touchStartTime;
+  if (dt > 500) return; // too slow
+  const minSwipe = 30;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    if (dx > minSwipe) moveLane(1);
+    else if (dx < -minSwipe) moveLane(-1);
+  } else {
+    if (dy < -minSwipe) jump();
+    else if (dy > minSwipe) duck(true);
+  }
+  setTimeout(() => duck(false), 300);
+  e.preventDefault();
+}, { passive: false });
+
+function moveLane(dir) {
+  player.targetLane = Math.max(0, Math.min(2, player.targetLane + dir));
+}
+function jump() {
+  if (!player.grounded) return;
+  const ch = CHARACTERS[selectedChar];
+  player.jumping = true;
+  player.grounded = false;
+  player.jumpVel = -14 * ch.jumpMult;
+  player.ducking = false;
+}
+function duck(active) {
+  const ch = CHARACTERS[selectedChar];
+  if (ch.canDuck) player.ducking = active;
+}
+
+// --- SPAWNING ---
+function spawnObstacle() {
+  const types = ['block', 'spike', 'tall'];
+  const type = types[Math.floor(Math.random() * types.length)];
+  const lane = Math.floor(Math.random() * 3);
+  // Chess-like strategy: sometimes spawn in 2 lanes to force a choice
+  const doubleLane = Math.random() < 0.25 && distance > 200;
+  obstacles.push({
+    x: laneXs[lane], y: -60, lane, type, w: 50, h: type === 'tall' ? 70 : 40,
+  });
+  if (doubleLane) {
+    let lane2 = (lane + (Math.random() < 0.5 ? 1 : 2)) % 3;
+    obstacles.push({
+      x: laneXs[lane2], y: -60, lane: lane2, type, w: 50, h: type === 'tall' ? 70 : 40,
+    });
+  }
+}
+function spawnCoin() {
+  const lane = Math.floor(Math.random() * 3);
+  coinItems.push({ x: laneXs[lane], y: -30, lane, collected: false, phase: Math.random() * Math.PI * 2 });
+}
+
+// --- PARTICLES ---
+function addParticles(x, y, color, count) {
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
+      life: 30 + Math.random() * 20, maxLife: 50, color, size: Math.random() * 4 + 2,
+    });
+  }
+}
+
+// --- COLLISION ---
+function checkCollision(px, py, pw, ph, ox, oy, ow, oh) {
+  return px - pw/2 < ox + ow/2 && px + pw/2 > ox - ow/2 &&
+         py - ph/2 < oy + oh/2 && py + ph/2 > oy - oh/2;
+}
+
+// --- DRAW HELPERS ---
+function drawBlob(x, y, radius, bodyColor, faceColor) {
+  // Body
+  ctx.beginPath();
+  ctx.arc(x, y, radius, 0, Math.PI * 2);
+  ctx.fillStyle = bodyColor;
+  ctx.fill();
+  ctx.strokeStyle = faceColor;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  // Shine
+  ctx.beginPath();
+  ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.25, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.4)';
+  ctx.fill();
+  // Eyes
+  const eyeOff = radius * 0.3;
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.arc(x - eyeOff, y - radius * 0.1, radius * 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + eyeOff, y - radius * 0.1, radius * 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#222';
+  ctx.beginPath(); ctx.arc(x - eyeOff, y - radius * 0.05, radius * 0.1, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x + eyeOff, y - radius * 0.05, radius * 0.1, 0, Math.PI * 2); ctx.fill();
+  // Mouth
+  ctx.beginPath();
+  ctx.arc(x, y + radius * 0.15, radius * 0.2, 0.1 * Math.PI, 0.9 * Math.PI);
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+function drawObstacle(obs) {
+  ctx.save();
+  const colors = { block: '#e74c3c', spike: '#e67e22', tall: '#c0392b' };
+  const c = colors[obs.type];
+  if (obs.type === 'spike') {
+    ctx.beginPath();
+    ctx.moveTo(obs.x, obs.y - obs.h / 2);
+    ctx.lineTo(obs.x - obs.w / 2, obs.y + obs.h / 2);
+    ctx.lineTo(obs.x + obs.w / 2, obs.y + obs.h / 2);
+    ctx.closePath();
+    ctx.fillStyle = c;
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = c;
+    ctx.fillRect(obs.x - obs.w/2, obs.y - obs.h/2, obs.w, obs.h);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(obs.x - obs.w/2, obs.y - obs.h/2, obs.w, obs.h);
+    // Warning stripes
+    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+    ctx.lineWidth = 3;
+    for (let i = 0; i < obs.w; i += 12) {
+      ctx.beginPath();
+      ctx.moveTo(obs.x - obs.w/2 + i, obs.y - obs.h/2);
+      ctx.lineTo(obs.x - obs.w/2 + i + 6, obs.y + obs.h/2);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawCoin(coin) {
+  const wobble = Math.sin(coin.phase + frameCount * 0.1) * 3;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(coin.x, coin.y + wobble, 12, 0, Math.PI * 2);
+  ctx.fillStyle = '#f1c40f';
+  ctx.fill();
+  ctx.strokeStyle = '#f39c12';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.fillStyle = '#f39c12';
+  ctx.font = 'bold 12px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('$', coin.x, coin.y + wobble);
+  ctx.restore();
+}
+
+// --- MAIN DRAW ---
+function drawBackground() {
+  // Sky gradient
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, '#0a0a2e');
+  grad.addColorStop(0.5, '#1a1a4e');
+  grad.addColorStop(1, '#2d1b69');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  // Stars
+  bgStars.forEach(s => {
+    const alpha = 0.4 + Math.sin(s.twinkle + frameCount * 0.02) * 0.3;
+    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawRoad() {
+  // Road surface
+  const roadW = LANE_WIDTH * 3 + 40;
+  ctx.fillStyle = '#1a1a3e';
+  ctx.fillRect(roadCenter - roadW/2, 0, roadW, H);
+  // Lane lines (dashed, scrolling)
+  roadOffset = (roadOffset + gameSpeed) % 40;
+  ctx.strokeStyle = 'rgba(100,100,200,0.3)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([20, 20]);
+  ctx.lineDashOffset = -roadOffset;
+  for (let i = 1; i < LANE_COUNT; i++) {
+    const lx = roadCenter - LANE_WIDTH * 1.5 + i * LANE_WIDTH;
+    ctx.beginPath();
+    ctx.moveTo(lx, 0);
+    ctx.lineTo(lx, H);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // Road edges
+  ctx.strokeStyle = 'rgba(74,144,217,0.5)';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(roadCenter - roadW/2, 0);
+  ctx.lineTo(roadCenter - roadW/2, H);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(roadCenter + roadW/2, 0);
+  ctx.lineTo(roadCenter + roadW/2, H);
+  ctx.stroke();
+}
+
+function drawPlayer() {
+  const ch = CHARACTERS[selectedChar];
+  player.bobPhase += 0.15;
+  const bob = player.grounded ? Math.sin(player.bobPhase) * 3 : 0;
+  const px = player.x;
+  const py = player.y - player.jumpHeight + bob;
+  const radius = player.ducking ? 14 : 20;
+  // Shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.beginPath();
+  ctx.ellipse(px, player.y + 5, radius * 0.8, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Trail particles
+  if (frameCount % 3 === 0) {
+    addParticles(px, py + radius, ch.bodyColor, 1);
+  }
+  // Shield glow
+  if (player.shields > 0) {
+    ctx.beginPath();
+    ctx.arc(px, py, radius + 8, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(72,219,251,${0.3 + Math.sin(frameCount * 0.1) * 0.2})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  drawBlob(px, py, radius, ch.bodyColor, ch.color);
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    const alpha = p.life / p.maxLife;
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+}
+
+// --- UPDATE ---
+function update() {
+  if (gameState !== STATE.PLAYING) return;
+  frameCount++;
+  const ch = CHARACTERS[selectedChar];
+  const speed = gameSpeed * ch.speedMult;
+
+  // Smooth lane transition
+  const targetX = laneXs[player.targetLane];
+  player.x += (targetX - player.x) * 0.2;
+  player.lane = player.targetLane;
+
+  // Jump physics
+  if (player.jumping) {
+    player.jumpHeight -= player.jumpVel;
+    player.jumpVel += 0.7;
+    if (player.jumpHeight <= 0) {
+      player.jumpHeight = 0;
+      player.jumping = false;
+      player.grounded = true;
+      player.jumpVel = 0;
+    }
+  }
+
+  // Speed increases over time
+  gameSpeed = 4 + distance * 0.003;
+  if (gameSpeed > 14) gameSpeed = 14;
+
+  // Distance & score
+  distance += speed * 0.05;
+  score = Math.floor(distance * 10) + coins * 10;
+
+  // Spawn obstacles
+  const spawnRate = Math.max(30, 80 - distance * 0.03);
+  if (frameCount % Math.floor(spawnRate) === 0) spawnObstacle();
+  // Spawn coins
+  if (frameCount % 45 === 0) spawnCoin();
+
+  // Move obstacles
+  obstacles.forEach(o => { o.y += speed; });
+  obstacles = obstacles.filter(o => o.y < H + 100);
+
+  // Move coins
+  coinItems.forEach(c => { c.y += speed; });
+  coinItems = coinItems.filter(c => c.y < H + 100 && !c.collected);
+
+  // Magnet effect
+  if (ch.magnet) {
+    coinItems.forEach(c => {
+      if (!c.collected) {
+        const dx = player.x - c.x;
+        const dy = (player.y - player.jumpHeight) - c.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < 150) {
+          c.x += dx * 0.08;
+          c.y += dy * 0.08;
+        }
+      }
+    });
+  }
+
+  // Collision detection — obstacles
+  const ph = player.ducking ? 20 : 40;
+  const pw = 30;
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    if (checkCollision(player.x, player.y - player.jumpHeight, pw, ph, o.x, o.y, o.w * 0.8, o.h * 0.8)) {
+      if (player.jumpHeight > (o.type === 'tall' ? 70 : 40)) {
+        // Jumped over!
+      } else if (player.shields > 0) {
+        player.shields--;
+        addParticles(o.x, o.y, '#48dbfb', 15);
+        obstacles.splice(i, 1);
+      } else {
+        // Game over
+        addParticles(player.x, player.y - player.jumpHeight, ch.bodyColor, 30);
+        showGameOver();
+        return;
+      }
+    }
+  }
+
+  // Collision detection — coins
+  const coinMult = ch.coinMult || 1;
+  coinItems.forEach(c => {
+    if (!c.collected && checkCollision(player.x, player.y - player.jumpHeight, 40, 40, c.x, c.y, 24, 24)) {
+      c.collected = true;
+      coins += coinMult;
+      addParticles(c.x, c.y, '#f1c40f', 8);
+    }
+  });
+
+  // Update particles
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vx *= 0.96; p.vy *= 0.96;
+    p.life--;
+  });
+  particles = particles.filter(p => p.life > 0);
+
+  // HUD
+  scoreDisplay.textContent = score;
+  highScoreHud.textContent = '🏆 ' + highScore;
+  const lanes = ['●', '●', '●'];
+  lanes[player.lane] = '◉';
+  laneIndicator.textContent = lanes.join(' ');
+}
+
+// --- RENDER ---
+function render() {
+  ctx.clearRect(0, 0, W, H);
+  drawBackground();
+  drawRoad();
+  coinItems.forEach(drawCoin);
+  obstacles.forEach(drawObstacle);
+  drawPlayer();
+  drawParticles();
+}
+
+// --- GAME LOOP ---
+function gameLoop() {
+  update();
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+// --- INIT ---
+showMenu();
+gameLoop();
+
+</script>
+</body>
+</html>
