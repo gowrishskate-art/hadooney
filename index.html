@@ -356,6 +356,16 @@
            color: #e0e0e0;
        }
 
+       .btn-music {
+           background: linear-gradient(45deg, #2d3748, #4a5568);
+           color: #e0e0e0;
+           font-size: 1.2rem;
+           padding: 5px 12px;
+           border: none;
+           border-radius: 8px;
+           cursor: pointer;
+       }
+
        .game-btn:hover:not(:disabled) {
            transform: scale(1.05);
        }
@@ -625,6 +635,7 @@
                <div class="stat">🏰 <span class="stat-value" id="stat-territories">0</span></div>
            </div>
            <div class="turn-indicator">Turn <span id="turn-number">1</span></div>
+           <button class="game-btn btn-music" id="btn-music" onclick="toggleMusic()" title="Toggle Music">🔊</button>
        </div>
        <div class="game-canvas-container">
            <canvas id="game-canvas"></canvas>
@@ -919,6 +930,100 @@
             document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
             document.querySelector('[data-diff="' + level.id + '"]').classList.add('selected');
             document.getElementById('continue-from-difficulty').disabled = false;
+        }
+
+        // ==================== MUSIC SYSTEM (Web Audio API) ====================
+        let audioCtx = null;
+        let musicPlaying = false;
+        let musicInterval = null;
+        let musicGainNode = null;
+
+        // Each era has a unique musical scale/mood
+        const ERA_MUSIC = {
+            'ancient-egypt':    { scale: [261.63, 293.66, 329.63, 392.00, 440.00], tempo: 300, wave: 'sine',     noteLen: 0.4 },
+            'roman-empire':     { scale: [220.00, 246.94, 293.66, 329.63, 369.99], tempo: 250, wave: 'triangle', noteLen: 0.3 },
+            'viking-age':       { scale: [196.00, 220.00, 261.63, 293.66, 329.63], tempo: 200, wave: 'sawtooth', noteLen: 0.2 },
+            'medieval-europe':  { scale: [261.63, 293.66, 349.23, 392.00, 440.00], tempo: 400, wave: 'sine',     noteLen: 0.5 },
+            'ottoman-empire':   { scale: [220.00, 246.94, 277.18, 329.63, 369.99], tempo: 280, wave: 'triangle', noteLen: 0.35 },
+            'aztec-empire':     { scale: [233.08, 261.63, 311.13, 349.23, 392.00], tempo: 180, wave: 'square',   noteLen: 0.15 },
+            'ming-dynasty':     { scale: [261.63, 293.66, 349.23, 415.30, 466.16], tempo: 350, wave: 'sine',     noteLen: 0.45 },
+            'edo-japan':        { scale: [277.18, 311.13, 349.23, 415.30, 466.16], tempo: 380, wave: 'triangle', noteLen: 0.4 },
+            'british-empire':   { scale: [261.63, 329.63, 392.00, 493.88, 523.25], tempo: 320, wave: 'sine',     noteLen: 0.5 },
+            'industrial-rev':   { scale: [196.00, 233.08, 261.63, 311.13, 349.23], tempo: 150, wave: 'sawtooth', noteLen: 0.12 },
+            'cyber-dynasty':    { scale: [329.63, 392.00, 440.00, 523.25, 587.33], tempo: 120, wave: 'square',   noteLen: 0.08 },
+            'quantum-realm':    { scale: [440.00, 523.25, 587.33, 659.25, 783.99], tempo: 450, wave: 'sine',     noteLen: 0.6 },
+            'star-empire':      { scale: [220.00, 277.18, 329.63, 415.30, 440.00], tempo: 200, wave: 'triangle', noteLen: 0.25 },
+            'dragon-dominion': { scale: [196.00, 233.08, 261.63, 311.13, 369.99], tempo: 160, wave: 'sawtooth', noteLen: 0.18 },
+            'crystal-kingdom':  { scale: [523.25, 587.33, 659.25, 783.99, 880.00], tempo: 500, wave: 'sine',     noteLen: 0.7 },
+            'shadow-nexus':     { scale: [196.00, 220.00, 246.94, 293.66, 329.63], tempo: 130, wave: 'square',   noteLen: 0.1 },
+            'thunder-legion':   { scale: [164.81, 196.00, 220.00, 261.63, 293.66], tempo: 140, wave: 'sawtooth', noteLen: 0.1 },
+            'void-collective':  { scale: [130.81, 164.81, 196.00, 220.00, 261.63], tempo: 600, wave: 'sine',     noteLen: 0.8 },
+            'ember-ascendancy': { scale: [329.63, 369.99, 415.30, 493.88, 554.37], tempo: 170, wave: 'triangle', noteLen: 0.15 },
+            'frost-dominion':   { scale: [440.00, 493.88, 523.25, 587.33, 659.25], tempo: 420, wave: 'sine',     noteLen: 0.55 }
+        };
+
+        function initAudio() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            musicGainNode = audioCtx.createGain();
+            musicGainNode.gain.value = 0.15;
+            musicGainNode.connect(audioCtx.destination);
+        }
+
+        function playNote(freq, duration, waveType) {
+            if (!audioCtx || !musicPlaying) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = waveType || 'sine';
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(musicGainNode);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playEraMusicLoop() {
+            if (!musicPlaying) return;
+            const eraId = gameState.selectedEra ? gameState.selectedEra.id : 'roman-empire';
+            const music = ERA_MUSIC[eraId] || ERA_MUSIC['roman-empire'];
+            const scale = music.scale;
+            // Play a random melody note from the era's scale
+            const note = scale[Math.floor(Math.random() * scale.length)];
+            // Sometimes play a chord (two notes)
+            if (Math.random() < 0.3) {
+                const note2 = scale[Math.floor(Math.random() * scale.length)];
+                playNote(note, music.noteLen, music.wave);
+                playNote(note2, music.noteLen * 0.8, music.wave);
+            } else {
+                playNote(note, music.noteLen, music.wave);
+            }
+        }
+
+        function startMusic() {
+            initAudio();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            musicPlaying = true;
+            const eraId = gameState.selectedEra ? gameState.selectedEra.id : 'roman-empire';
+            const music = ERA_MUSIC[eraId] || ERA_MUSIC['roman-empire'];
+            if (musicInterval) clearInterval(musicInterval);
+            musicInterval = setInterval(playEraMusicLoop, music.tempo);
+            document.getElementById('btn-music').textContent = '🔊';
+        }
+
+        function stopMusic() {
+            musicPlaying = false;
+            if (musicInterval) { clearInterval(musicInterval); musicInterval = null; }
+            document.getElementById('btn-music').textContent = '🔇';
+        }
+
+        function toggleMusic() {
+            if (musicPlaying) {
+                stopMusic();
+            } else {
+                startMusic();
+            }
         }
 
         // ==================== GAME INITIALIZATION ====================
