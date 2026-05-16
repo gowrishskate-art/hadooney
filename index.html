@@ -1,716 +1,2044 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Hadooney — The Blob Runner</title>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: #0a0a2e;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-}
-canvas {
-  display: block;
-  margin: 0 auto;
-  image-rendering: pixelated;
-}
-#ui-overlay {
-  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 10;
-}
-#ui-overlay.active { pointer-events: all; }
-.menu-screen, .game-over-screen, .char-select-screen {
-  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(10, 10, 46, 0.95);
-  color: white; text-align: center;
-  transition: opacity 0.3s;
-}
-.hidden { display: none !important; }
-h1 { font-size: 3em; margin-bottom: 10px; text-shadow: 0 0 20px rgba(100,200,255,0.8); }
-h2 { font-size: 1.5em; margin-bottom: 20px; color: #88aaff; }
-.subtitle { font-size: 1em; color: #aaa; margin-bottom: 30px; }
-.btn {
-  background: linear-gradient(135deg, #4a90d9, #357abd);
-  color: white; border: none; border-radius: 12px;
-  padding: 15px 40px; font-size: 1.2em; cursor: pointer;
-  margin: 8px; transition: transform 0.1s, box-shadow 0.2s;
-  box-shadow: 0 4px 15px rgba(74,144,217,0.4);
-  pointer-events: all;
-}
-.btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(74,144,217,0.6); }
-.btn:active { transform: scale(0.95); }
-.btn-secondary { background: linear-gradient(135deg, #555, #444); box-shadow: 0 4px 15px rgba(100,100,100,0.3); }
-.char-grid {
-  display: grid; grid-template-columns: repeat(2, 1fr);
-  gap: 15px; margin: 20px; max-width: 400px;
-}
-.char-card {
-  background: rgba(255,255,255,0.1); border-radius: 12px;
-  padding: 15px; cursor: pointer; border: 3px solid transparent;
-  transition: all 0.2s; pointer-events: all;
-}
-.char-card:hover { background: rgba(255,255,255,0.2); }
-.char-card.selected { border-color: #4a90d9; background: rgba(74,144,217,0.2); }
-.char-card.locked { opacity: 0.5; cursor: not-allowed; }
-.char-name { font-size: 1.2em; font-weight: bold; }
-.char-desc { font-size: 0.8em; color: #aaa; margin-top: 5px; }
-.char-emoji { font-size: 2.5em; margin-bottom: 5px; }
-#hud {
-  position: fixed; top: 10px; left: 0; width: 100%;
-  display: flex; justify-content: space-between; padding: 0 20px;
-  color: white; font-size: 1.1em; z-index: 5;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
-}
-.hud-item { background: rgba(0,0,0,0.4); border-radius: 20px; padding: 5px 15px; }
-.score-display { color: #ffdd57; font-weight: bold; }
-.high-score { color: #ff9f43; }
-.how-to-play { font-size: 0.85em; color: #888; max-width: 350px; line-height: 1.6; margin: 10px 0; }
-.how-to-play kbd {
-  background: rgba(255,255,255,0.15); border-radius: 4px;
-  padding: 2px 8px; font-family: monospace;
-}
-.game-over-score { font-size: 2.5em; color: #ffdd57; margin: 15px 0; }
-.game-over-detail { font-size: 1em; color: #aaa; margin: 5px 0; }
-.new-record { color: #ff6b6b; font-weight: bold; font-size: 1.2em; animation: pulse 0.5s infinite alternate; }
-@keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Hadooney - Empire Wars</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #0f0f23 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            touch-action: manipulation;
+        }
+
+        .screen {
+            display: none;
+            min-height: 100vh;
+            padding: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .screen.active {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px currentColor; }
+            50% { box-shadow: 0 0 40px currentColor, 0 0 60px currentColor; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        /* Title Screen */
+        #title-screen {
+            justify-content: center;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff);
+            background-size: 300% 300%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradientShift 3s ease infinite, float 3s ease-in-out infinite;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(255, 107, 107, 0.5);
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            color: #888;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            animation: glow 2s ease-in-out infinite;
+        }
+
+        .btn-primary:hover, .btn-primary:active {
+            transform: scale(1.05);
+            filter: brightness(1.2);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #2d3748, #4a5568);
+            color: #e0e0e0;
+        }
+
+        .btn-secondary:hover, .btn-secondary:active {
+            transform: scale(1.05);
+            background: linear-gradient(45deg, #4a5568, #2d3748);
+        }
+
+        .play-time {
+            margin-top: 40px;
+            font-size: 1rem;
+            color: #666;
+        }
+
+        /* Era Selection */
+        .era-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            max-width: 1000px;
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .era-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid transparent;
+            border-radius: 15px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .era-card:hover, .era-card:active {
+            transform: translateY(-5px);
+            border-color: var(--era-color);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .era-card.selected {
+            border-color: var(--era-color);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 20px var(--era-color);
+        }
+
+        .era-emoji {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .era-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--era-color);
+        }
+
+        .era-desc {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .era-power {
+            font-size: 0.7rem;
+            color: #aaa;
+            font-style: italic;
+        }
+
+        .era-stars {
+            margin-top: 8px;
+        }
+
+        .star {
+            color: #feca57;
+            font-size: 0.9rem;
+        }
+
+        .star.empty {
+            color: #444;
+        }
+
+        .screen-title {
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .screen-nav {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        /* Opponent Selection */
+        .opponent-container {
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .opponent-slider-container {
+            margin: 30px 0;
+        }
+
+        .opponent-count {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .opponent-slider {
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+            background: #2d3748;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .opponent-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            cursor: pointer;
+        }
+
+        .opponent-slider::-moz-range-thumb {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            cursor: pointer;
+            border: none;
+        }
+
+        .opponent-info {
+            color: #888;
+            margin-top: 20px;
+        }
+
+        /* Game Screen */
+        #game-screen {
+            padding: 10px;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .turn-indicator {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+
+        .game-canvas-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 4/3;
+            margin: 0 auto;
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            border-radius: 10px;
+            touch-action: none;
+        }
+
+        .game-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            max-width: 800px;
+            margin: 15px auto;
+        }
+
+        .game-btn {
+            padding: 12px 20px;
+            font-size: 0.9rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+
+        .btn-recruit {
+            background: linear-gradient(45deg, #feca57, #ff9f43);
+            color: #1a1a2e;
+        }
+
+        .btn-end-turn {
+            background: linear-gradient(45deg, #ee5a6f, #c44569);
+            color: white;
+            padding: 15px 30px;
+            font-size: 1rem;
+        }
+
+        .btn-special {
+            background: linear-gradient(45deg, #5f27cd, #341f97);
+            color: white;
+        }
+
+        .btn-special:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-menu {
+            background: linear-gradient(45deg, #2d3748, #4a5568);
+            color: #e0e0e0;
+        }
+
+        .game-btn:hover:not(:disabled) {
+            transform: scale(1.05);
+        }
+
+        .action-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            display: none;
+            z-index: 100;
+        }
+
+        .action-panel.active {
+            display: block;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Victory/Defeat Screen */
+        .result-container {
+            text-align: center;
+            max-width: 500px;
+        }
+
+        .result-title {
+            font-size: clamp(2rem, 6vw, 3rem);
+            margin-bottom: 20px;
+        }
+
+        .result-title.victory {
+            color: #feca57;
+            text-shadow: 0 0 30px rgba(254, 202, 87, 0.5);
+        }
+
+        .result-title.defeat {
+            color: #ee5a6f;
+        }
+
+        .result-stars {
+            font-size: 2.5rem;
+            margin: 20px 0;
+        }
+
+        .result-stats {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .result-stat {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .result-stat:last-child {
+            border-bottom: none;
+        }
+
+        /* How to Play Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 200;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .modal-section {
+            margin-bottom: 20px;
+        }
+
+        .modal-section h3 {
+            color: #feca57;
+            margin-bottom: 10px;
+        }
+
+        .modal-section p {
+            color: #aaa;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 2rem;
+            cursor: pointer;
+        }
+
+        /* Territory info tooltip */
+        .territory-info {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            padding: 10px 15px;
+            pointer-events: none;
+            z-index: 150;
+            display: none;
+            font-size: 0.85rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .territory-info.active {
+            display: block;
+        }
+
+        /* Special power indicator */
+        .power-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(95, 39, 205, 0.95);
+            padding: 20px 40px;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            z-index: 180;
+            display: none;
+            animation: pulse 0.5s ease;
+        }
+
+        .power-indicator.active {
+            display: block;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .screen {
+                padding: 10px;
+            }
+
+            .era-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .btn {
+                padding: 12px 25px;
+                font-size: 1rem;
+                margin: 5px;
+            }
+
+            .game-controls {
+                gap: 5px;
+            }
+
+            .game-btn {
+                padding: 10px 15px;
+                font-size: 0.8rem;
+            }
+
+            .modal-content {
+                padding: 20px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .era-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<canvas id="gameCanvas"></canvas>
-
-<div id="hud" class="hidden">
-  <div class="hud-item score-display" id="scoreDisplay">0</div>
-  <div class="hud-item" id="laneIndicator">● ○ ○</div>
-  <div class="hud-item high-score" id="highScoreHud">🏆 0</div>
-</div>
-
-<div id="ui-overlay" class="active">
-  <!-- Main Menu -->
-  <div class="menu-screen" id="mainMenu">
-    <h1>🌀 Hadooney</h1>
-    <p class="subtitle">The Blob Runner</p>
-    <div class="how-to-play">
-      <kbd>←</kbd> <kbd>→</kbd> Switch lanes &nbsp;|&nbsp; <kbd>Space</kbd> Jump<br>
-      On phone: <kbd>Swipe</kbd> left/right/up<br><br>
-      Dodge obstacles, collect coins, survive!
+    <!-- Title Screen -->
+    <div id="title-screen" class="screen active">
+        <div class="logo">⚔️ HADOONEY ⚔️</div>
+        <div class="subtitle">Empire Wars</div>
+        <button class="btn btn-primary" onclick="showScreen('era')">▶ PLAY</button>
+        <button class="btn btn-secondary" onclick="showHowToPlay()">📖 HOW TO PLAY</button>
+        <div class="play-time">
+            ⏱️ Total Play Time: <span id="total-play-time">00:00:00</span>
+        </div>
     </div>
-    <button class="btn" id="playBtn">▶ Play</button>
-    <button class="btn btn-secondary" id="charBtn">🎨 Characters</button>
-    <div style="margin-top:15px; font-size:0.8em; color:#555;">
-      High Score: <span id="menuHighScore">0</span>
+
+    <!-- Era Selection Screen -->
+    <div id="era-screen" class="screen">
+        <h2 class="screen-title">Choose Your Era</h2>
+        <div class="era-grid" id="era-grid"></div>
+        <div class="screen-nav">
+            <button class="btn btn-secondary" onclick="showScreen('title')">← BACK</button>
+            <button class="btn btn-primary" id="continue-to-opponents" disabled onclick="showScreen('opponent')">CONTINUE →</button>
+        </div>
     </div>
-  </div>
 
-  <!-- Character Select -->
-  <div class="char-select-screen hidden" id="charSelect">
-    <h2>Choose Your Hadooney</h2>
-    <div class="char-grid" id="charGrid"></div>
-    <button class="btn btn-secondary" id="backBtn">← Back</button>
-  </div>
+    <!-- Opponent Selection Screen -->
+    <div id="opponent-screen" class="screen">
+        <h2 class="screen-title">Select Opponents</h2>
+        <div class="opponent-container">
+            <div class="opponent-count"><span id="opponent-count">5</span> Opponents</div>
+            <div class="opponent-slider-container">
+                <input type="range" class="opponent-slider" id="opponent-slider" min="1" max="20" value="5" oninput="updateOpponentCount(this.value)">
+            </div>
+            <div class="opponent-info">
+                <p>More opponents = greater challenge!</p>
+                <p>Each AI starts with 3 territories</p>
+            </div>
+        </div>
+        <div class="screen-nav">
+            <button class="btn btn-secondary" onclick="showScreen('era')">← BACK</button>
+            <button class="btn btn-primary" onclick="startGame()">START WAR →</button>
+        </div>
+    </div>
 
-  <!-- Game Over -->
-  <div class="game-over-screen hidden" id="gameOver">
-    <h2>Game Over!</h2>
-    <div class="game-over-score" id="finalScore">0</div>
-    <div class="game-over-detail">Distance: <span id="finalDist">0</span>m</div>
-    <div class="game-over-detail">Coins: <span id="finalCoins">0</span></div>
-    <div class="new-record hidden" id="newRecord">🎉 New High Score! 🎉</div>
-    <button class="btn" id="retryBtn">↻ Play Again</button>
-    <button class="btn btn-secondary" id="menuBtn">☰ Menu</button>
-  </div>
-</div>
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+        <div class="game-header">
+            <div class="game-stats">
+                <div class="stat">⚔️ <span class="stat-value" id="stat-troops">0</span></div>
+                <div class="stat">💰 <span class="stat-value" id="stat-gold">0</span></div>
+                <div class="stat">🏰 <span class="stat-value" id="stat-territories">0</span></div>
+            </div>
+            <div class="turn-indicator">Turn <span id="turn-number">1</span></div>
+        </div>
+        <div class="game-canvas-container">
+            <canvas id="game-canvas"></canvas>
+        </div>
+        <div class="game-controls">
+            <button class="game-btn btn-recruit" onclick="showRecruitPanel()">🛡️ Recruit (10g)</button>
+            <button class="game-btn btn-special" id="btn-special" onclick="activateSpecialPower()">⚡ <span id="special-name">Power</span> (20g)</button>
+            <button class="game-btn btn-end-turn" onclick="endTurn()">END TURN</button>
+            <button class="game-btn btn-menu" onclick="showMenuModal()">☰</button>
+        </div>
+    </div>
 
-<script>
-// ============================================================
-// HADOONEY — THE BLOB RUNNER
-// A game combining Subway Surfers (endless runner),
-// Polytopia (character variety/strategy), and Chess (lane strategy)
-// ============================================================
+    <!-- Action Panel -->
+    <div class="action-panel" id="action-panel">
+        <div class="action-buttons" id="action-buttons"></div>
+    </div>
 
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
+    <!-- Victory/Defeat Screen -->
+    <div id="result-screen" class="screen">
+        <div class="result-container">
+            <h1 class="result-title" id="result-title">VICTORY!</h1>
+            <div class="result-stars" id="result-stars">⭐⭐⭐⭐⭐</div>
+            <div class="result-stats" id="result-stats"></div>
+            <div class="screen-nav">
+                <button class="btn btn-primary" onclick="returnToTitle()">MAIN MENU</button>
+                <button class="btn btn-secondary" onclick="playAgain()">PLAY AGAIN</button>
+            </div>
+        </div>
+    </div>
 
-// --- CHARACTERS (Polytopia-style variety) ---
-const CHARACTERS = [
-  { id: 'ember',  name: 'Ember',  emoji: '🔥', color: '#ff6b35', bodyColor: '#ff9f43', desc: 'Bold & fast. 1.2x speed boost!', unlockScore: 0,    speedMult: 1.2, jumpMult: 1.0 },
-  { id: 'frost',  name: 'Frost',  emoji: '❄️', color: '#48dbfb', bodyColor: '#0abde3', desc: 'Calm. Slides through 1 obstacle.', unlockScore: 500,  speedMult: 1.0, jumpMult: 1.0, shield: 1 },
-  { id: 'sprout', name: 'Sprout', emoji: '🌿', color: '#2ecc71', bodyColor: '#27ae60', desc: 'Friendly. Coins worth 2x!', unlockScore: 1500, speedMult: 1.0, jumpMult: 1.0, coinMult: 2 },
-  { id: 'zapp',   name: 'Zapp',   emoji: '⚡', color: '#f1c40f', bodyColor: '#f39c12', desc: 'Chaotic. Double jump!', unlockScore: 3000, speedMult: 1.1, jumpMult: 2.0 },
-  { id: 'shadow', name: 'Shadow', emoji: '👁️', color: '#8e44ad', bodyColor: '#6c3483', desc: 'Mysterious. Shrinks to dodge.', unlockScore: 5000, speedMult: 0.9, jumpMult: 1.0, canDuck: true },
-  { id: 'nova',   name: 'Nova',   emoji: '💫', color: '#e84393', bodyColor: '#fd79a8', desc: 'Powerful. Magnet pulls coins!', unlockScore: 8000, speedMult: 1.0, jumpMult: 1.0, magnet: true },
-];
+    <!-- How to Play Modal -->
+    <div class="modal" id="how-to-play-modal">
+        <button class="modal-close" onclick="closeHowToPlay()">×</button>
+        <div class="modal-content">
+            <h2 class="modal-title">How to Play Hadooney</h2>
+            <div class="modal-section">
+                <h3>🎯 Objective</h3>
+                <p>Conquer territories and eliminate all opponents! Control as much land as possible to earn stars.</p>
+            </div>
+            <div class="modal-section">
+                <h3>🗺️ Controls</h3>
+                <p><strong>Attack/Move:</strong> Tap a tile you own, then tap an adjacent tile</p>
+                <p><strong>Recruit:</strong> Spend 10 gold to add 5 troops to any owned tile</p>
+                <p><strong>End Turn:</strong> Click when done - all AI opponents will take their turns</p>
+            </div>
+            <div class="modal-section">
+                <h3>⚔️ Combat</h3>
+                <p>Troops battle with a random factor. Terrain affects defense:</p>
+                <p>🌾 Plains: 1.0x defense | 🌲 Forest: 1.3x defense | ⛰️ Mountain: 1.5x defense</p>
+                <p>🌊 Water: Impassable</p>
+            </div>
+            <div class="modal-section">
+                <h3>💰 Economy</h3>
+                <p>Each territory generates 1 gold per turn (forests give 2 gold!)</p>
+                <p>Spend gold to recruit troops or use your era's special power (20 gold, once per game)</p>
+            </div>
+            <div class="modal-section">
+                <h3>⭐ Star Rating</h3>
+                <p>Based on territory percentage at game end:</p>
+                <p>20%+ = ⭐ | 50%+ = ⭐⭐ | 75%+ = ⭐⭐⭐ | 85%+ = ⭐⭐⭐⭐ | 94%+ = ⭐⭐⭐⭐⭐</p>
+            </div>
+        </div>
+    </div>
 
-// --- GAME STATE ---
-const STATE = { MENU: 0, PLAYING: 1, GAMEOVER: 2, CHARSELECT: 3 };
-let gameState = STATE.MENU;
-let score = 0;
-let coins = 0;
-let distance = 0;
-let highScore = parseInt(localStorage.getItem('hadooney_high') || '0');
-let selectedChar = parseInt(localStorage.getItem('hadooney_char') || '0');
-let gameSpeed = 4;
-let frameCount = 0;
+    <!-- Menu Modal -->
+    <div class="modal" id="menu-modal">
+        <button class="modal-close" onclick="closeMenuModal()">×</button>
+        <div class="modal-content">
+            <h2 class="modal-title">Game Menu</h2>
+            <div class="modal-section">
+                <button class="btn btn-secondary" style="width: 100%" onclick="closeMenuModal()">Resume Game</button>
+            </div>
+            <div class="modal-section">
+                <button class="btn btn-secondary" style="width: 100%" onclick="surrenderGame()">Surrender</button>
+            </div>
+        </div>
+    </div>
 
-// --- PLAYER ---
-let player = {
-  lane: 1,        // 0=left, 1=center, 2=right
-  targetLane: 1,
-  x: 0, y: 0,
-  width: 40, height: 40,
-  jumping: false,
-  jumpVel: 0,
-  jumpHeight: 0,
-  grounded: true,
-  shields: 0,
-  ducking: false,
-  bobPhase: 0,
-};
+    <!-- Territory Info Tooltip -->
+    <div class="territory-info" id="territory-info"></div>
 
-// --- WORLD ---
-const LANE_COUNT = 3;
-const LANE_WIDTH = 80;
-let roadOffset = 0;
-let obstacles = [];
-let coinItems = [];
-let particles = [];
-let bgStars = [];
+    <!-- Power Activation Indicator -->
+    <div class="power-indicator" id="power-indicator"></div>
 
-// --- LAYOUT ---
-let W, H, roadLeft, roadRight, roadCenter;
-let laneXs = [];
+    <script>
+        // ==================== GAME DATA ====================
+        const ERAS = [
+            { id: 'egypt', name: 'Ancient Egypt', emoji: '🏜️', color: '#feca57', power: 'Sandstorm', powerDesc: 'Kill 50% troops on target tile', historical: true },
+            { id: 'rome', name: 'Roman Empire', emoji: '🏛️', color: '#c44569', power: 'Legion March', powerDesc: 'Move troops to any owned tile instantly', historical: true },
+            { id: 'viking', name: 'Viking Age', emoji: '⚔️', color: '#5f27cd', power: 'Berserker Rage', powerDesc: 'Next attack deals 2x damage', historical: true },
+            { id: 'medieval', name: 'Medieval Europe', emoji: '🏰', color: '#8395a7', power: 'Castle Wall', powerDesc: 'Double defense on a tile for 3 turns', historical: true },
+            { id: 'ottoman', name: 'Ottoman Empire', emoji: '🌙', color: '#10ac84', power: 'Janissary', powerDesc: 'Recruit 15 troops free on one tile', historical: true },
+            { id: 'aztec', name: 'Aztec Empire', emoji: '🗿', color: '#ee5a6f', power: 'Blood Sacrifice', powerDesc: 'Gain 30 gold instantly', historical: true },
+            { id: 'ming', name: 'Ming Dynasty', emoji: '🐉', color: '#ff9f43', power: 'Great Wall', powerDesc: 'Make a tile impassable for 3 turns', historical: true },
+            { id: 'edo', name: 'Edo Japan', emoji: '🌸', color: '#ff6b6b', power: 'Samurai Honor', powerDesc: 'Troops on a tile become invincible for 1 turn', historical: true },
+            { id: 'british', name: 'British Empire', emoji: '🇬🇧', color: '#54a0ff', power: 'Naval Bombardment', powerDesc: 'Attack any tile on the map', historical: true },
+            { id: 'industrial', name: 'Industrial Revolution', emoji: '⚙️', color: '#576574', power: 'Factory', powerDesc: 'Tile produces 5 gold/turn for rest of game', historical: true },
+            { id: 'cyber', name: 'Cyber Dynasty', emoji: '🤖', color: '#00d2d3', power: 'Hack', powerDesc: 'Steal 3 troops from each enemy on one tile', historical: false },
+            { id: 'quantum', name: 'Quantum Realm', emoji: '🌀', color: '#a29bfe', power: 'Teleport', powerDesc: 'Swap two of your tiles positions', historical: false },
+            { id: 'star', name: 'Star Empire', emoji: '🚀', color: '#74b9ff', power: 'Orbital Strike', powerDesc: 'Destroy all troops on target tile', historical: false },
+            { id: 'dragon', name: 'Dragon Dominion', emoji: '🐲', color: '#e17055', power: 'Dragon Breath', powerDesc: 'Attack target and all adjacent tiles', historical: false },
+            { id: 'crystal', name: 'Crystal Kingdom', emoji: '💎', color: '#81ecec', power: 'Crystal Shield', powerDesc: 'All your tiles get +50% defense for 2 turns', historical: false },
+            { id: 'shadow', name: 'Shadow Nexus', emoji: '👤', color: '#636e72', power: 'Shadow Clone', powerDesc: 'Duplicate troops from one tile to another owned tile', historical: false },
+            { id: 'thunder', name: 'Thunder Legion', emoji: '⚡', color: '#fdcb6e', power: 'Chain Lightning', powerDesc: 'Attack up to 3 tiles in a line', historical: false },
+            { id: 'void', name: 'Void Collective', emoji: '🕳️', color: '#2d3436', power: 'Void Rift', powerDesc: 'Remove an opponent tile from the map entirely', historical: false },
+            { id: 'ember', name: 'Ember Ascendancy', emoji: '🔥', color: '#d63031', power: 'Inferno', powerDesc: 'Set target tile and neighbors on fire (3 damage/turn for 3 turns)', historical: false },
+            { id: 'frost', name: 'Frost Dominion', emoji: '❄️', color: '#0984e3', power: 'Blizzard', powerDesc: 'Freeze all enemy troops in a region for 1 turn', historical: false }
+        ];
 
-function resize() {
-  W = canvas.width = window.innerWidth;
-  H = canvas.height = window.innerHeight;
-  roadLeft = W / 2 - (LANE_WIDTH * 1.5 + 20);
-  roadRight = W / 2 + (LANE_WIDTH * 1.5 + 20);
-  roadCenter = W / 2;
-  laneXs = [
-    roadCenter - LANE_WIDTH,
-    roadCenter,
-    roadCenter + LANE_WIDTH,
-  ];
-  player.x = laneXs[player.lane];
-  player.y = H - 120;
-  // Generate bg stars
-  if (bgStars.length === 0) {
-    for (let i = 0; i < 60; i++) {
-      bgStars.push({ x: Math.random() * W, y: Math.random() * H * 0.6, size: Math.random() * 2 + 0.5, twinkle: Math.random() * Math.PI * 2 });
-    }
-  }
-}
-window.addEventListener('resize', resize);
-resize();
+        const TERRAIN_TYPES = {
+            PLAINS: { name: 'Plains', emoji: '🌾', defense: 1.0, color: '#7cbd6d', passable: true },
+            FOREST: { name: 'Forest', emoji: '🌲', defense: 1.3, color: '#2d5a27', passable: true },
+            MOUNTAIN: { name: 'Mountain', emoji: '⛰️', defense: 1.5, color: '#6b7280', passable: true },
+            WATER: { name: 'Water', emoji: '🌊', defense: 1.0, color: '#3b82f6', passable: false }
+        };
 
-// --- SAVE/LOAD ---
-function saveHighScore() {
-  localStorage.setItem('hadooney_high', highScore);
-}
-function saveCharSelect() {
-  localStorage.setItem('hadooney_char', selectedChar);
-}
+        const AI_PERSONALITIES = {
+            AGGRESSIVE: { name: 'Aggressive', attackChance: 0.7, recruitChance: 0.2, reinforceChance: 0.1 },
+            DEFENSIVE: { name: 'Defensive', attackChance: 0.3, recruitChance: 0.5, reinforceChance: 0.2 },
+            BALANCED: { name: 'Balanced', attackChance: 0.5, recruitChance: 0.3, reinforceChance: 0.2 },
+            CUNNING: { name: 'Cunning', attackChance: 0.5, recruitChance: 0.25, reinforceChance: 0.25 }
+        };
 
-// --- UI ELEMENTS ---
-const mainMenu = document.getElementById('mainMenu');
-const charSelect = document.getElementById('charSelect');
-const gameOver = document.getElementById('gameOver');
-const overlay = document.getElementById('ui-overlay');
-const hud = document.getElementById('hud');
-const scoreDisplay = document.getElementById('scoreDisplay');
-const highScoreHud = document.getElementById('highScoreHud');
-const laneIndicator = document.getElementById('laneIndicator');
-const menuHighScore = document.getElementById('menuHighScore');
-const finalScore = document.getElementById('finalScore');
-const finalDist = document.getElementById('finalDist');
-const finalCoins = document.getElementById('finalCoins');
-const newRecord = document.getElementById('newRecord');
+        // ==================== GAME STATE ====================
+        let gameState = {
+            screen: 'title',
+            selectedEra: null,
+            opponentCount: 5,
+            player: {
+                id: 'player',
+                name: 'You',
+                color: '#667eea',
+                gold: 20,
+                tiles: [],
+                eliminated: false,
+                specialUsed: false,
+                specialActive: null,
+                berserkerActive: false,
+                defenseBonus: 1,
+                defenseBonusTurns: 0,
+                factories: [],
+                impassableTiles: [],
+                invincibleTiles: []
+            },
+            opponents: [],
+            territories: [],
+            hexGrid: { width: 0, height: 0, hexSize: 0 },
+            selectedTile: null,
+            targetTile: null,
+            turn: 1,
+            isPlayerTurn: true,
+            isProcessingTurn: false,
+            specialPowerActive: false,
+            powerTargetMode: false,
+            powerFirstTile: null,
+            gameStartTime: 0,
+            totalPlayTime: 0,
+            lastSaveTime: Date.now()
+        };
 
-function showMenu() {
-  gameState = STATE.MENU;
-  overlay.classList.add('active');
-  mainMenu.classList.remove('hidden');
-  charSelect.classList.add('hidden');
-  gameOver.classList.add('hidden');
-  hud.classList.add('hidden');
-  menuHighScore.textContent = highScore;
-}
-function showCharSelect() {
-  gameState = STATE.CHARSELECT;
-  mainMenu.classList.add('hidden');
-  charSelect.classList.remove('hidden');
-  buildCharGrid();
-}
-function showGameOver() {
-  gameState = STATE.GAMEOVER;
-  overlay.classList.add('active');
-  gameOver.classList.remove('hidden');
-  hud.classList.add('hidden');
-  finalScore.textContent = score;
-  finalDist.textContent = Math.floor(distance);
-  finalCoins.textContent = coins;
-  if (score > highScore) {
-    highScore = score;
-    saveHighScore();
-    newRecord.classList.remove('hidden');
-  } else {
-    newRecord.classList.add('hidden');
-  }
-}
-function startGame() {
-  gameState = STATE.PLAYING;
-  overlay.classList.remove('active');
-  mainMenu.classList.add('hidden');
-  charSelect.classList.add('hidden');
-  gameOver.classList.add('hidden');
-  hud.classList.remove('hidden');
-  score = 0; coins = 0; distance = 0; frameCount = 0;
-  gameSpeed = 4;
-  obstacles = []; coinItems = []; particles = [];
-  player.lane = 1; player.targetLane = 1;
-  player.jumping = false; player.jumpHeight = 0; player.grounded = true;
-  player.ducking = false; player.bobPhase = 0;
-  const ch = CHARACTERS[selectedChar];
-  player.shields = ch.shield || 0;
-}
-
-// --- CHARACTER GRID ---
-function buildCharGrid() {
-  const grid = document.getElementById('charGrid');
-  grid.innerHTML = '';
-  CHARACTERS.forEach((ch, i) => {
-    const locked = highScore < ch.unlockScore;
-    const card = document.createElement('div');
-    card.className = 'char-card' + (i === selectedChar ? ' selected' : '') + (locked ? ' locked' : '');
-    card.innerHTML = `
-      <div class="char-emoji">${ch.emoji}</div>
-      <div class="char-name">${ch.name}</div>
-      <div class="char-desc">${ch.desc}</div>
-      ${locked ? `<div class="char-desc">🔓 Score ${ch.unlockScore} to unlock</div>` : ''}
-    `;
-    if (!locked) {
-      card.onclick = () => { selectedChar = i; saveCharSelect(); buildCharGrid(); };
-    }
-    grid.appendChild(card);
-  });
-}
-
-// --- BUTTON EVENTS ---
-document.getElementById('playBtn').onclick = startGame;
-document.getElementById('charBtn').onclick = showCharSelect;
-document.getElementById('backBtn').onclick = showMenu;
-document.getElementById('retryBtn').onclick = startGame;
-document.getElementById('menuBtn').onclick = showMenu;
-
-// --- INPUT ---
-const keys = {};
-document.addEventListener('keydown', e => {
-  keys[e.code] = true;
-  if (gameState === STATE.PLAYING) {
-    if (e.code === 'ArrowLeft' || e.code === 'KeyA') moveLane(-1);
-    if (e.code === 'ArrowRight' || e.code === 'KeyD') moveLane(1);
-    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') jump();
-    if (e.code === 'ArrowDown' || e.code === 'KeyS') duck(true);
-  }
-  if (e.code === 'Space') e.preventDefault();
-});
-document.addEventListener('keyup', e => {
-  keys[e.code] = false;
-  if (e.code === 'ArrowDown' || e.code === 'KeyS') duck(false);
-});
-
-// Touch / Swipe
-let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
-document.addEventListener('touchstart', e => {
-  const t = e.touches[0];
-  touchStartX = t.clientX;
-  touchStartY = t.clientY;
-  touchStartTime = Date.now();
-  e.preventDefault();
-}, { passive: false });
-document.addEventListener('touchend', e => {
-  if (gameState !== STATE.PLAYING) return;
-  const t = e.changedTouches[0];
-  const dx = t.clientX - touchStartX;
-  const dy = t.clientY - touchStartY;
-  const dt = Date.now() - touchStartTime;
-  if (dt > 500) return; // too slow
-  const minSwipe = 30;
-  if (Math.abs(dx) > Math.abs(dy)) {
-    if (dx > minSwipe) moveLane(1);
-    else if (dx < -minSwipe) moveLane(-1);
-  } else {
-    if (dy < -minSwipe) jump();
-    else if (dy > minSwipe) duck(true);
-  }
-  setTimeout(() => duck(false), 300);
-  e.preventDefault();
-}, { passive: false });
-
-function moveLane(dir) {
-  player.targetLane = Math.max(0, Math.min(2, player.targetLane + dir));
-}
-function jump() {
-  if (!player.grounded) return;
-  const ch = CHARACTERS[selectedChar];
-  player.jumping = true;
-  player.grounded = false;
-  player.jumpVel = -14 * ch.jumpMult;
-  player.ducking = false;
-}
-function duck(active) {
-  const ch = CHARACTERS[selectedChar];
-  if (ch.canDuck) player.ducking = active;
-}
-
-// --- SPAWNING ---
-function spawnObstacle() {
-  const types = ['block', 'spike', 'tall'];
-  const type = types[Math.floor(Math.random() * types.length)];
-  const lane = Math.floor(Math.random() * 3);
-  // Chess-like strategy: sometimes spawn in 2 lanes to force a choice
-  const doubleLane = Math.random() < 0.25 && distance > 200;
-  obstacles.push({
-    x: laneXs[lane], y: -60, lane, type, w: 50, h: type === 'tall' ? 70 : 40,
-  });
-  if (doubleLane) {
-    let lane2 = (lane + (Math.random() < 0.5 ? 1 : 2)) % 3;
-    obstacles.push({
-      x: laneXs[lane2], y: -60, lane: lane2, type, w: 50, h: type === 'tall' ? 70 : 40,
-    });
-  }
-}
-function spawnCoin() {
-  const lane = Math.floor(Math.random() * 3);
-  coinItems.push({ x: laneXs[lane], y: -30, lane, collected: false, phase: Math.random() * Math.PI * 2 });
-}
-
-// --- PARTICLES ---
-function addParticles(x, y, color, count) {
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      x, y, vx: (Math.random() - 0.5) * 6, vy: (Math.random() - 0.5) * 6,
-      life: 30 + Math.random() * 20, maxLife: 50, color, size: Math.random() * 4 + 2,
-    });
-  }
-}
-
-// --- COLLISION ---
-function checkCollision(px, py, pw, ph, ox, oy, ow, oh) {
-  return px - pw/2 < ox + ow/2 && px + pw/2 > ox - ow/2 &&
-         py - ph/2 < oy + oh/2 && py + ph/2 > oy - oh/2;
-}
-
-// --- DRAW HELPERS ---
-function drawBlob(x, y, radius, bodyColor, faceColor) {
-  // Body
-  ctx.beginPath();
-  ctx.arc(x, y, radius, 0, Math.PI * 2);
-  ctx.fillStyle = bodyColor;
-  ctx.fill();
-  ctx.strokeStyle = faceColor;
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  // Shine
-  ctx.beginPath();
-  ctx.arc(x - radius * 0.3, y - radius * 0.3, radius * 0.25, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(255,255,255,0.4)';
-  ctx.fill();
-  // Eyes
-  const eyeOff = radius * 0.3;
-  ctx.fillStyle = 'white';
-  ctx.beginPath(); ctx.arc(x - eyeOff, y - radius * 0.1, radius * 0.2, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + eyeOff, y - radius * 0.1, radius * 0.2, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#222';
-  ctx.beginPath(); ctx.arc(x - eyeOff, y - radius * 0.05, radius * 0.1, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(x + eyeOff, y - radius * 0.05, radius * 0.1, 0, Math.PI * 2); ctx.fill();
-  // Mouth
-  ctx.beginPath();
-  ctx.arc(x, y + radius * 0.15, radius * 0.2, 0.1 * Math.PI, 0.9 * Math.PI);
-  ctx.strokeStyle = '#222';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-}
-
-function drawObstacle(obs) {
-  ctx.save();
-  const colors = { block: '#e74c3c', spike: '#e67e22', tall: '#c0392b' };
-  const c = colors[obs.type];
-  if (obs.type === 'spike') {
-    ctx.beginPath();
-    ctx.moveTo(obs.x, obs.y - obs.h / 2);
-    ctx.lineTo(obs.x - obs.w / 2, obs.y + obs.h / 2);
-    ctx.lineTo(obs.x + obs.w / 2, obs.y + obs.h / 2);
-    ctx.closePath();
-    ctx.fillStyle = c;
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  } else {
-    ctx.fillStyle = c;
-    ctx.fillRect(obs.x - obs.w/2, obs.y - obs.h/2, obs.w, obs.h);
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(obs.x - obs.w/2, obs.y - obs.h/2, obs.w, obs.h);
-    // Warning stripes
-    ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-    ctx.lineWidth = 3;
-    for (let i = 0; i < obs.w; i += 12) {
-      ctx.beginPath();
-      ctx.moveTo(obs.x - obs.w/2 + i, obs.y - obs.h/2);
-      ctx.lineTo(obs.x - obs.w/2 + i + 6, obs.y + obs.h/2);
-      ctx.stroke();
-    }
-  }
-  ctx.restore();
-}
-
-function drawCoin(coin) {
-  const wobble = Math.sin(coin.phase + frameCount * 0.1) * 3;
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(coin.x, coin.y + wobble, 12, 0, Math.PI * 2);
-  ctx.fillStyle = '#f1c40f';
-  ctx.fill();
-  ctx.strokeStyle = '#f39c12';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.fillStyle = '#f39c12';
-  ctx.font = 'bold 12px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('$', coin.x, coin.y + wobble);
-  ctx.restore();
-}
-
-// --- MAIN DRAW ---
-function drawBackground() {
-  // Sky gradient
-  const grad = ctx.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#0a0a2e');
-  grad.addColorStop(0.5, '#1a1a4e');
-  grad.addColorStop(1, '#2d1b69');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, W, H);
-  // Stars
-  bgStars.forEach(s => {
-    const alpha = 0.4 + Math.sin(s.twinkle + frameCount * 0.02) * 0.3;
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
-    ctx.fill();
-  });
-}
-
-function drawRoad() {
-  // Road surface
-  const roadW = LANE_WIDTH * 3 + 40;
-  ctx.fillStyle = '#1a1a3e';
-  ctx.fillRect(roadCenter - roadW/2, 0, roadW, H);
-  // Lane lines (dashed, scrolling)
-  roadOffset = (roadOffset + gameSpeed) % 40;
-  ctx.strokeStyle = 'rgba(100,100,200,0.3)';
-  ctx.lineWidth = 2;
-  ctx.setLineDash([20, 20]);
-  ctx.lineDashOffset = -roadOffset;
-  for (let i = 1; i < LANE_COUNT; i++) {
-    const lx = roadCenter - LANE_WIDTH * 1.5 + i * LANE_WIDTH;
-    ctx.beginPath();
-    ctx.moveTo(lx, 0);
-    ctx.lineTo(lx, H);
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-  // Road edges
-  ctx.strokeStyle = 'rgba(74,144,217,0.5)';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(roadCenter - roadW/2, 0);
-  ctx.lineTo(roadCenter - roadW/2, H);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(roadCenter + roadW/2, 0);
-  ctx.lineTo(roadCenter + roadW/2, H);
-  ctx.stroke();
-}
-
-function drawPlayer() {
-  const ch = CHARACTERS[selectedChar];
-  player.bobPhase += 0.15;
-  const bob = player.grounded ? Math.sin(player.bobPhase) * 3 : 0;
-  const px = player.x;
-  const py = player.y - player.jumpHeight + bob;
-  const radius = player.ducking ? 14 : 20;
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath();
-  ctx.ellipse(px, player.y + 5, radius * 0.8, 5, 0, 0, Math.PI * 2);
-  ctx.fill();
-  // Trail particles
-  if (frameCount % 3 === 0) {
-    addParticles(px, py + radius, ch.bodyColor, 1);
-  }
-  // Shield glow
-  if (player.shields > 0) {
-    ctx.beginPath();
-    ctx.arc(px, py, radius + 8, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(72,219,251,${0.3 + Math.sin(frameCount * 0.1) * 0.2})`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-  drawBlob(px, py, radius, ch.bodyColor, ch.color);
-}
-
-function drawParticles() {
-  particles.forEach(p => {
-    const alpha = p.life / p.maxLife;
-    ctx.fillStyle = p.color;
-    ctx.globalAlpha = alpha;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.size * alpha, 0, Math.PI * 2);
-    ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-}
-
-// --- UPDATE ---
-function update() {
-  if (gameState !== STATE.PLAYING) return;
-  frameCount++;
-  const ch = CHARACTERS[selectedChar];
-  const speed = gameSpeed * ch.speedMult;
-
-  // Smooth lane transition
-  const targetX = laneXs[player.targetLane];
-  player.x += (targetX - player.x) * 0.2;
-  player.lane = player.targetLane;
-
-  // Jump physics
-  if (player.jumping) {
-    player.jumpHeight -= player.jumpVel;
-    player.jumpVel += 0.7;
-    if (player.jumpHeight <= 0) {
-      player.jumpHeight = 0;
-      player.jumping = false;
-      player.grounded = true;
-      player.jumpVel = 0;
-    }
-  }
-
-  // Speed increases over time
-  gameSpeed = 4 + distance * 0.003;
-  if (gameSpeed > 14) gameSpeed = 14;
-
-  // Distance & score
-  distance += speed * 0.05;
-  score = Math.floor(distance * 10) + coins * 10;
-
-  // Spawn obstacles
-  const spawnRate = Math.max(30, 80 - distance * 0.03);
-  if (frameCount % Math.floor(spawnRate) === 0) spawnObstacle();
-  // Spawn coins
-  if (frameCount % 45 === 0) spawnCoin();
-
-  // Move obstacles
-  obstacles.forEach(o => { o.y += speed; });
-  obstacles = obstacles.filter(o => o.y < H + 100);
-
-  // Move coins
-  coinItems.forEach(c => { c.y += speed; });
-  coinItems = coinItems.filter(c => c.y < H + 100 && !c.collected);
-
-  // Magnet effect
-  if (ch.magnet) {
-    coinItems.forEach(c => {
-      if (!c.collected) {
-        const dx = player.x - c.x;
-        const dy = (player.y - player.jumpHeight) - c.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < 150) {
-          c.x += dx * 0.08;
-          c.y += dy * 0.08;
+        // ==================== INITIALIZATION ====================
+        function init() {
+            loadPlayTime();
+            renderEraGrid();
+            updatePlayTimeDisplay();
+            setInterval(savePlayTime, 1000);
+            setInterval(updatePlayTimeDisplay, 1000);
         }
-      }
-    });
-  }
 
-  // Collision detection — obstacles
-  const ph = player.ducking ? 20 : 40;
-  const pw = 30;
-  for (let i = obstacles.length - 1; i >= 0; i--) {
-    const o = obstacles[i];
-    if (checkCollision(player.x, player.y - player.jumpHeight, pw, ph, o.x, o.y, o.w * 0.8, o.h * 0.8)) {
-      if (player.jumpHeight > (o.type === 'tall' ? 70 : 40)) {
-        // Jumped over!
-      } else if (player.shields > 0) {
-        player.shields--;
-        addParticles(o.x, o.y, '#48dbfb', 15);
-        obstacles.splice(i, 1);
-      } else {
-        // Game over
-        addParticles(player.x, player.y - player.jumpHeight, ch.bodyColor, 30);
-        showGameOver();
-        return;
-      }
-    }
-  }
+        function loadPlayTime() {
+            const saved = localStorage.getItem('hadooney_play_time');
+            gameState.totalPlayTime = saved ? parseInt(saved) : 0;
+        }
 
-  // Collision detection — coins
-  const coinMult = ch.coinMult || 1;
-  coinItems.forEach(c => {
-    if (!c.collected && checkCollision(player.x, player.y - player.jumpHeight, 40, 40, c.x, c.y, 24, 24)) {
-      c.collected = true;
-      coins += coinMult;
-      addParticles(c.x, c.y, '#f1c40f', 8);
-    }
-  });
+        function savePlayTime() {
+            const now = Date.now();
+            if (gameState.screen === 'game' && gameState.isPlayerTurn && !gameState.isProcessingTurn) {
+                gameState.totalPlayTime += (now - gameState.lastSaveTime);
+            }
+            gameState.lastSaveTime = now;
+            localStorage.setItem('hadooney_play_time', gameState.totalPlayTime.toString());
+        }
 
-  // Update particles
-  particles.forEach(p => {
-    p.x += p.vx; p.y += p.vy;
-    p.vx *= 0.96; p.vy *= 0.96;
-    p.life--;
-  });
-  particles = particles.filter(p => p.life > 0);
+        function updatePlayTimeDisplay() {
+            const hours = Math.floor(gameState.totalPlayTime / 3600000);
+            const minutes = Math.floor((gameState.totalPlayTime % 3600000) / 60000);
+            const seconds = Math.floor((gameState.totalPlayTime % 60000) / 1000);
+            document.getElementById('total-play-time').textContent =
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
 
-  // HUD
-  scoreDisplay.textContent = score;
-  highScoreHud.textContent = '🏆 ' + highScore;
-  const lanes = ['●', '●', '●'];
-  lanes[player.lane] = '◉';
-  laneIndicator.textContent = lanes.join(' ');
-}
+        function renderEraGrid() {
+            const grid = document.getElementById('era-grid');
+            const stars = loadStars();
 
-// --- RENDER ---
-function render() {
-  ctx.clearRect(0, 0, W, H);
-  drawBackground();
-  drawRoad();
-  coinItems.forEach(drawCoin);
-  obstacles.forEach(drawObstacle);
-  drawPlayer();
-  drawParticles();
-}
+            grid.innerHTML = ERAS.map(era => {
+                const eraStars = stars[era.id] || 0;
+                const starDisplay = Array(5).fill(0).map((_, i) =>
+                    `<span class="star ${i < eraStars ? '' : 'empty'}">★</span>`
+                ).join('');
 
-// --- GAME LOOP ---
-function gameLoop() {
-  update();
-  render();
-  requestAnimationFrame(gameLoop);
-}
+                return `
+                    <div class="era-card" data-era="${era.id}" style="--era-color: ${era.color}" onclick="selectEra('${era.id}')">
+                        <div class="era-emoji">${era.emoji}</div>
+                        <div class="era-name">${era.name}</div>
+                        <div class="era-desc">${era.historical ? 'Historical' : 'Fictional'}</div>
+                        <div class="era-power">⚡ ${era.power}</div>
+                        <div class="era-stars">${starDisplay}</div>
+                    </div>
+                `;
+            }).join('');
+        }
 
-// --- INIT ---
-showMenu();
-gameLoop();
+        function loadStars() {
+            const saved = localStorage.getItem('hadooney_stars');
+            return saved ? JSON.parse(saved) : {};
+        }
 
-</script>
+        function saveStars(eraId, starCount) {
+            const stars = loadStars();
+            stars[eraId] = Math.max(stars[eraId] || 0, starCount);
+            localStorage.setItem('hadooney_stars', JSON.stringify(stars));
+        }
+
+        // ==================== SCREEN NAVIGATION ====================
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screenId + '-screen').classList.add('active');
+            gameState.screen = screenId.replace('-screen', '');
+
+            if (screenId === 'game') {
+                setTimeout(initGameCanvas, 100);
+            }
+        }
+
+        function selectEra(eraId) {
+            gameState.selectedEra = ERAS.find(e => e.id === eraId);
+            document.querySelectorAll('.era-card').forEach(c => c.classList.remove('selected'));
+            document.querySelector(`[data-era="${eraId}"]`).classList.add('selected');
+            document.getElementById('continue-to-opponents').disabled = false;
+        }
+
+        function updateOpponentCount(value) {
+            gameState.opponentCount = parseInt(value);
+            document.getElementById('opponent-count').textContent = value;
+        }
+
+        function showHowToPlay() {
+            document.getElementById('how-to-play-modal').classList.add('active');
+        }
+
+        function closeHowToPlay() {
+            document.getElementById('how-to-play-modal').classList.remove('active');
+        }
+
+        function showMenuModal() {
+            document.getElementById('menu-modal').classList.add('active');
+        }
+
+        function closeMenuModal() {
+            document.getElementById('menu-modal').classList.remove('active');
+        }
+
+        // ==================== GAME INITIALIZATION ====================
+        function startGame() {
+            initializeGame();
+            showScreen('game');
+        }
+
+        function initializeGame() {
+            const era = gameState.selectedEra;
+
+            // Reset player state
+            gameState.player = {
+                id: 'player',
+                name: 'You',
+                color: era.color,
+                gold: 20,
+                tiles: [],
+                eliminated: false,
+                specialUsed: false,
+                specialActive: null,
+                berserkerActive: false,
+                defenseBonus: 1,
+                defenseBonusTurns: 0,
+                factories: [],
+                impassableTiles: [],
+                invincibleTiles: []
+            };
+
+            // Create opponents
+            gameState.opponents = [];
+            const personalities = Object.values(AI_PERSONALITIES);
+            const colors = ['#e74c3c', '#9b59b6', '#1abc9c', '#f39c12', '#34495e', '#16a085', '#27ae60', '#2980b9', '#8e44ad', '#c0392b', '#d35400', '#7f8c8d', '#2c3e50', '#e67e22', '#95a5a6', '#bdc3c7', '#2ecc71', '#f1c40f', '#e84393', '#00cec9'];
+
+            for (let i = 0; i < gameState.opponentCount; i++) {
+                const personality = personalities[i % personalities.length];
+                const bonusStrength = Math.floor(gameState.opponentCount / 5);
+
+                gameState.opponents.push({
+                    id: `ai_${i}`,
+                    name: `Empire ${i + 1}`,
+                    color: colors[i % colors.length],
+                    gold: 15 + bonusStrength * 5,
+                    tiles: [],
+                    eliminated: false,
+                    personality: personality,
+                    isAI: true
+                });
+            }
+
+            // Generate hex map
+            generateHexMap();
+
+            // Assign starting territories
+            assignStartingTerritories();
+
+            // Reset game state
+            gameState.turn = 1;
+            gameState.isPlayerTurn = true;
+            gameState.isProcessingTurn = false;
+            gameState.selectedTile = null;
+            gameState.targetTile = null;
+            gameState.specialPowerActive = false;
+            gameState.powerTargetMode = false;
+            gameState.powerFirstTile = null;
+            gameState.gameStartTime = Date.now();
+
+            // Update UI
+            updateGameUI();
+        }
+
+        function generateHexMap() {
+            const canvas = document.getElementById('game-canvas');
+            const container = document.querySelector('.game-canvas-container');
+            const rect = container.getBoundingClientRect();
+
+            canvas.width = rect.width * window.devicePixelRatio;
+            canvas.height = rect.height * window.devicePixelRatio;
+
+            const hexSize = Math.min(canvas.width, canvas.height) / 14;
+            const cols = Math.floor(canvas.width / (hexSize * 1.732));
+            const rows = Math.floor(canvas.height / (hexSize * 1.5));
+
+            gameState.hexGrid = { width: cols, height: rows, hexSize };
+            gameState.territories = [];
+
+            // Generate continent shape using noise-like pattern
+            const centerX = cols / 2;
+            const centerY = rows / 2;
+            const maxDist = Math.sqrt(centerX * centerX + centerY * centerY) * 0.7;
+
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    const x = col + (row % 2) * 0.5;
+                    const y = row * 0.866;
+
+                    const distFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
+                    const noise = Math.random() * 0.3 + 0.7;
+
+                    if (distFromCenter < maxDist * noise) {
+                        // Determine terrain type
+                        let terrain;
+                        const rand = Math.random();
+                        if (rand < 0.15) terrain = TERRAIN_TYPES.FOREST;
+                        else if (rand < 0.25) terrain = TERRAIN_TYPES.MOUNTAIN;
+                        else if (rand < 0.35) terrain = TERRAIN_TYPES.WATER;
+                        else terrain = TERRAIN_TYPES.PLAINS;
+
+                        gameState.territories.push({
+                            id: `tile_${row}_${col}`,
+                            col,
+                            row,
+                            x: x * hexSize * 1.732 + hexSize,
+                            y: y * hexSize * 1.5 + hexSize,
+                            terrain,
+                            owner: null,
+                            troops: 0,
+                            onFire: 0,
+                            frozen: false,
+                            defenseBonus: 1,
+                            impassable: false,
+                            invincible: false
+                        });
+                    }
+                }
+            }
+        }
+
+        function assignStartingTerritories() {
+            // Shuffle territories
+            const shuffled = [...gameState.territories].sort(() => Math.random() - 0.5);
+
+            // Filter out water tiles for starting positions
+            const landTiles = shuffled.filter(t => t.terrain.passable);
+
+            // Give player 3 tiles
+            for (let i = 0; i < 3; i++) {
+                if (landTiles[i]) {
+                    landTiles[i].owner = 'player';
+                    landTiles[i].troops = 3 + Math.floor(Math.random() * 3);
+                    gameState.player.tiles.push(landTiles[i].id);
+                }
+            }
+
+            // Give each AI 3 tiles
+            let tileIndex = 3;
+            for (const opponent of gameState.opponents) {
+                for (let i = 0; i < 3; i++) {
+                    if (landTiles[tileIndex]) {
+                        landTiles[tileIndex].owner = opponent.id;
+                        landTiles[tileIndex].troops = 2 + Math.floor(Math.random() * 2);
+                        opponent.tiles.push(landTiles[tileIndex].id);
+                        tileIndex++;
+                    }
+                }
+            }
+
+            // Add neutral troops to some tiles
+            for (const tile of gameState.territories) {
+                if (!tile.owner && tile.terrain.passable && Math.random() < 0.3) {
+                    tile.troops = 1 + Math.floor(Math.random() * 3);
+                }
+            }
+        }
+
+        // ==================== CANVAS RENDERING ====================
+        let canvas, ctx;
+
+        function initGameCanvas() {
+            canvas = document.getElementById('game-canvas');
+            ctx = canvas.getContext('2d');
+
+            // Handle both mouse and touch events
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+            canvas.addEventListener('mousemove', handleMouseMove);
+
+            renderGame();
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+            gameState.lastTouchPos = { x, y };
+            handleCanvasInteraction(x, y);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            gameState.lastTouchPos = null;
+        }
+
+        function handleMouseMove(e) {
+            if (!ctx || !canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+            const tile = getTileAtPosition(x, y);
+            const tooltip = document.getElementById('territory-info');
+
+            if (tile) {
+                const ownerName = tile.owner ? (tile.owner === 'player' ? 'You' :
+                    gameState.opponents.find(o => o.id === tile.owner)?.name || 'Unknown') : 'Neutral';
+
+                tooltip.innerHTML = `
+                    <div>${tile.terrain.emoji} ${tile.terrain.name}</div>
+                    <div>Owner: ${ownerName}</div>
+                    <div>Troops: ${tile.troops}</div>
+                    ${tile.defenseBonus > 1 ? `<div>Defense: ×${tile.defenseBonus.toFixed(1)}</div>` : ''}
+                    ${tile.onFire > 0 ? `<div>🔥 On Fire: ${tile.onFire} turns</div>` : ''}
+                    ${tile.frozen ? `<div>❄️ Frozen</div>` : ''}
+                    ${tile.impassable ? `<div>🚫 Impassable</div>` : ''}
+                `;
+                tooltip.style.left = `${e.clientX + 15}px`;
+                tooltip.style.top = `${e.clientY + 15}px`;
+                tooltip.classList.add('active');
+            } else {
+                tooltip.classList.remove('active');
+            }
+        }
+
+        function handleCanvasClick(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+            handleCanvasInteraction(x, y);
+        }
+
+        function handleCanvasInteraction(x, y) {
+            if (!gameState.isPlayerTurn || gameState.isProcessingTurn) return;
+
+            const tile = getTileAtPosition(x, y);
+            if (!tile) return;
+
+            // Special power targeting mode
+            if (gameState.powerTargetMode) {
+                handlePowerTarget(tile);
+                return;
+            }
+
+            // Normal interaction
+            if (gameState.selectedTile) {
+                if (tile === gameState.selectedTile) {
+                    // Deselect
+                    gameState.selectedTile = null;
+                    hideActionPanel();
+                } else if (isAdjacent(gameState.selectedTile, tile)) {
+                    // Attack or reinforce
+                    if (tile.owner === 'player') {
+                        // Reinforce
+                        reinforceTile(gameState.selectedTile, tile);
+                    } else if (tile.terrain.passable && !tile.impassable) {
+                        // Attack
+                        attackTile(gameState.selectedTile, tile);
+                    }
+                    gameState.selectedTile = null;
+                    hideActionPanel();
+                } else {
+                    // Select different tile
+                    if (tile.owner === 'player') {
+                        gameState.selectedTile = tile;
+                        showActionPanel(tile);
+                    } else {
+                        gameState.selectedTile = null;
+                        hideActionPanel();
+                    }
+                }
+            } else {
+                // Select tile
+                if (tile.owner === 'player') {
+                    gameState.selectedTile = tile;
+                    showActionPanel(tile);
+                }
+            }
+
+            renderGame();
+        }
+
+        function handlePowerTarget(tile) {
+            const era = gameState.selectedEra;
+            const mode = gameState.powerTargetMode;
+
+            // Two-tile targeting powers
+            if (mode === 'rome' || mode === 'shadow' || mode === 'quantum') {
+                if (!gameState.powerFirstTile) {
+                    if (tile.owner === 'player') {
+                        gameState.powerFirstTile = tile;
+                        showPowerIndicator('Now select destination tile');
+                    }
+                } else {
+                    executeTwoTilePower(gameState.powerFirstTile, tile);
+                    gameState.powerFirstTile = null;
+                }
+                return;
+            }
+
+            // Single-tile powers
+            executeSpecialPower(tile);
+        }
+
+        function executeTwoTilePower(sourceTile, destTile) {
+            const era = gameState.selectedEra;
+            let success = false;
+
+            switch(era.id) {
+                case 'rome':
+                    // Legion March - move troops to any owned tile
+                    if (destTile.owner === 'player' && sourceTile.troops > 1) {
+                        const troopsToMove = sourceTile.troops - 1;
+                        destTile.troops += troopsToMove;
+                        sourceTile.troops = 1;
+                        success = true;
+                    }
+                    break;
+
+                case 'shadow':
+                    // Shadow Clone - duplicate troops
+                    if (destTile.owner === 'player' && sourceTile.owner === 'player') {
+                        const cloneCount = Math.floor(sourceTile.troops / 2);
+                        sourceTile.troops -= cloneCount;
+                        destTile.troops += cloneCount;
+                        success = true;
+                    }
+                    break;
+
+                case 'quantum':
+                    // Teleport - swap positions (visually only, swap owner and troops)
+                    if (destTile.owner === 'player' && sourceTile.owner === 'player') {
+                        const tempTroops = sourceTile.troops;
+                        sourceTile.troops = destTile.troops;
+                        destTile.troops = tempTroops;
+                        success = true;
+                    }
+                    break;
+            }
+
+            if (success) {
+                gameState.player.gold -= 20;
+                gameState.player.specialUsed = true;
+                showPowerIndicator(`${era.power} activated!`);
+            } else {
+                showPowerIndicator('Invalid target!');
+            }
+
+            gameState.powerTargetMode = false;
+            renderGame();
+            updateGameUI();
+            checkGameEnd();
+        }
+
+        function getTileAtPosition(x, y) {
+            const hexSize = gameState.hexGrid.hexSize;
+
+            for (const tile of gameState.territories) {
+                const dx = x - tile.x;
+                const dy = y - tile.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < hexSize * 0.9) {
+                    return tile;
+                }
+            }
+            return null;
+        }
+
+        function isAdjacent(tile1, tile2) {
+            const dc = Math.abs(tile1.col - tile2.col);
+            const dr = Math.abs(tile1.row - tile2.row);
+
+            // Hex adjacency check
+            if (tile1.row === tile2.row) {
+                return dc === 1;
+            } else if (dr === 1) {
+                const colDiff = tile2.col - tile1.col;
+                const offset = tile1.row % 2;
+                return colDiff === offset || colDiff === offset - 1;
+            }
+            return false;
+        }
+
+        function renderGame() {
+            if (!ctx || !canvas) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw territories
+            for (const tile of gameState.territories) {
+                drawHex(tile);
+            }
+
+            // Draw selection highlight
+            if (gameState.selectedTile) {
+                drawHexHighlight(gameState.selectedTile, '#fff', 3);
+            }
+
+            // Draw valid moves if tile selected
+            if (gameState.selectedTile) {
+                for (const tile of gameState.territories) {
+                    if (isAdjacent(gameState.selectedTile, tile) && tile !== gameState.selectedTile) {
+                        if (tile.owner === 'player' || (tile.terrain.passable && !tile.impassable)) {
+                            drawHexHighlight(tile, tile.owner === 'player' ? '#4ade80' : '#f87171', 2);
+                        }
+                    }
+                }
+            }
+        }
+
+        function drawHex(tile) {
+            const hexSize = gameState.hexGrid.hexSize;
+            const points = [];
+
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 6;
+                points.push({
+                    x: tile.x + hexSize * 0.9 * Math.cos(angle),
+                    y: tile.y + hexSize * 0.9 * Math.sin(angle)
+                });
+            }
+
+            // Fill based on terrain
+            ctx.fillStyle = tile.terrain.color;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Owner overlay
+            if (tile.owner) {
+                const owner = tile.owner === 'player' ? gameState.player :
+                    gameState.opponents.find(o => o.id === tile.owner);
+                if (owner) {
+                    ctx.fillStyle = owner.color + '40';
+                    ctx.fill();
+
+                    ctx.strokeStyle = owner.color;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+            }
+
+            // Impassable indicator
+            if (tile.impassable) {
+                ctx.fillStyle = '#00000080';
+                ctx.fill();
+            }
+
+            // Fire effect
+            if (tile.onFire > 0) {
+                ctx.fillStyle = '#ff000040';
+                ctx.fill();
+            }
+
+            // Frozen effect
+            if (tile.frozen) {
+                ctx.fillStyle = '#00ffff40';
+                ctx.fill();
+            }
+
+            // Invincible effect
+            if (tile.invincible) {
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+
+            // Draw terrain emoji
+            ctx.font = `${hexSize * 0.4}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(tile.terrain.emoji, tile.x, tile.y - hexSize * 0.2);
+
+            // Draw troops
+            if (tile.troops > 0 || tile.owner) {
+                ctx.font = `bold ${hexSize * 0.35}px Arial`;
+                ctx.fillStyle = '#fff';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.strokeText(tile.troops.toString(), tile.x, tile.y + hexSize * 0.25);
+                ctx.fillText(tile.troops.toString(), tile.x, tile.y + hexSize * 0.25);
+            }
+        }
+
+        function drawHexHighlight(tile, color, lineWidth) {
+            const hexSize = gameState.hexGrid.hexSize;
+            const points = [];
+
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i - Math.PI / 6;
+                points.push({
+                    x: tile.x + hexSize * 0.9 * Math.cos(angle),
+                    y: tile.y + hexSize * 0.9 * Math.sin(angle)
+                });
+            }
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = lineWidth;
+            ctx.beginPath();
+            ctx.moveTo(points[0].x, points[0].y);
+            for (let i = 1; i < points.length; i++) {
+                ctx.lineTo(points[i].x, points[i].y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        // ==================== GAME ACTIONS ====================
+        function attackTile(attackerTile, defenderTile) {
+            if (attackerTile.troops <= 1) return;
+
+            const attackerOwner = attackerTile.owner === 'player' ? gameState.player :
+                gameState.opponents.find(o => o.id === attackerTile.owner);
+            const defenderOwner = defenderTile.owner === 'player' ? gameState.player :
+                (defenderTile.owner ? gameState.opponents.find(o => o.id === defenderTile.owner) : null);
+
+            if (!attackerOwner) return;
+
+            // Calculate attack power
+            let attackPower = attackerTile.troops * (0.6 + Math.random() * 0.4);
+            if (attackerOwner.id === 'player' && gameState.player.berserkerActive) {
+                attackPower *= 2;
+                gameState.player.berserkerActive = false;
+            }
+
+            // Calculate defense power
+            let defensePower = defenderTile.troops * (0.5 + Math.random() * 0.4);
+            defensePower *= defenderTile.terrain.defense;
+
+            // Apply defense bonuses
+            if (defenderTile.defenseBonus > 1) {
+                defensePower *= defenderTile.defenseBonus;
+            }
+            if (defenderOwner && defenderOwner.id === 'player' && gameState.player.defenseBonus > 1) {
+                defensePower *= gameState.player.defenseBonus;
+            }
+
+            // Check invincibility
+            if (defenderTile.invincible) {
+                showPowerIndicator('Attack blocked by invincibility!');
+                attackerTile.troops = Math.max(1, attackerTile.troops - 1);
+                renderGame();
+                updateGameUI();
+                return;
+            }
+
+            if (attackPower > defensePower) {
+                // Attacker wins
+                const survivingTroops = Math.max(1, Math.floor(
+                    attackerTile.troops - (defenderTile.troops * 0.7)
+                ));
+
+                // Transfer ownership
+                if (defenderOwner) {
+                    const tileIndex = defenderOwner.tiles.indexOf(defenderTile.id);
+                    if (tileIndex > -1) defenderOwner.tiles.splice(tileIndex, 1);
+                }
+                attackerOwner.tiles.push(defenderTile.id);
+
+                defenderTile.owner = attackerTile.owner;
+                defenderTile.troops = survivingTroops;
+                attackerTile.troops = 1;
+
+                // Check for elimination
+                if (defenderOwner && defenderOwner.tiles.length === 0) {
+                    defenderOwner.eliminated = true;
+                }
+            } else {
+                // Defender wins
+                const survivingTroops = Math.max(1, Math.floor(
+                    defenderTile.troops - (attackerTile.troops * 0.5)
+                ));
+                defenderTile.troops = survivingTroops;
+                attackerTile.troops = 1;
+            }
+
+            renderGame();
+            updateGameUI();
+            checkGameEnd();
+        }
+
+        function reinforceTile(fromTile, toTile) {
+            if (fromTile.troops <= 1) return;
+
+            const troopsToMove = fromTile.troops - 1;
+            toTile.troops += troopsToMove;
+            fromTile.troops = 1;
+
+            renderGame();
+            updateGameUI();
+        }
+
+        function showActionPanel(tile) {
+            const panel = document.getElementById('action-panel');
+            const buttons = document.getElementById('action-buttons');
+
+            buttons.innerHTML = `
+                <button class="game-btn btn-secondary" onclick="hideActionPanel()">Cancel</button>
+            `;
+
+            panel.classList.add('active');
+        }
+
+        function hideActionPanel() {
+            document.getElementById('action-panel').classList.remove('active');
+        }
+
+        function showRecruitPanel() {
+            if (gameState.player.gold < 10) {
+                showPowerIndicator('Need 10 gold to recruit!');
+                return;
+            }
+
+            gameState.powerTargetMode = 'recruit';
+            showPowerIndicator('Tap a territory you own to recruit 5 troops');
+        }
+
+        function activateSpecialPower() {
+            if (gameState.player.specialUsed) {
+                showPowerIndicator('Special power already used!');
+                return;
+            }
+
+            if (gameState.player.gold < 20) {
+                showPowerIndicator('Need 20 gold for special power!');
+                return;
+            }
+
+            const era = gameState.selectedEra;
+
+            // Instant effects
+            if (era.id === 'aztec') {
+                // Blood Sacrifice - gain 30 gold
+                gameState.player.gold += 30;
+                gameState.player.specialUsed = true;
+                showPowerIndicator('Blood Sacrifice! +30 gold');
+                updateGameUI();
+                return;
+            }
+
+            if (era.id === 'crystal') {
+                // Crystal Shield - all tiles get +50% defense
+                gameState.player.defenseBonus = 1.5;
+                gameState.player.defenseBonusTurns = 2;
+                gameState.player.specialUsed = true;
+                showPowerIndicator('Crystal Shield activated! +50% defense for 2 turns');
+                updateGameUI();
+                return;
+            }
+
+            if (era.id === 'thunder') {
+                // Chain Lightning - attack 3 random enemy tiles
+                const enemyTiles = gameState.territories.filter(t => t.owner && t.owner !== 'player');
+                if (enemyTiles.length >= 1) {
+                    const targets = enemyTiles.slice(0, 3);
+                    for (const t of targets) {
+                        t.troops = Math.max(0, t.troops - 5);
+                        if (t.troops === 0) {
+                            const owner = gameState.opponents.find(o => o.id === t.owner);
+                            if (owner) {
+                                const idx = owner.tiles.indexOf(t.id);
+                                if (idx > -1) owner.tiles.splice(idx, 1);
+                            }
+                            t.owner = 'player';
+                            gameState.player.tiles.push(t.id);
+                            t.troops = 1;
+                        }
+                    }
+                }
+                gameState.player.gold -= 20;
+                gameState.player.specialUsed = true;
+                showPowerIndicator('Chain Lightning!');
+                updateGameUI();
+                renderGame();
+                checkGameEnd();
+                return;
+            }
+
+            // Targeted effects
+            gameState.powerTargetMode = era.id;
+
+            const instructions = {
+                egypt: 'Tap an enemy tile to kill 50% of troops',
+                rome: 'Tap source tile, then destination to move troops',
+                viking: 'Berserker Rage activated! Next attack deals 2x damage',
+                medieval: 'Tap a tile to fortify with Castle Wall',
+                ottoman: 'Tap a tile to recruit 15 free troops',
+                ming: 'Tap a tile to make impassable for 3 turns',
+                edo: 'Tap a tile to make invincible for 1 turn',
+                british: 'Tap any tile to naval bombard',
+                industrial: 'Tap a tile to build a factory (5 gold/turn)',
+                cyber: 'Tap an enemy tile to steal 3 troops',
+                quantum: 'Tap first tile to teleport, then destination',
+                star: 'Tap a tile to destroy all troops',
+                dragon: 'Tap a tile to attack it and adjacent tiles',
+                shadow: 'Tap source tile, then destination to clone troops',
+                void: 'Tap an enemy tile to remove from map',
+                ember: 'Tap a tile to set it and neighbors on fire',
+                frost: 'Tap a tile to freeze all enemies in region'
+            };
+
+            showPowerIndicator(instructions[era.id] || 'Select target');
+
+            // Instant activation for berserker
+            if (era.id === 'viking') {
+                gameState.player.berserkerActive = true;
+                gameState.player.specialUsed = true;
+                gameState.powerTargetMode = false;
+            }
+        }
+
+        function executeSpecialPower(targetTile) {
+            const era = gameState.selectedEra;
+            const mode = gameState.powerTargetMode;
+
+            if (mode === 'recruit') {
+                if (targetTile.owner === 'player') {
+                    gameState.player.gold -= 10;
+                    targetTile.troops += 5;
+                    showPowerIndicator('Recruited 5 troops!');
+                }
+                gameState.powerTargetMode = false;
+                hideActionPanel();
+                renderGame();
+                updateGameUI();
+                return;
+            }
+
+            let success = false;
+
+            switch(era.id) {
+                case 'egypt':
+                    // Sandstorm - kill 50% troops on target
+                    if (targetTile.owner && targetTile.owner !== 'player') {
+                        targetTile.troops = Math.ceil(targetTile.troops * 0.5);
+                        success = true;
+                    }
+                    break;
+
+                case 'medieval':
+                    // Castle Wall - double defense for 3 turns
+                    if (targetTile.owner === 'player') {
+                        targetTile.defenseBonus = 2;
+                        setTimeout(() => { if (targetTile) targetTile.defenseBonus = 1; }, 5000);
+                        success = true;
+                    }
+                    break;
+
+                case 'ottoman':
+                    // Janissary - 15 free troops
+                    if (targetTile.owner === 'player') {
+                        targetTile.troops += 15;
+                        success = true;
+                    }
+                    break;
+
+                case 'ming':
+                    // Great Wall - impassable for 3 turns
+                    if (targetTile.owner === 'player') {
+                        targetTile.impassable = true;
+                        setTimeout(() => { if (targetTile) targetTile.impassable = false; }, 5000);
+                        success = true;
+                    }
+                    break;
+
+                case 'edo':
+                    // Samurai Honor - invincible for 1 turn
+                    if (targetTile.owner === 'player') {
+                        targetTile.invincible = true;
+                        setTimeout(() => { if (targetTile) targetTile.invincible = false; }, 1500);
+                        success = true;
+                    }
+                    break;
+
+                case 'british':
+                    // Naval Bombardment - attack any tile
+                    if (targetTile.owner && targetTile.owner !== 'player') {
+                        targetTile.troops = Math.max(0, targetTile.troops - 5);
+                        if (targetTile.troops === 0) {
+                            const owner = gameState.opponents.find(o => o.id === targetTile.owner);
+                            if (owner) {
+                                const idx = owner.tiles.indexOf(targetTile.id);
+                                if (idx > -1) owner.tiles.splice(idx, 1);
+                            }
+                            targetTile.owner = 'player';
+                            gameState.player.tiles.push(targetTile.id);
+                            targetTile.troops = 1;
+                        }
+                        success = true;
+                    }
+                    break;
+
+                case 'industrial':
+                    // Factory - 5 gold per turn
+                    if (targetTile.owner === 'player') {
+                        if (!gameState.player.factories.includes(targetTile.id)) {
+                            gameState.player.factories.push(targetTile.id);
+                        }
+                        success = true;
+                    }
+                    break;
+
+                case 'cyber':
+                    // Hack - steal 3 troops from enemies on tile
+                    if (targetTile.owner && targetTile.owner !== 'player' && targetTile.troops >= 3) {
+                        targetTile.troops -= 3;
+                        // Find player tile to add troops
+                        const playerTile = gameState.territories.find(t => t.owner === 'player');
+                        if (playerTile) playerTile.troops += 3;
+                        success = true;
+                    }
+                    break;
+
+                case 'star':
+                    // Orbital Strike - destroy all troops
+                    targetTile.troops = 0;
+                    if (targetTile.owner) {
+                        const owner = targetTile.owner === 'player' ? gameState.player :
+                            gameState.opponents.find(o => o.id === targetTile.owner);
+                        if (owner) {
+                            const idx = owner.tiles.indexOf(targetTile.id);
+                            if (idx > -1) owner.tiles.splice(idx, 1);
+                        }
+                        targetTile.owner = null;
+                    }
+                    success = true;
+                    break;
+
+                case 'dragon':
+                    // Dragon Breath - attack target and adjacent
+                    const targets = [targetTile];
+                    for (const t of gameState.territories) {
+                        if (t !== targetTile && isAdjacent(targetTile, t)) {
+                            targets.push(t);
+                        }
+                    }
+                    for (const t of targets) {
+                        if (t.owner && t.owner !== 'player') {
+                            t.troops = Math.max(0, t.troops - 5);
+                            if (t.troops === 0 && t.owner !== 'player') {
+                                const owner = gameState.opponents.find(o => o.id === t.owner);
+                                if (owner) {
+                                    const idx = owner.tiles.indexOf(t.id);
+                                    if (idx > -1) owner.tiles.splice(idx, 1);
+                                }
+                                t.owner = 'player';
+                                gameState.player.tiles.push(t.id);
+                                t.troops = 1;
+                            }
+                        }
+                    }
+                    success = true;
+                    break;
+
+                case 'void':
+                    // Void Rift - remove tile entirely
+                    if (targetTile.owner && targetTile.owner !== 'player') {
+                        const owner = gameState.opponents.find(o => o.id === targetTile.owner);
+                        if (owner) {
+                            const idx = owner.tiles.indexOf(targetTile.id);
+                            if (idx > -1) owner.tiles.splice(idx, 1);
+                        }
+                        targetTile.owner = null;
+                        targetTile.troops = 0;
+                        success = true;
+                    }
+                    break;
+
+                case 'ember':
+                    // Inferno - set on fire
+                    const fireTargets = [targetTile];
+                    for (const t of gameState.territories) {
+                        if (t !== targetTile && isAdjacent(targetTile, t)) {
+                            fireTargets.push(t);
+                        }
+                    }
+                    for (const t of fireTargets) {
+                        t.onFire = 3;
+                    }
+                    success = true;
+                    break;
+
+                case 'frost':
+                    // Blizzard - freeze region
+                    for (const t of gameState.territories) {
+                        if (t.owner && t.owner !== 'player' && isAdjacent(targetTile, t)) {
+                            t.frozen = true;
+                        }
+                    }
+                    success = true;
+                    break;
+            }
+
+            if (success) {
+                gameState.player.gold -= 20;
+                gameState.player.specialUsed = true;
+                showPowerIndicator(`${era.power} activated!`);
+            } else {
+                showPowerIndicator('Invalid target!');
+            }
+
+            gameState.powerTargetMode = false;
+            renderGame();
+            updateGameUI();
+            checkGameEnd();
+        }
+
+        function showPowerIndicator(message) {
+            const indicator = document.getElementById('power-indicator');
+            indicator.textContent = message;
+            indicator.classList.add('active');
+            setTimeout(() => indicator.classList.remove('active'), 2000);
+        }
+
+        // ==================== TURN MANAGEMENT ====================
+        function endTurn() {
+            if (!gameState.isPlayerTurn || gameState.isProcessingTurn) return;
+
+            gameState.isPlayerTurn = false;
+            gameState.isProcessingTurn = true;
+            gameState.selectedTile = null;
+            hideActionPanel();
+            renderGame();
+
+            // Process fire damage
+            processFireDamage();
+
+            // Unfreeze tiles
+            for (const tile of gameState.territories) {
+                tile.frozen = false;
+            }
+
+            // AI turns
+            processAITurns();
+        }
+
+        function processFireDamage() {
+            for (const tile of gameState.territories) {
+                if (tile.onFire > 0) {
+                    tile.troops = Math.max(0, tile.troops - 3);
+                    tile.onFire--;
+                    if (tile.troops === 0 && tile.owner) {
+                        const owner = tile.owner === 'player' ? gameState.player :
+                            gameState.opponents.find(o => o.id === tile.owner);
+                        if (owner) {
+                            const idx = owner.tiles.indexOf(tile.id);
+                            if (idx > -1) owner.tiles.splice(idx, 1);
+                        }
+                        tile.owner = null;
+                    }
+                }
+            }
+        }
+
+        async function processAITurns() {
+            const activeAIs = gameState.opponents.filter(o => !o.eliminated);
+
+            for (const ai of activeAIs) {
+                await processSingleAITurn(ai);
+                await sleep(400);
+            }
+
+            // Start new turn
+            startNewTurn();
+        }
+
+        async function processSingleAITurn(ai) {
+            // Collect income
+            let income = ai.tiles.length;
+            ai.gold += income;
+
+            // Get owned tiles with troops
+            const ownedTiles = ai.tiles.map(id => gameState.territories.find(t => t.id === id))
+                .filter(t => t && t.troops > 1 && !t.impassable);
+
+            if (ownedTiles.length === 0) return;
+
+            // Decide actions based on personality
+            const actions = Math.floor(Math.random() * 3) + 1;
+
+            for (let i = 0; i < actions; i++) {
+                const action = Math.random();
+                const sourceTile = ownedTiles[Math.floor(Math.random() * ownedTiles.length)];
+                if (!sourceTile) continue;
+
+                // Find adjacent tiles
+                const adjacentTiles = gameState.territories.filter(t =>
+                    isAdjacent(sourceTile, t) && t.terrain.passable && !t.impassable
+                );
+
+                if (adjacentTiles.length === 0) continue;
+
+                if (action < ai.personality.attackChance) {
+                    // Attack - prioritize weakest targets
+                    const targets = adjacentTiles.filter(t => t.owner !== ai.id);
+                    if (targets.length > 0) {
+                        targets.sort((a, b) => a.troops - b.troops);
+                        const target = targets[0];
+                        attackTile(sourceTile, target);
+                    }
+                } else if (action < ai.personality.attackChance + ai.personality.reinforceChance) {
+                    // Reinforce
+                    const friendlyTargets = adjacentTiles.filter(t => t.owner === ai.id);
+                    if (friendlyTargets.length > 0) {
+                        const target = friendlyTargets[Math.floor(Math.random() * friendlyTargets.length)];
+                        reinforceTile(sourceTile, target);
+                    }
+                } else if (ai.gold >= 10) {
+                    // Recruit
+                    ai.gold -= 10;
+                    sourceTile.troops += 5;
+                }
+            }
+        }
+
+        function startNewTurn() {
+            gameState.turn++;
+            gameState.isPlayerTurn = true;
+            gameState.isProcessingTurn = false;
+
+            // Collect player income
+            let income = gameState.player.tiles.length;
+            for (const tileId of gameState.player.tiles) {
+                const tile = gameState.territories.find(t => t.id === tileId);
+                if (tile) {
+                    if (tile.terrain === TERRAIN_TYPES.FOREST) {
+                        income += 1;
+                    }
+                }
+            }
+
+            // Factory income
+            income += gameState.player.factories.length * 5;
+
+            gameState.player.gold += income;
+
+            // Decrease defense bonus turns
+            if (gameState.player.defenseBonusTurns > 0) {
+                gameState.player.defenseBonusTurns--;
+                if (gameState.player.defenseBonusTurns === 0) {
+                    gameState.player.defenseBonus = 1;
+                }
+            }
+
+            updateGameUI();
+            renderGame();
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // ==================== GAME END ====================
+        function checkGameEnd() {
+            // Check if player eliminated
+            if (gameState.player.tiles.length === 0) {
+                endGame(false);
+                return;
+            }
+
+            // Check if all opponents eliminated
+            const activeOpponents = gameState.opponents.filter(o => !o.eliminated);
+            if (activeOpponents.length === 0) {
+                endGame(true);
+                return;
+            }
+        }
+
+        function endGame(victory) {
+            gameState.screen = 'result';
+
+            const totalLandTiles = gameState.territories.filter(t => t.terrain.passable).length;
+            const playerTerritories = gameState.player.tiles.length;
+            const percentage = (playerTerritories / totalLandTiles) * 100;
+
+            // Calculate stars
+            let stars = 0;
+            if (percentage >= 94) stars = 5;
+            else if (percentage >= 85) stars = 4;
+            else if (percentage >= 75) stars = 3;
+            else if (percentage >= 50) stars = 2;
+            else if (percentage >= 20) stars = 1;
+
+            // Save stars if victory
+            if (victory && gameState.selectedEra) {
+                saveStars(gameState.selectedEra.id, stars);
+            }
+
+            // Update UI
+            document.getElementById('result-title').textContent = victory ? '🏆 VICTORY! 🏆' : '💀 DEFEAT 💀';
+            document.getElementById('result-title').className = 'result-title ' + (victory ? 'victory' : 'defeat');
+            document.getElementById('result-stars').innerHTML = Array(stars).fill('⭐').join('');
+
+            document.getElementById('result-stats').innerHTML = `
+                <div class="result-stat">
+                    <span>Territories Conquered</span>
+                    <span>${playerTerritories} / ${totalLandTiles}</span>
+                </div>
+                <div class="result-stat">
+                    <span>Land Percentage</span>
+                    <span>${percentage.toFixed(1)}%</span>
+                </div>
+                <div class="result-stat">
+                    <span>Turns Taken</span>
+                    <span>${gameState.turn}</span>
+                </div>
+                <div class="result-stat">
+                    <span>Opponents Defeated</span>
+                    <span>${gameState.opponentCount - gameState.opponents.filter(o => !o.eliminated).length}</span>
+                </div>
+                <div class="result-stat">
+                    <span>Star Rating</span>
+                    <span>${stars} / 5</span>
+                </div>
+            `;
+
+            showScreen('result');
+        }
+
+        function surrenderGame() {
+            closeMenuModal();
+            endGame(false);
+        }
+
+        function returnToTitle() {
+            showScreen('title');
+            renderEraGrid();
+        }
+
+        function playAgain() {
+            showScreen('era');
+        }
+
+        // ==================== UI UPDATES ====================
+        function updateGameUI() {
+            const totalTroops = gameState.player.tiles.reduce((sum, id) => {
+                const tile = gameState.territories.find(t => t.id === id);
+                return sum + (tile ? tile.troops : 0);
+            }, 0);
+
+            document.getElementById('stat-troops').textContent = totalTroops;
+            document.getElementById('stat-gold').textContent = gameState.player.gold;
+            document.getElementById('stat-territories').textContent = gameState.player.tiles.length;
+            document.getElementById('turn-number').textContent = gameState.turn;
+
+            // Update special power button
+            const btnSpecial = document.getElementById('btn-special');
+            btnSpecial.disabled = gameState.player.specialUsed || gameState.player.gold < 20;
+        }
+
+        // ==================== START ====================
+        init();
+    </script>
 </body>
 </html>
