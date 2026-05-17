@@ -1584,6 +1584,464 @@
            return false;
        }
 
+       // ==================== ANIME CHARACTER SYSTEM ====================
+       let battleAnimations = [];
+       let troopMovements = [];
+
+       const ERA_OUTFITS = {
+           egypt:      { hair: '#2c1810', skin: '#c68642', armor: '#feca57', weapon: 'spear', helmet: '#feca57' },
+           rome:       { hair: '#3d2b1f', skin: '#deb887', armor: '#c0392b', weapon: 'sword', helmet: '#c0392b' },
+           viking:     { hair: '#f5deb3', skin: '#deb887', armor: '#8B4513', weapon: 'axe', helmet: '#708090' },
+           medieval:    { hair: '#2c1810', skin: '#deb887', armor: '#8395a7', weapon: 'sword', helmet: '#8395a7' },
+           ottoman:    { hair: '#1a1a1a', skin: '#c68642', armor: '#10ac84', weapon: 'scimitar', helmet: '#10ac84' },
+           aztec:      { hair: '#1a1a1a', skin: '#8B4513', armor: '#ee5a6f', weapon: 'macuahuitl', helmet: '#ee5a6f' },
+           ming:       { hair: '#1a1a1a', skin: '#deb887', armor: '#ff9f43', weapon: 'sword', helmet: '#ff9f43' },
+           edo:        { hair: '#1a1a1a', skin: '#deb887', armor: '#ff6b6b', weapon: 'katana', helmet: '#ff6b6b' },
+           british:    { hair: '#3d2b1f', skin: '#deb887', armor: '#54a0ff', weapon: 'musket', helmet: '#54a0ff' },
+           industrial: { hair: '#3d2b1f', skin: '#deb887', armor: '#576574', weapon: 'rifle', helmet: '#576574' },
+           cyber:      { hair: '#00ffff', skin: '#b0c4de', armor: '#00d2d3', weapon: 'blade', helmet: '#00d2d3' },
+           quantum:    { hair: '#a29bfe', skin: '#e0e0ff', armor: '#a29bfe', weapon: 'staff', helmet: '#a29bfe' },
+           star:       { hair: '#ffd700', skin: '#deb887', armor: '#74b9ff', weapon: 'blaster', helmet: '#74b9ff' },
+           dragon:     { hair: '#e17055', skin: '#deb887', armor: '#e17055', weapon: 'claw', helmet: '#e17055' },
+           crystal:    { hair: '#81ecec', skin: '#e0ffff', armor: '#81ecec', weapon: 'crystal', helmet: '#81ecec' },
+           shadow:     { hair: '#2d3436', skin: '#636e72', armor: '#2d3436', weapon: 'dagger', helmet: '#2d3436' },
+           thunder:    { hair: '#fdcb6e', skin: '#deb887', armor: '#fdcb6e', weapon: 'hammer', helmet: '#fdcb6e' },
+           void:       { hair: '#636e72', skin: '#2d3436', armor: '#2d3436', weapon: 'scythe', helmet: '#2d3436' },
+           ember:      { hair: '#d63031', skin: '#deb887', armor: '#d63031', weapon: 'flame', helmet: '#d63031' },
+           frost:      { hair: '#0984e3', skin: '#dfe6e9', armor: '#0984e3', weapon: 'ice', helmet: '#0984e3' }
+       };
+
+       function getOutfit(ownerId) {
+           if (ownerId === 'player' && gameState.selectedEra) return ERA_OUTFITS[gameState.selectedEra.id] || ERA_OUTFITS.rome;
+           const opp = gameState.opponents.find(o => o.id === ownerId);
+           if (opp) {
+               const idx = gameState.opponents.indexOf(opp);
+               const keys = Object.keys(ERA_OUTFITS);
+               return ERA_OUTFITS[keys[(idx + 1) % keys.length]];
+           }
+           return ERA_OUTFITS.rome;
+       }
+
+       function drawAnimeCharacter(x, y, scale, outfit, color, frame, action) {
+           const s = scale;
+           const bob = Math.sin(frame * 0.06) * 1.5;
+           const breathe = Math.sin(frame * 0.08) * 0.5;
+           const isAttacking = action === 'attack';
+           const isHurt = action === 'hurt';
+           const atkPhase = isAttacking ? Math.sin(frame * 0.3) : 0;
+
+           ctx.save();
+           ctx.translate(x, y + bob);
+
+           if (isHurt) {
+               ctx.globalAlpha = 0.5 + Math.sin(frame * 0.5) * 0.3;
+           }
+
+           // Shadow
+           ctx.fillStyle = 'rgba(0,0,0,0.3)';
+           ctx.beginPath();
+           ctx.ellipse(0, s * 0.45, s * 0.3, s * 0.08, 0, 0, Math.PI * 2);
+           ctx.fill();
+
+           // Legs
+           const legSpread = isAttacking ? 0.3 + atkPhase * 0.15 : 0.15 + Math.sin(frame * 0.04) * 0.05;
+           ctx.strokeStyle = outfit.armor;
+           ctx.lineWidth = s * 0.08;
+           ctx.lineCap = 'round';
+           // Left leg
+           ctx.beginPath(); ctx.moveTo(-s * legSpread, s * 0.15); ctx.lineTo(-s * legSpread * 1.3, s * 0.42); ctx.stroke();
+           // Right leg
+           ctx.beginPath(); ctx.moveTo(s * legSpread, s * 0.15); ctx.lineTo(s * legSpread * 1.3, s * 0.42); ctx.stroke();
+
+           // Boots
+           ctx.fillStyle = '#333';
+           ctx.fillRect(-s * legSpread * 1.4, s * 0.36, s * 0.12, s * 0.08);
+           ctx.fillRect(s * legSpread * 1.2, s * 0.36, s * 0.12, s * 0.08);
+
+           // Body (torso with armor)
+           ctx.fillStyle = outfit.armor;
+           ctx.beginPath();
+           ctx.moveTo(-s * 0.18, -s * 0.05);
+           ctx.lineTo(-s * 0.22, s * 0.18);
+           ctx.lineTo(s * 0.22, s * 0.18);
+           ctx.lineTo(s * 0.18, -s * 0.05);
+           ctx.closePath();
+           ctx.fill();
+           // Armor highlight
+           ctx.fillStyle = 'rgba(255,255,255,0.15)';
+           ctx.beginPath();
+           ctx.moveTo(-s * 0.05, -s * 0.03);
+           ctx.lineTo(-s * 0.08, s * 0.12);
+           ctx.lineTo(s * 0.05, s * 0.12);
+           ctx.lineTo(s * 0.03, -s * 0.03);
+           ctx.closePath();
+           ctx.fill();
+           // Belt
+           ctx.fillStyle = '#333';
+           ctx.fillRect(-s * 0.2, s * 0.12, s * 0.4, s * 0.04);
+
+           // Arms
+           const armAngle = isAttacking ? -0.8 + atkPhase * 1.2 : Math.sin(frame * 0.05) * 0.15;
+           ctx.strokeStyle = outfit.skin;
+           ctx.lineWidth = s * 0.07;
+           // Left arm (shield side)
+           ctx.beginPath(); ctx.moveTo(-s * 0.2, s * 0.0);
+           ctx.lineTo(-s * 0.35 - Math.sin(frame * 0.05) * 0.03, s * 0.15);
+           ctx.stroke();
+           // Right arm (weapon side)
+           ctx.beginPath(); ctx.moveTo(s * 0.2, s * 0.0);
+           const rArmX = s * (0.35 + armAngle * 0.15);
+           const rArmY = s * (0.15 - armAngle * 0.1);
+           ctx.lineTo(rArmX, rArmY);
+           ctx.stroke();
+
+           // Weapon
+           ctx.strokeStyle = '#ccc';
+           ctx.lineWidth = s * 0.03;
+           const wX = rArmX;
+           const wY = rArmY;
+           if (isAttacking) {
+               // Swing animation
+               ctx.save();
+               ctx.translate(wX, wY);
+               ctx.rotate(-0.5 + atkPhase * 2.5);
+               drawWeapon(0, 0, s, outfit.weapon, outfit);
+               ctx.restore();
+           } else {
+               ctx.save();
+               ctx.translate(wX, wY);
+               ctx.rotate(-0.8);
+               drawWeapon(0, 0, s, outfit.weapon, outfit);
+               ctx.restore();
+           }
+
+           // Shield (left hand)
+           ctx.fillStyle = color;
+           ctx.globalAlpha = ctx.globalAlpha * 0.8;
+           ctx.beginPath();
+           ctx.arc(-s * 0.38, s * 0.2, s * 0.1, 0, Math.PI * 2);
+           ctx.fill();
+           ctx.strokeStyle = '#fff';
+           ctx.lineWidth = 1;
+           ctx.globalAlpha = ctx.globalAlpha * 0.5;
+           ctx.stroke();
+           ctx.globalAlpha = isHurt ? 0.5 + Math.sin(frame * 0.5) * 0.3 : 1;
+
+           // Head
+           const headY = -s * 0.12 + breathe;
+           // Neck
+           ctx.fillStyle = outfit.skin;
+           ctx.fillRect(-s * 0.04, -s * 0.06, s * 0.08, s * 0.06);
+
+           // Face
+           ctx.fillStyle = outfit.skin;
+           ctx.beginPath();
+           ctx.arc(0, headY, s * 0.12, 0, Math.PI * 2);
+           ctx.fill();
+
+           // Hair
+           ctx.fillStyle = outfit.hair;
+           ctx.beginPath();
+           ctx.arc(0, headY - s * 0.03, s * 0.13, Math.PI, Math.PI * 2);
+           ctx.fill();
+           // Side hair
+           ctx.fillRect(-s * 0.13, headY - s * 0.05, s * 0.03, s * 0.12);
+           ctx.fillRect(s * 0.1, headY - s * 0.05, s * 0.03, s * 0.12);
+
+           // Helmet
+           ctx.fillStyle = outfit.helmet;
+           ctx.globalAlpha = 0.7;
+           ctx.beginPath();
+           ctx.arc(0, headY - s * 0.04, s * 0.1, Math.PI * 1.1, Math.PI * 1.9);
+           ctx.fill();
+           ctx.globalAlpha = 1;
+
+           // Eyes (anime style - big, expressive)
+           if (!isHurt) {
+               // White
+               ctx.fillStyle = '#fff';
+               ctx.beginPath(); ctx.ellipse(-s * 0.045, headY - s * 0.01, s * 0.04, s * 0.045, 0, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.ellipse(s * 0.045, headY - s * 0.01, s * 0.04, s * 0.045, 0, 0, Math.PI * 2); ctx.fill();
+               // Iris
+               ctx.fillStyle = color;
+               ctx.beginPath(); ctx.arc(-s * 0.045, headY + s * 0.005, s * 0.025, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.arc(s * 0.045, headY + s * 0.005, s * 0.025, 0, Math.PI * 2); ctx.fill();
+               // Pupil
+               ctx.fillStyle = '#000';
+               ctx.beginPath(); ctx.arc(-s * 0.045, headY + s * 0.005, s * 0.012, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.arc(s * 0.045, headY + s * 0.005, s * 0.012, 0, Math.PI * 2); ctx.fill();
+               // Eye shine
+               ctx.fillStyle = '#fff';
+               ctx.beginPath(); ctx.arc(-s * 0.035, headY - s * 0.005, s * 0.006, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.arc(s * 0.055, headY - s * 0.005, s * 0.006, 0, Math.PI * 2); ctx.fill();
+               // Determined eyebrows
+               ctx.strokeStyle = outfit.hair;
+               ctx.lineWidth = s * 0.015;
+               ctx.beginPath(); ctx.moveTo(-s * 0.07, headY - s * 0.05); ctx.lineTo(-s * 0.02, headY - s * 0.04); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(s * 0.07, headY - s * 0.05); ctx.lineTo(s * 0.02, headY - s * 0.04); ctx.stroke();
+           } else {
+               // Hurt eyes (X X)
+               ctx.strokeStyle = '#000';
+               ctx.lineWidth = s * 0.015;
+               const ey = headY;
+               ctx.beginPath(); ctx.moveTo(-s*0.06, ey-s*0.02); ctx.lineTo(-s*0.03, ey+s*0.01); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(-s*0.03, ey-s*0.02); ctx.lineTo(-s*0.06, ey+s*0.01); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(s*0.03, ey-s*0.02); ctx.lineTo(s*0.06, ey+s*0.01); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(s*0.06, ey-s*0.02); ctx.lineTo(s*0.03, ey+s*0.01); ctx.stroke();
+           }
+
+           // Mouth
+           if (isAttacking) {
+               ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
+               ctx.beginPath(); ctx.moveTo(-s*0.03, headY + s*0.06); ctx.lineTo(s*0.03, headY + s*0.06); ctx.stroke();
+           } else if (isHurt) {
+               ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
+               ctx.beginPath(); ctx.arc(0, headY + s*0.08, s*0.03, 0, Math.PI); ctx.stroke();
+           }
+
+           // Faction glow aura
+           ctx.shadowColor = color;
+           ctx.shadowBlur = 4 + Math.sin(frame * 0.1) * 2;
+           ctx.strokeStyle = color;
+           ctx.lineWidth = 0.5;
+           ctx.globalAlpha = 0.3;
+           ctx.beginPath();
+           ctx.ellipse(0, s * 0.1, s * 0.28, s * 0.5, 0, 0, Math.PI * 2);
+           ctx.stroke();
+           ctx.shadowBlur = 0;
+           ctx.globalAlpha = 1;
+
+           ctx.restore();
+       }
+
+       function drawWeapon(x, y, s, type, outfit) {
+           ctx.lineWidth = s * 0.025;
+           switch(type) {
+               case 'sword': case 'katana':
+                   ctx.strokeStyle = '#ddd';
+                   ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - s * 0.3); ctx.stroke();
+                   ctx.strokeStyle = '#8B4513';
+                   ctx.beginPath(); ctx.moveTo(x - s*0.02, y); ctx.lineTo(x + s*0.02, y); ctx.stroke();
+                   break;
+               case 'spear': case 'scimitar': case 'staff':
+                   ctx.strokeStyle = type === 'staff' ? outfit.armor : '#8B4513';
+                   ctx.lineWidth = s * 0.02;
+                   ctx.beginPath(); ctx.moveTo(x, y + s*0.05); ctx.lineTo(x, y - s*0.35); ctx.stroke();
+                   if (type === 'spear') {
+                       ctx.fillStyle = '#ccc';
+                         ctx.beginPath(); ctx.moveTo(x, y - s*0.4); ctx.lineTo(x - s*0.03, y - s*0.33); ctx.lineTo(x + s*0.03, y - s*0.33); ctx.closePath(); ctx.fill();
+                   }
+                   break;
+               case 'axe':
+                   ctx.strokeStyle = '#8B4513'; ctx.lineWidth = s*0.02;
+                   ctx.beginPath(); ctx.moveTo(x, y+s*0.05); ctx.lineTo(x, y-s*0.3); ctx.stroke();
+                   ctx.fillStyle = '#aaa';
+                  ctx.beginPath(); ctx.moveTo(x, y-s*0.32); ctx.lineTo(x+s*0.06, y-s*0.25); ctx.lineTo(x, y-s*0.18); ctx.closePath(); ctx.fill();
+                   break;
+               case 'rifle': case 'musket': case 'blaster':
+                   ctx.fillStyle = '#444';
+                  ctx.fillRect(x - s*0.02, y - s*0.25, s*0.04, s*0.3);
+                  if (type === 'blaster') { ctx.fillStyle = outfit.armor; ctx.fillRect(x - s*0.015, y - s*0.28, s*0.03, s*0.06); }
+                   break;
+               case 'blade':
+                   ctx.strokeStyle = '#0ff'; ctx.lineWidth = s*0.015;
+                   ctx.shadowColor = '#0ff'; ctx.shadowBlur = 4;
+                  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - s*0.25); ctx.stroke();
+                  ctx.shadowBlur = 0;
+                   break;
+               case 'claw':
+                   ctx.strokeStyle = outfit.armor; ctx.lineWidth = s*0.02;
+                  for (let i = -1; i <= 1; i++) {
+                      ctx.beginPath(); ctx.moveTo(x, y - s*0.1); ctx.lineTo(x + i*s*0.04, y - s*0.22); ctx.stroke();
+                  }
+                   break;
+               case 'hammer':
+                   ctx.strokeStyle = '#8B4513'; ctx.lineWidth = s*0.02;
+                  ctx.beginPath(); ctx.moveTo(x, y+s*0.05); ctx.lineTo(x, y-s*0.22); ctx.stroke();
+                  ctx.fillStyle = '#888';
+                  ctx.fillRect(x-s*0.05, y-s*0.28, s*0.1, s*0.08);
+                   break;
+               case 'scythe':
+                   ctx.strokeStyle = '#333'; ctx.lineWidth = s*0.02;
+                  ctx.beginPath(); ctx.moveTo(x, y+s*0.05); ctx.lineTo(x, y-s*0.3); ctx.stroke();
+                  ctx.strokeStyle = '#666'; ctx.beginPath(); ctx.arc(x-s*0.1, y-s*0.28, s*0.12, -0.5, 0.8); ctx.stroke();
+                   break;
+               case 'flame':
+                   ctx.shadowColor = '#f00'; ctx.shadowBlur = 6;
+                  ctx.fillStyle = '#ff4500';
+                  ctx.beginPath(); ctx.moveTo(x, y-s*0.3);
+                  ctx.quadraticCurveTo(x-s*0.06, y-s*0.15, x, y-s*0.05);
+                  ctx.quadraticCurveTo(x+s*0.06, y-s*0.15, x, y-s*0.3); ctx.fill();
+                  ctx.shadowBlur = 0;
+                   break;
+               case 'ice':
+                   ctx.shadowColor = '#0ff'; ctx.shadowBlur = 4;
+                  ctx.fillStyle = '#87ceeb';
+                  ctx.beginPath(); ctx.moveTo(x, y-s*0.3);
+                  ctx.lineTo(x-s*0.04, y-s*0.15); ctx.lineTo(x+s*0.04, y-s*0.15); ctx.closePath(); ctx.fill();
+                  ctx.shadowBlur = 0;
+                   break;
+               case 'crystal':
+                   ctx.shadowColor = '#0ff'; ctx.shadowBlur = 5;
+                  ctx.fillStyle = '#81ecec';
+                  ctx.beginPath(); ctx.moveTo(x, y-s*0.3); ctx.lineTo(x-s*0.04, y-s*0.12);
+                  ctx.lineTo(x, y-s*0.08); ctx.lineTo(x+s*0.04, y-s*0.12); ctx.closePath(); ctx.fill();
+                  ctx.shadowBlur = 0;
+                   break;
+               case 'dagger':
+                   ctx.strokeStyle = '#aaa'; ctx.lineWidth = s*0.02;
+                  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y-s*0.15); ctx.stroke();
+                   break;
+               case 'macuahuitl':
+                   ctx.fillStyle = '#8B4513';
+                  ctx.fillRect(x-s*0.015, y-s*0.2, s*0.03, s*0.22);
+                  ctx.fillStyle = '#0f0';
+                  for (let i = 0; i < 4; i++) {
+                      ctx.fillRect(x-s*0.025, y-s*0.2+i*s*0.04, s*0.05, s*0.02);
+                  }
+                   break;
+               default:
+                   ctx.strokeStyle = '#ddd';
+                  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y-s*0.2); ctx.stroke();
+           }
+       }
+
+       function addBattleAnimation(fromX, fromY, toX, toY, attackerColor, defenderColor, duration) {
+           battleAnimations.push({
+               fromX, fromY, toX, toY,
+               attackerColor, defenderColor,
+               startTime: Date.now(),
+               duration: duration || 600,
+               phase: 'charge', // charge -> clash -> result
+               sparks: []
+           });
+       }
+
+       function addTroopMovement(fromX, fromY, toX, toY, color) {
+           troopMovements.push({
+               fromX, fromY, toX, toY, color,
+               startTime: Date.now(), duration: 400
+           });
+       }
+
+       function drawBattleAnimations() {
+           const now = Date.now();
+           for (let i = battleAnimations.length - 1; i >= 0; i--) {
+               const ba = battleAnimations[i];
+               const elapsed = now - ba.startTime;
+               const progress = Math.min(1, elapsed / ba.duration);
+
+               if (progress < 0.4) {
+                   // Charge phase - troops running toward each other
+                   const p = progress / 0.4;
+                   const midX = (ba.fromX + ba.toX) / 2;
+                   const midY = (ba.fromY + ba.toY) / 2;
+                   const ax = ba.fromX + (midX - ba.fromX) * p;
+                   const ay = ba.fromY + (midY - ba.fromY) * p;
+                   const dx = ba.toX + (midX - ba.toX) * p;
+                   const dy = ba.toY + (midY - ba.toY) * p;
+
+                   // Motion lines
+                   ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                   ctx.lineWidth = 1;
+                   for (let j = 0; j < 3; j++) {
+                       const off = (j - 1) * 5;
+                       ctx.beginPath();
+                       ctx.moveTo(ax - 10, ay + off);
+                       ctx.lineTo(ax - 20 - p * 15, ay + off);
+                       ctx.stroke();
+                       ctx.beginPath();
+                       ctx.moveTo(dx + 10, dy + off);
+                       ctx.lineTo(dx + 20 + p * 15, dy + off);
+                       ctx.stroke();
+                   }
+
+                   // Draw charging characters
+                   const outfit1 = getOutfit('player');
+                   drawAnimeCharacter(ax, ay, 12, outfit1, ba.attackerColor, animFrame, 'attack');
+
+               } else if (progress < 0.6) {
+                   // Clash phase - impact flash
+                   const p = (progress - 0.4) / 0.2;
+                   const midX = (ba.fromX + ba.toX) / 2;
+                   const midY = (ba.fromY + ba.toY) / 2;
+
+                   // Impact flash
+                   const flashR = 15 + p * 25;
+                   const grad = ctx.createRadialGradient(midX, midY, 0, midX, midY, flashR);
+                   grad.addColorStop(0, 'rgba(255,255,255,' + (1 - p) + ')');
+                   grad.addColorStop(0.5, 'rgba(255,200,50,' + (0.8 - p * 0.8) + ')');
+                   grad.addColorStop(1, 'rgba(255,100,0,0)');
+                   ctx.fillStyle = grad;
+                   ctx.beginPath(); ctx.arc(midX, midY, flashR, 0, Math.PI * 2); ctx.fill();
+
+                   // Clash text
+                   if (p < 0.5) {
+                       ctx.font = 'bold 16px Arial';
+                       ctx.textAlign = 'center';
+                       ctx.fillStyle = '#fff';
+                       ctx.fillText('CLASH!', midX, midY - 25);
+                   }
+
+                   // Sparks
+                   for (let j = 0; j < 6; j++) {
+                       const angle = (Math.PI * 2 * j) / 6 + p * 2;
+                       const dist = p * 30;
+                       ctx.fillStyle = '#ff0';
+                       ctx.beginPath();
+                       ctx.arc(midX + Math.cos(angle) * dist, midY + Math.sin(angle) * dist, 2, 0, Math.PI * 2);
+                       ctx.fill();
+                   }
+
+               } else if (progress < 0.85) {
+                   // Result phase - winner stands, loser falls
+                   const p = (progress - 0.6) / 0.25;
+                   const midX = (ba.fromX + ba.toX) / 2;
+                   const midY = (ba.fromY + ba.toY) / 2;
+
+                   // Winner posing
+                   const outfit1 = getOutfit('player');
+                   drawAnimeCharacter(midX - 15, midY, 13, outfit1, ba.attackerColor, animFrame, 'idle');
+
+                   // Loser falling
+                   ctx.save();
+                   ctx.translate(midX + 15, midY + p * 15);
+                   ctx.rotate(p * 1.2);
+                   ctx.globalAlpha = 1 - p;
+                   const outfit2 = getOutfit('player');
+                   drawAnimeCharacter(0, 0, 11, outfit2, ba.defenderColor, animFrame, 'hurt');
+                   ctx.restore();
+
+               } else {
+                   battleAnimations.splice(i, 1);
+               }
+           }
+       }
+
+       function drawTroopMovements() {
+           const now = Date.now();
+           for (let i = troopMovements.length - 1; i >= 0; i--) {
+               const tm = troopMovements[i];
+               const elapsed = now - tm.startTime;
+               const progress = Math.min(1, elapsed / tm.duration);
+               const ease = 1 - Math.pow(1 - progress, 3);
+
+               const cx = tm.fromX + (tm.toX - tm.fromX) * ease;
+               const cy = tm.fromY + (tm.toY - tm.fromY) * ease - Math.sin(ease * Math.PI) * 15;
+
+               // Trail
+               ctx.strokeStyle = tm.color;
+               ctx.globalAlpha = 0.3 * (1 - progress);
+               ctx.lineWidth = 2;
+               ctx.setLineDash([4, 4]);
+               ctx.beginPath(); ctx.moveTo(tm.fromX, tm.fromY); ctx.lineTo(cx, cy); ctx.stroke();
+               ctx.setLineDash([]);
+               ctx.globalAlpha = 1;
+
+               if (progress >= 1) { troopMovements.splice(i, 1); }
+           }
+       }
+
        // ==================== PARTICLE & ANIMATION ====================
        let particles = [];
        let animFrame = 0;
@@ -1649,6 +2107,8 @@
                ctx.globalAlpha = 1;
            }
            drawParticles();
+           drawTroopMovements();
+           drawBattleAnimations();
        }
 
        function drawHex(tile) {
@@ -1707,13 +2167,41 @@
                const wave = Math.sin(animFrame * 0.05 + tile.x * 0.1) * 0.15;
                ctx.fillStyle = `rgba(100, 180, 255, ${0.2 + wave})`; hexPath(); ctx.fill();
            }
-           ctx.font = hexSize * 0.4 + 'px Arial';
+           ctx.font = hexSize * 0.3 + 'px Arial';
            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-           ctx.fillText(tile.terrain.emoji, tile.x, tile.y - hexSize * 0.2);
-           if (tile.troops > 0 || tile.owner) {
-               ctx.font = 'bold ' + hexSize * 0.35 + 'px Arial';
-               ctx.fillStyle = '#000'; ctx.fillText(String(tile.troops), tile.x + 1, tile.y + hexSize * 0.25 + 1);
-               ctx.fillStyle = tile.owner ? '#fff' : '#ccc'; ctx.fillText(String(tile.troops), tile.x, tile.y + hexSize * 0.25);
+           ctx.fillText(tile.terrain.emoji, tile.x, tile.y - hexSize * 0.35);
+           if (tile.troops > 0 && tile.owner) {
+               const owner = tile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === tile.owner);
+               const outfit = getOutfit(tile.owner);
+               const charColor = owner ? owner.color : '#888';
+               const charScale = Math.min(hexSize * 0.22, 14);
+               // Draw main character if troops >= 3, otherwise smaller
+               if (tile.troops >= 3) {
+                   drawAnimeCharacter(tile.x, tile.y + hexSize * 0.05, charScale, outfit, charColor, animFrame + tile.col * 7 + tile.row * 13, 'idle');
+                   // Draw extra mini troops behind for larger armies
+                   const extras = Math.min(3, Math.floor(tile.troops / 3) - 1);
+                   for (let e = 0; e < extras; e++) {
+                       const ox = (e - (extras-1)/2) * charScale * 0.5;
+                       const oy = charScale * 0.15;
+                       drawAnimeCharacter(tile.x + ox, tile.y + hexSize * 0.05 + oy, charScale * 0.6, outfit, charColor, animFrame + e * 20, 'idle');
+                   }
+               } else {
+                   drawAnimeCharacter(tile.x, tile.y + hexSize * 0.05, charScale * 0.7, outfit, charColor, animFrame + tile.col * 7, 'idle');
+               }
+               // Troop count badge
+               ctx.font = 'bold ' + Math.max(9, hexSize * 0.2) + 'px Arial';
+               ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+               const badgeX = tile.x + hexSize * 0.35;
+               const badgeY = tile.y - hexSize * 0.3;
+               ctx.fillStyle = 'rgba(0,0,0,0.6)';
+               ctx.beginPath(); ctx.arc(badgeX, badgeY, hexSize * 0.14, 0, Math.PI * 2); ctx.fill();
+               ctx.fillStyle = '#fff';
+               ctx.fillText(String(tile.troops), badgeX, badgeY);
+           } else if (tile.troops > 0 && !tile.owner) {
+               // Neutral garrison - gray shield icon
+               ctx.font = 'bold ' + hexSize * 0.3 + 'px Arial';
+               ctx.fillStyle = '#000'; ctx.fillText(String(tile.troops), tile.x + 1, tile.y + hexSize * 0.2 + 1);
+               ctx.fillStyle = '#aaa'; ctx.fillText(String(tile.troops), tile.x, tile.y + hexSize * 0.2);
            }
        }
 
@@ -1758,6 +2246,7 @@
                playSFX('attack'); renderGame(); updateGameUI(); return;
            }
            playSFX('attack');
+           addBattleAnimation(attackerTile.x, attackerTile.y, defenderTile.x, defenderTile.y, attackerOwner.color, defenderOwner ? defenderOwner.color : '#888', 700);
            if (attackPower > defensePower) {
                const survivingTroops = Math.max(1, Math.floor(attackerTile.troops - (defenderTile.troops * 0.7)));
                if (defenderOwner) {
@@ -1783,6 +2272,7 @@
 
        function reinforceTile(fromTile, toTile) {
            if (fromTile.troops <= 1) return;
+           addTroopMovement(fromTile.x, fromTile.y, toTile.x, toTile.y, gameState.player.color);
            toTile.troops += fromTile.troops - 1; fromTile.troops = 1;
            renderGame(); updateGameUI();
        }
