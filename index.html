@@ -1335,7 +1335,7 @@
            const rect = container.getBoundingClientRect();
            canvas.width = rect.width * window.devicePixelRatio;
            canvas.height = rect.height * window.devicePixelRatio;
-           const hexSize = Math.min(canvas.width, canvas.height) / 14;
+           const hexSize = Math.min(canvas.width, canvas.height) / 9;
            const cols = Math.floor(canvas.width / (hexSize * 1.732));
            const rows = Math.floor(canvas.height / (hexSize * 1.5));
            gameState.hexGrid = { width: cols, height: rows, hexSize };
@@ -1423,7 +1423,7 @@
            const rect = container.getBoundingClientRect();
            canvas.width = rect.width * window.devicePixelRatio;
            canvas.height = rect.height * window.devicePixelRatio;
-           const hexSize = Math.min(canvas.width, canvas.height) / 14;
+           const hexSize = Math.min(canvas.width, canvas.height) / 9;
            const cols = Math.floor(canvas.width / (hexSize * 1.732));
            const rows = Math.floor(canvas.height / (hexSize * 1.5));
            const centerX = cols / 2;
@@ -2123,11 +2123,8 @@
                for (let i = 1; i < 6; i++) ctx.lineTo(points[i].x, points[i].y);
                ctx.closePath();
            }
-           const grad = ctx.createRadialGradient(tile.x, tile.y, 0, tile.x, tile.y, hexSize);
-           grad.addColorStop(0, lightenColor(tile.terrain.color, 20));
-           grad.addColorStop(1, tile.terrain.color);
-           ctx.fillStyle = grad; hexPath(); ctx.fill();
-           ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 1; hexPath(); ctx.stroke();
+           ctx.fillStyle = tile.terrain.color + '18'; hexPath(); ctx.fill();
+           ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5; hexPath(); ctx.stroke();
 
            if (tile.owner) {
                const owner = tile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === tile.owner);
@@ -2174,7 +2171,7 @@
                const owner = tile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === tile.owner);
                const outfit = getOutfit(tile.owner);
                const charColor = owner ? owner.color : '#888';
-               const charScale = Math.min(hexSize * 0.22, 14);
+               const charScale = hexSize * 0.65;
                // Draw main character if troops >= 3, otherwise smaller
                if (tile.troops >= 3) {
                    drawAnimeCharacter(tile.x, tile.y + hexSize * 0.05, charScale, outfit, charColor, animFrame + tile.col * 7 + tile.row * 13, 'idle');
