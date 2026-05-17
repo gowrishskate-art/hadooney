@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hadooney - Character Designs</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0a0a1a; color:#fff; font-family:'Segoe UI',sans-serif; padding:20px; }
+h1 { text-align:center; font-size:2rem; margin-bottom:30px; color:#feca57; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:20px; max-width:1200px; margin:0 auto; }
+.card { background:rgba(255,255,255,0.05); border:2px solid rgba(255,255,255,0.1); border-radius:15px; padding:15px; text-align:center; }
+.card canvas { width:180px; height:220px; display:block; margin:0 auto 10px; }
+.card h3 { font-size:0.9rem; margin-bottom:4px; }
+.card .type { font-size:0.75rem; color:#888; }
+.card .weapon { font-size:0.7rem; color:#aaa; font-style:italic; }
+</style>
+</head>
+<body>
+<h1>⚔️ HADOONEY - 20 Warrior Designs</h1>
+<div class="grid" id="grid"></div>
+<script>
+const CHARACTERS = [
+    { era:'Ancient Egypt', type:'Historical', weapon:'Spear & Shield', hair:'#2c1810', skin:'#c68642', armor:'#feca57', helmet:'#feca57', accent:'#feca57', eyes:'#c68642', weaponType:'spear' },
+    { era:'Roman Empire', type:'Historical', weapon:'Gladius & Tower Shield', hair:'#3d2b1f', skin:'#deb887', armor:'#c0392b', helmet:'#c0392b', accent:'#c0392b', eyes:'#8B4513', weaponType:'sword' },
+    { era:'Viking Age', type:'Historical', weapon:'Battle Axe & Round Shield', hair:'#f5deb3', skin:'#deb887', armor:'#8B4513', helmet:'#708090', accent:'#708090', eyes:'#4169E1', weaponType:'axe' },
+    { era:'Medieval Europe', type:'Historical', weapon:'Longsword & Plate Armor', hair:'#2c1810', skin:'#deb887', armor:'#8395a7', helmet:'#8395a7', accent:'#8395a7', eyes:'#4682B4', weaponType:'sword' },
+    { era:'Ottoman Empire', type:'Historical', weapon:'Scimitar & Chainmail', hair:'#1a1a1a', skin:'#c68642', armor:'#10ac84', helmet:'#10ac84', accent:'#10ac84', eyes:'#2F4F4F', weaponType:'scimitar' },
+    { era:'Aztec Empire', type:'Historical', weapon:'Macuahuitl & Feather Shield', hair:'#1a1a1a', skin:'#8B4513', armor:'#ee5a6f', helmet:'#ee5a6f', accent:'#ee5a6f', eyes:'#006400', weaponType:'macuahuitl' },
+    { era:'Ming Dynasty', type:'Historical', weapon:'Jian Sword & Silk Robes', hair:'#1a1a1a', skin:'#deb887', armor:'#ff9f43', helmet:'#ff9f43', accent:'#ff9f43', eyes:'#DAA520', weaponType:'sword' },
+    { era:'Edo Japan', type:'Historical', weapon:'Katana & Demon Mask', hair:'#1a1a1a', skin:'#deb887', armor:'#ff6b6b', helmet:'#ff6b6b', accent:'#ff6b6b', eyes:'#DC143C', weaponType:'katana' },
+    { era:'British Empire', type:'Historical', weapon:'Musket & Red Coat', hair:'#3d2b1f', skin:'#deb887', armor:'#54a0ff', helmet:'#54a0ff', accent:'#54a0ff', eyes:'#4169E1', weaponType:'musket' },
+    { era:'Industrial Revolution', type:'Historical', weapon:'Rifle & Goggles', hair:'#3d2b1f', skin:'#deb887', armor:'#576574', helmet:'#576574', accent:'#576574', eyes:'#696969', weaponType:'rifle' },
+    { era:'Cyber Dynasty', type:'Fictional', weapon:'Energy Blade & Visor', hair:'#00ffff', skin:'#b0c4de', armor:'#00d2d3', helmet:'#00d2d3', accent:'#0ff', eyes:'#00ffff', weaponType:'blade' },
+    { era:'Quantum Realm', type:'Fictional', weapon:'Quantum Staff & Cape', hair:'#a29bfe', skin:'#e0e0ff', armor:'#a29bfe', helmet:'#a29bfe', accent:'#a29bfe', eyes:'#9370DB', weaponType:'staff' },
+    { era:'Star Empire', type:'Fictional', weapon:'Plasma Blaster & Armor', hair:'#ffd700', skin:'#deb887', armor:'#74b9ff', helmet:'#74b9ff', accent:'#74b9ff', eyes:'#00BFFF', weaponType:'blaster' },
+    { era:'Dragon Dominion', type:'Fictional', weapon:'Dragon Claws & Scales', hair:'#e17055', skin:'#deb887', armor:'#e17055', helmet:'#e17055', accent:'#e17055', eyes:'#FF4500', weaponType:'claw' },
+    { era:'Crystal Kingdom', type:'Fictional', weapon:'Crystal Lance & Crown', hair:'#81ecec', skin:'#e0ffff', armor:'#81ecec', helmet:'#81ecec', accent:'#81ecec', eyes:'#00CED1', weaponType:'crystal' },
+    { era:'Shadow Nexus', type:'Fictional', weapon:'Twin Daggers & Hood', hair:'#2d3436', skin:'#636e72', armor:'#2d3436', helmet:'#2d3436', accent:'#2d3436', eyes:'#FF0000', weaponType:'dagger' },
+    { era:'Thunder Legion', type:'Fictional', weapon:'Thunder Hammer & Wings', hair:'#fdcb6e', skin:'#deb887', armor:'#fdcb6e', helmet:'#fdcb6e', accent:'#fdcb6e', eyes:'#FFD700', weaponType:'hammer' },
+    { era:'Void Collective', type:'Fictional', weapon:'Death Scythe & Cloak', hair:'#636e72', skin:'#2d3436', armor:'#2d3436', helmet:'#2d3436', accent:'#2d3436', eyes:'#8B0000', weaponType:'scythe' },
+    { era:'Ember Ascendancy', type:'Fictional', weapon:'Fire Sword & Flame Aura', hair:'#d63031', skin:'#deb887', armor:'#d63031', helmet:'#d63031', accent:'#d63031', eyes:'#FF6347', weaponType:'flame' },
+    { era:'Frost Dominion', type:'Fictional', weapon:'Ice Blade & Frost Armor', hair:'#0984e3', skin:'#dfe6e9', armor:'#0984e3', helmet:'#0984e3', accent:'#0984e3', eyes:'#00BFFF', weaponType:'ice' }
+];
+
+const grid = document.getElementById('grid');
+CHARACTERS.forEach((ch, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const canvas = document.createElement('canvas');
+    canvas.width = 360; canvas.height = 440;
+    card.appendChild(canvas);
+    card.innerHTML += `<h3 style="color:${ch.accent}">${ch.era}</h3>`;
+    card.innerHTML += `<div class="type">${ch.type}</div>`;
+    card.innerHTML += `<div class="weapon">⚔️ ${ch.weapon}</div>`;
+    grid.appendChild(card);
+    drawWarrior(canvas.getContext('2d'), ch, idx);
+});
+
+function drawWarrior(ctx, ch, idx) {
+    const W = 360, H = 440;
+    const cx = W / 2, groundY = H * 0.82;
+    const f = Date.now() * 0.002 + idx;
+    const bob = Math.sin(f) * 3;
+    const breathe = Math.sin(f * 1.3) * 2;
+
+    // Background glow
+    const bg = ctx.createRadialGradient(cx, H * 0.5, 20, cx, H * 0.5, 200);
+    bg.addColorStop(0, ch.accent + '15');
+    bg.addColorStop(1, 'transparent');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Ground shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(cx, groundY + 30, 60, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const by = bob + breathe;
+
+    // === CAPE / CLOAK (behind body) ===
+    if (['shadow','void','quantum','crystal','thunder'].some(e => ch.era.includes(e))) {
+        ctx.fillStyle = ch.armor + '80';
+        ctx.beginPath();
+        ctx.moveTo(cx - 30, 220 + by);
+        ctx.quadraticCurveTo(cx - 45, 300 + by, cx - 35 + Math.sin(f * 0.7) * 8, groundY + 10);
+        ctx.lineTo(cx + 35 + Math.sin(f * 0.7 + 1) * 8, groundY + 10);
+        ctx.quadraticCurveTo(cx + 45, 300 + by, cx + 30, 220 + by);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // === LEGS ===
+    const legSpread = 18;
+    // Left leg
+    ctx.strokeStyle = ch.armor;
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - legSpread, 300 + by); ctx.lineTo(cx - legSpread - 5, groundY - 10); ctx.stroke();
+    // Right leg
+    ctx.beginPath(); ctx.moveTo(cx + legSpread, 300 + by); ctx.lineTo(cx + legSpread + 5, groundY - 10); ctx.stroke();
+    // Boots
+    ctx.fillStyle = '#222';
+    roundRect(ctx, cx - legSpread - 15, groundY - 18, 20, 16, 4); ctx.fill();
+    roundRect(ctx, cx + legSpread - 5, groundY - 18, 20, 16, 4); ctx.fill();
+
+    // === BODY / TORSO ===
+    ctx.fillStyle = ch.armor;
+    ctx.beginPath();
+    ctx.moveTo(cx - 35, 210 + by);
+    ctx.lineTo(cx - 40, 310 + by);
+    ctx.lineTo(cx + 40, 310 + by);
+    ctx.lineTo(cx + 35, 210 + by);
+    ctx.closePath();
+    ctx.fill();
+
+    // Armor detail - center line
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cx, 215 + by); ctx.lineTo(cx, 305 + by); ctx.stroke();
+
+    // Belt
+    ctx.fillStyle = '#333';
+    ctx.fillRect(cx - 38, 295 + by, 76, 8);
+    // Belt buckle
+    ctx.fillStyle = ch.accent;
+    ctx.fillRect(cx - 6, 293 + by, 12, 12);
+
+    // Shoulder pads
+    ctx.fillStyle = ch.armor;
+    ctx.beginPath(); ctx.arc(cx - 42, 218 + by, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 42, 218 + by, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx - 42, 218 + by, 16, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx + 42, 218 + by, 16, 0, Math.PI * 2); ctx.stroke();
+
+    // === ARMS ===
+    ctx.strokeStyle = ch.skin;
+    ctx.lineWidth = 12;
+    ctx.lineCap = 'round';
+    // Left arm (shield)
+    ctx.beginPath(); ctx.moveTo(cx - 48, 225 + by);
+    ctx.quadraticCurveTo(cx - 65, 270 + by, cx - 55, 310 + by);
+    ctx.stroke();
+    // Right arm (weapon)
+    ctx.beginPath(); ctx.moveTo(cx + 48, 225 + by);
+    ctx.quadraticCurveTo(cx + 70, 265 + by, cx + 60, 280 + by);
+    ctx.stroke();
+
+    // Shield (left hand)
+    ctx.fillStyle = ch.accent;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.arc(cx - 60, 320 + by, 28, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx - 60, 320 + by, 28, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(cx - 60, 320 + by, 18, 0, Math.PI * 2); ctx.stroke();
+    // Shield emblem
+    ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.4;
+    ctx.font = 'bold 20px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('★', cx - 60, 320 + by);
+    ctx.globalAlpha = 1;
+
+    // === WEAPON ===
+    drawWeaponFull(ctx, cx + 65, 270 + by, ch);
+
+    // === NECK ===
+    ctx.fillStyle = ch.skin;
+    ctx.fillRect(cx - 7, 195 + by, 14, 20);
+
+    // === HEAD ===
+    const headY = 175 + by;
+    // Face
+    ctx.fillStyle = ch.skin;
+    ctx.beginPath(); ctx.arc(cx, headY, 32, 0, Math.PI * 2); ctx.fill();
+
+    // Jaw
+    ctx.beginPath();
+    ctx.moveTo(cx - 22, headY + 5);
+    ctx.quadraticCurveTo(cx, headY + 22, cx + 22, headY + 5);
+    ctx.fill();
+
+    // === HAIR ===
+    ctx.fillStyle = ch.hair;
+    // Top hair
+    ctx.beginPath();
+    ctx.arc(cx, headY - 8, 34, Math.PI, Math.PI * 2);
+    ctx.fill();
+    // Flowing hair sides
+    ctx.fillRect(cx - 35, headY - 10, 10, 45 + Math.sin(f * 0.8) * 5);
+    ctx.fillRect(cx + 25, headY - 10, 10, 45 + Math.sin(f * 0.8 + 2) * 5);
+    // Spiky / styled hair top
+    if (ch.era.includes('Viking')) {
+        for (let i = -2; i <= 2; i++) {
+            ctx.beginPath(); ctx.moveTo(cx + i * 12, headY - 35);
+            ctx.lineTo(cx + i * 8, headY - 55 - Math.abs(i) * 5); ctx.lineTo(cx + i * 12 + 6, headY - 30);
+            ctx.fill();
+        }
+    } else if (ch.era.includes('Cyber') || ch.era.includes('Ember')) {
+        ctx.beginPath(); ctx.moveTo(cx - 20, headY - 30); ctx.lineTo(cx, headY - 50); ctx.lineTo(cx + 20, headY - 30); ctx.fill();
+    } else if (ch.era.includes('Edo')) {
+        // Top knot
+        ctx.beginPath(); ctx.arc(cx, headY - 38, 12, 0, Math.PI * 2); ctx.fill();
+        ctx.fillRect(cx - 3, headY - 50, 6, 20);
+    }
+
+    // === HELMET ===
+    ctx.fillStyle = ch.helmet;
+    ctx.globalAlpha = 0.8;
+    if (ch.era.includes('Star') || ch.era.includes('Industrial')) {
+        // Visor helmet
+        ctx.beginPath(); ctx.arc(cx, headY - 5, 30, Math.PI * 1.15, Math.PI * 1.85); ctx.fill();
+        ctx.fillStyle = '#333';
+        ctx.fillRect(cx - 25, headY - 5, 50, 8);
+    } else if (ch.era.includes('Crystal')) {
+        // Crown
+        ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.6;
+        for (let i = 0; i < 5; i++) {
+            const a = (i / 5) * Math.PI - Math.PI / 2;
+            ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * 25, headY - 30 + Math.sin(a) * 15);
+            ctx.lineTo(cx + Math.cos(a) * 30, headY - 48 + Math.sin(a) * 18);
+            ctx.lineTo(cx + Math.cos(a + 0.3) * 25, headY - 30 + Math.sin(a + 0.3) * 15);
+            ctx.fill();
+        }
+    } else if (ch.era.includes('Edo')) {
+        // Menpo (demon face guard)
+        ctx.fillStyle = ch.armor; ctx.globalAlpha = 0.7;
+        ctx.fillRect(cx - 28, headY + 5, 56, 15);
+        ctx.fillStyle = '#ffd700';
+        ctx.fillRect(cx - 10, headY + 8, 6, 6);
+        ctx.fillRect(cx + 4, headY + 8, 6, 6);
+    } else if (ch.era.includes('Shadow') || ch.era.includes('Void')) {
+        // Hood
+        ctx.fillStyle = ch.armor; ctx.globalAlpha = 0.9;
+        ctx.beginPath();
+        ctx.moveTo(cx - 35, headY + 10);
+        ctx.quadraticCurveTo(cx - 38, headY - 40, cx, headY - 50);
+        ctx.quadraticCurveTo(cx + 38, headY - 40, cx + 35, headY + 10);
+        ctx.fill();
+    } else {
+        ctx.beginPath(); ctx.arc(cx, headY - 8, 28, Math.PI * 1.1, Math.PI * 1.9); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // === ANIME EYES ===
+    if (!ch.era.includes('Shadow') && !ch.era.includes('Void')) {
+        // Eye whites
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.ellipse(cx - 12, headY + 2, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx + 12, headY + 2, 10, 12, 0, 0, Math.PI * 2); ctx.fill();
+        // Iris
+        ctx.fillStyle = ch.eyes;
+        ctx.beginPath(); ctx.arc(cx - 12, headY + 4, 7, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 12, headY + 4, 7, 0, Math.PI * 2); ctx.fill();
+        // Pupil
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(cx - 12, headY + 4, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 12, headY + 4, 3.5, 0, Math.PI * 2); ctx.fill();
+        // Eye shine
+        ctx.fillStyle = '#fff';
+        ctx.beginPath(); ctx.arc(cx - 9, headY, 2.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(cx + 15, headY, 2.5, 0, Math.PI * 2); ctx.fill();
+        // Determined eyebrows
+        ctx.strokeStyle = ch.hair; ctx.lineWidth = 3; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(cx - 22, headY - 8); ctx.lineTo(cx - 5, headY - 5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(cx + 22, headY - 8); ctx.lineTo(cx + 5, headY - 5); ctx.stroke();
+    } else {
+        // Glowing red eyes for dark characters
+        ctx.fillStyle = ch.eyes;
+        ctx.shadowColor = ch.eyes; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.ellipse(cx - 10, headY + 2, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(cx + 10, headY + 2, 6, 4, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+
+    // Mouth
+    ctx.strokeStyle = '#000'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx - 8, headY + 18); ctx.lineTo(cx + 8, headY + 18); ctx.stroke();
+
+    // === ERA-SPECIFIC EFFECTS ===
+    // Frost aura
+    if (ch.era.includes('Frost')) {
+        ctx.strokeStyle = '#0ff'; ctx.lineWidth = 2; ctx.globalAlpha = 0.4 + Math.sin(f) * 0.2;
+        for (let i = 0; i < 6; i++) {
+            const a = (i / 6) * Math.PI * 2 + f * 0.3;
+            ctx.beginPath();
+            ctx.moveTo(cx + Math.cos(a) * 50, 260 + by + Math.sin(a) * 80);
+            ctx.lineTo(cx + Math.cos(a) * 60, 260 + by + Math.sin(a) * 90);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+    }
+    // Ember fire particles
+    if (ch.era.includes('Ember')) {
+        ctx.fillStyle = '#ff4500';
+        for (let i = 0; i < 8; i++) {
+            const px = cx + Math.sin(f * 2 + i * 1.5) * 40;
+            const py = 300 + by - (f * 30 + i * 25) % 150;
+            const s = 3 + Math.sin(f + i) * 2;
+            ctx.globalAlpha = 0.3 + Math.sin(f * 3 + i) * 0.2;
+            ctx.beginPath(); ctx.arc(px, py, s, 0, Math.PI * 2); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+    }
+    // Thunder lightning
+    if (ch.era.includes('Thunder')) {
+        ctx.strokeStyle = '#fdcb6e'; ctx.lineWidth = 2; ctx.globalAlpha = 0.3 + Math.sin(f * 3) * 0.3;
+        if (Math.sin(f * 3) > 0.5) {
+            ctx.beginPath(); ctx.moveTo(cx + 30, 100);
+            ctx.lineTo(cx + 10, 160); ctx.lineTo(cx + 40, 200); ctx.lineTo(cx + 15, 260 + by);
+            ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+    }
+    // Cyber glow
+    if (ch.era.includes('Cyber')) {
+        ctx.strokeStyle = '#0ff'; ctx.lineWidth = 1; ctx.globalAlpha = 0.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.arc(cx, 260 + by, 55, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+    }
+
+    // Name plate
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    roundRect(ctx, cx - 80, groundY + 35, 160, 28, 8); ctx.fill();
+    ctx.fillStyle = ch.accent;
+    ctx.font = 'bold 13px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(ch.era.toUpperCase(), cx, groundY + 49);
+}
+
+function drawWeaponFull(ctx, x, y, ch) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(-0.6);
+    const wt = ch.weaponType;
+    ctx.lineWidth = 4; ctx.lineCap = 'round';
+
+    if (wt === 'sword' || wt === 'katana') {
+        // Blade
+        ctx.strokeStyle = wt === 'katana' ? '#e0e0e0' : '#ccc';
+        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -70); ctx.stroke();
+        // Edge highlight
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(-1, -5); ctx.lineTo(-1, -65); ctx.stroke();
+        // Guard
+        ctx.fillStyle = ch.accent;
+        ctx.fillRect(-10, -2, 20, 6);
+        // Handle
+        ctx.fillStyle = '#5c3a1e';
+        ctx.fillRect(-4, 4, 8, 20);
+        // Pommel
+        ctx.fillStyle = ch.accent;
+        ctx.beginPath(); ctx.arc(0, 26, 5, 0, Math.PI * 2); ctx.fill();
+    } else if (wt === 'spear' || wt === 'scimitar' || wt === 'staff') {
+        // Shaft
+        ctx.strokeStyle = wt === 'staff' ? ch.accent : '#8B4513';
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(0, -80); ctx.stroke();
+        if (wt === 'spear') {
+            ctx.fillStyle = '#ccc';
+            ctx.beginPath(); ctx.moveTo(0, -85); ctx.lineTo(-8, -70); ctx.lineTo(8, -70); ctx.closePath(); ctx.fill();
+        }
+        if (wt === 'scimitar') {
+            ctx.strokeStyle = '#ddd'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(15, -40, 35, -1.5, 0.5); ctx.stroke();
+        }
+        if (wt === 'staff') {
+            ctx.fillStyle = ch.accent;
+            ctx.shadowColor = ch.accent; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(0, -80, 8, 0, Math.PI * 2); ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    } else if (wt === 'axe') {
+        ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(0, -60); ctx.stroke();
+        ctx.fillStyle = '#aaa';
+        ctx.beginPath(); ctx.moveTo(0, -65); ctx.lineTo(15, -50); ctx.lineTo(0, -35); ctx.closePath(); ctx.fill();
+    } else if (wt === 'musket' || wt === 'rifle' || wt === 'blaster') {
+        ctx.fillStyle = '#444';
+        ctx.fillRect(-5, -55, 10, 80);
+        ctx.fillStyle = '#333'; ctx.fillRect(-8, -55, 16, 10);
+        if (wt === 'blaster') {
+            ctx.fillStyle = ch.accent;
+            ctx.shadowColor = ch.accent; ctx.shadowBlur = 8;
+            ctx.fillRect(-4, -60, 8, 10);
+            ctx.shadowBlur = 0;
+        }
+        if (wt === 'musket') {
+            ctx.fillStyle = '#8B4513'; ctx.fillRect(-4, 25, 8, 25);
+        }
+    } else if (wt === 'blade') {
+        ctx.strokeStyle = '#0ff'; ctx.lineWidth = 3;
+        ctx.shadowColor = '#0ff'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(0, -60); ctx.stroke();
+        ctx.shadowBlur = 0;
+    } else if (wt === 'claw') {
+        ctx.strokeStyle = ch.armor; ctx.lineWidth = 4;
+        for (let i = -1; i <= 1; i++) {
+            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(i * 12, -45); ctx.stroke();
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.moveTo(i * 12, -45); ctx.lineTo(i * 12 - 3, -55); ctx.lineTo(i * 12 + 3, -55); ctx.closePath(); ctx.fill();
+        }
+    } else if (wt === 'hammer') {
+        ctx.strokeStyle = '#8B4513'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(0, -45); ctx.stroke();
+        ctx.fillStyle = '#888';
+        ctx.fillRect(-18, -60, 36, 18);
+        ctx.fillStyle = '#aaa';
+        ctx.fillRect(-12, -63, 24, 5);
+    } else if (wt === 'scythe') {
+        ctx.strokeStyle = '#333'; ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(0, 20); ctx.lineTo(0, -50); ctx.stroke();
+        ctx.strokeStyle = '#666'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(-20, -50, 35, -0.5, 0.8); ctx.stroke();
+    } else if (wt === 'flame') {
+        ctx.shadowColor = '#f00'; ctx.shadowBlur = 15;
+        ctx.fillStyle = '#ff4500';
+        ctx.beginPath(); ctx.moveTo(0, -70);
+        ctx.quadraticCurveTo(-12, -40, 0, 0);
+        ctx.quadraticCurveTo(12, -40, 0, -70);
+        ctx.fill();
+        ctx.fillStyle = '#ff0'; ctx.globalAlpha = 0.5;
+        ctx.beginPath(); ctx.moveTo(0, -60);
+        ctx.quadraticCurveTo(-6, -35, 0, -5);
+        ctx.quadraticCurveTo(6, -35, 0, -60);
+        ctx.fill();
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    } else if (wt === 'ice') {
+        ctx.shadowColor = '#0ff'; ctx.shadowBlur = 8;
+        ctx.fillStyle = '#87ceeb';
+        ctx.beginPath(); ctx.moveTo(0, -65); ctx.lineTo(-8, -30); ctx.lineTo(0, -20); ctx.lineTo(8, -30); ctx.closePath(); ctx.fill();
+        ctx.shadowBlur = 0;
+    } else if (wt === 'crystal') {
+        ctx.shadowColor = ch.accent; ctx.shadowBlur = 12;
+        ctx.fillStyle = ch.accent;
+        ctx.beginPath(); ctx.moveTo(0, -65); ctx.lineTo(-10, -30); ctx.lineTo(0, -20); ctx.lineTo(10, -30); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.5;
+        ctx.beginPath(); ctx.moveTo(0, -60); ctx.lineTo(-5, -35); ctx.lineTo(0, -25); ctx.lineTo(5, -35); ctx.closePath(); ctx.fill();
+        ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    } else if (wt === 'dagger') {
+        ctx.strokeStyle = '#aaa'; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(0, -30); ctx.stroke();
+        ctx.fillStyle = '#333'; ctx.fillRect(-4, 10, 8, 10);
+    } else if (wt === 'macuahuitl') {
+        ctx.fillStyle = '#8B4513';
+        ctx.fillRect(-5, -50, 10, 65);
+        ctx.fillStyle = '#0f0';
+        for (let i = 0; i < 5; i++) {
+            ctx.fillRect(-10, -48 + i * 10, 20, 6);
+        }
+    }
+    ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+}
+
+// Animate
+function animate() {
+    const canvases = document.querySelectorAll('.card canvas');
+    const contexts = Array.from(canvases).map(c => c.getContext('2d'));
+    function frame() {
+        contexts.forEach((ctx, i) => {
+            ctx.clearRect(0, 0, 360, 440);
+            drawWarrior(ctx, CHARACTERS[i], i);
+        });
+        requestAnimationFrame(frame);
+    }
+    frame();
+}
+animate();
+</script>
+</body>
+</html>
