@@ -1624,8 +1624,8 @@
 
        function drawAnimeCharacter(x, y, scale, outfit, color, frame, action) {
            const s = scale;
-           const bob = Math.sin(frame * 0.06) * 1.5;
-           const breathe = Math.sin(frame * 0.08) * 0.5;
+           const bob = Math.sin(frame * 0.06) * s * 0.03;
+           const breathe = Math.sin(frame * 0.08) * s * 0.01;
            const isAttacking = action === 'attack';
            const isHurt = action === 'hurt';
            const atkPhase = isAttacking ? Math.sin(frame * 0.3) : 0;
@@ -1637,29 +1637,72 @@
                ctx.globalAlpha = 0.5 + Math.sin(frame * 0.5) * 0.3;
            }
 
-           // Shadow
-           ctx.fillStyle = 'rgba(0,0,0,0.3)';
+           // 3D Shadow on ground
+           const shadowGrad = ctx.createRadialGradient(0, s * 0.48, 0, 0, s * 0.48, s * 0.35);
+           shadowGrad.addColorStop(0, 'rgba(0,0,0,0.4)');
+           shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+           ctx.fillStyle = shadowGrad;
            ctx.beginPath();
-           ctx.ellipse(0, s * 0.45, s * 0.3, s * 0.08, 0, 0, Math.PI * 2);
+           ctx.ellipse(0, s * 0.48, s * 0.35, s * 0.1, 0, 0, Math.PI * 2);
            ctx.fill();
 
-           // Legs
-           const legSpread = isAttacking ? 0.3 + atkPhase * 0.15 : 0.15 + Math.sin(frame * 0.04) * 0.05;
-           ctx.strokeStyle = outfit.armor;
-           ctx.lineWidth = s * 0.08;
-           ctx.lineCap = 'round';
+           // Faction glow aura (behind character)
+           ctx.shadowColor = color;
+           ctx.shadowBlur = s * 0.12 + Math.sin(frame * 0.1) * s * 0.05;
+           ctx.strokeStyle = color;
+           ctx.lineWidth = s * 0.015;
+           ctx.globalAlpha = 0.25;
+           ctx.beginPath();
+           ctx.ellipse(0, s * 0.05, s * 0.25, s * 0.45, 0, 0, Math.PI * 2);
+           ctx.stroke();
+           ctx.shadowBlur = 0;
+           ctx.globalAlpha = isHurt ? 0.5 + Math.sin(frame * 0.5) * 0.3 : 1;
+
+           // Legs with 3D cylinder shading
+           const legSpread = isAttacking ? 0.25 + atkPhase * 0.12 : 0.12 + Math.sin(frame * 0.04) * 0.03;
            // Left leg
-           ctx.beginPath(); ctx.moveTo(-s * legSpread, s * 0.15); ctx.lineTo(-s * legSpread * 1.3, s * 0.42); ctx.stroke();
+           const llx = -s * legSpread, llx2 = -s * legSpread * 1.3;
+           const legGrad = ctx.createLinearGradient(llx - s*0.04, 0, llx + s*0.04, 0);
+           legGrad.addColorStop(0, darkenColor(outfit.armor, 30));
+           legGrad.addColorStop(0.4, outfit.armor);
+           legGrad.addColorStop(1, darkenColor(outfit.armor, 50));
+           ctx.strokeStyle = legGrad;
+           ctx.lineWidth = s * 0.09;
+           ctx.lineCap = 'round';
+           ctx.beginPath(); ctx.moveTo(llx, s * 0.15); ctx.lineTo(llx2, s * 0.42); ctx.stroke();
            // Right leg
-           ctx.beginPath(); ctx.moveTo(s * legSpread, s * 0.15); ctx.lineTo(s * legSpread * 1.3, s * 0.42); ctx.stroke();
+           const rlx = s * legSpread, rlx2 = s * legSpread * 1.3;
+           const legGrad2 = ctx.createLinearGradient(rlx - s*0.04, 0, rlx + s*0.04, 0);
+           legGrad2.addColorStop(0, darkenColor(outfit.armor, 30));
+           legGrad2.addColorStop(0.4, outfit.armor);
+           legGrad2.addColorStop(1, darkenColor(outfit.armor, 50));
+           ctx.strokeStyle = legGrad2;
+           ctx.beginPath(); ctx.moveTo(rlx, s * 0.15); ctx.lineTo(rlx2, s * 0.42); ctx.stroke();
 
-           // Boots
-           ctx.fillStyle = '#333';
-           ctx.fillRect(-s * legSpread * 1.4, s * 0.36, s * 0.12, s * 0.08);
-           ctx.fillRect(s * legSpread * 1.2, s * 0.36, s * 0.12, s * 0.08);
+           // 3D Boots
+           const bootGrad = ctx.createLinearGradient(-s*0.06, s*0.36, s*0.06, s*0.36);
+           bootGrad.addColorStop(0, '#555'); bootGrad.addColorStop(0.5, '#333'); bootGrad.addColorStop(1, '#111');
+           ctx.fillStyle = bootGrad;
+           ctx.beginPath();
+           ctx.moveTo(-s * legSpread * 1.4 - s*0.02, s * 0.36);
+           ctx.lineTo(-s * legSpread * 1.4 + s*0.1, s * 0.36);
+           ctx.lineTo(-s * legSpread * 1.4 + s*0.08, s * 0.44);
+           ctx.lineTo(-s * legSpread * 1.4 - s*0.02, s * 0.44);
+           ctx.closePath(); ctx.fill();
+           ctx.beginPath();
+           ctx.moveTo(s * legSpread * 1.2 - s*0.02, s * 0.36);
+           ctx.lineTo(s * legSpread * 1.2 + s*0.1, s * 0.36);
+           ctx.lineTo(s * legSpread * 1.2 + s*0.08, s * 0.44);
+           ctx.lineTo(s * legSpread * 1.2 - s*0.02, s * 0.44);
+           ctx.closePath(); ctx.fill();
 
-           // Body (torso with armor)
-           ctx.fillStyle = outfit.armor;
+           // 3D Torso with gradient shading
+           const torsoGrad = ctx.createLinearGradient(-s * 0.22, 0, s * 0.22, 0);
+           torsoGrad.addColorStop(0, darkenColor(outfit.armor, 40));
+           torsoGrad.addColorStop(0.3, lightenColor(outfit.armor, 15));
+           torsoGrad.addColorStop(0.7, outfit.armor);
+           torsoGrad.addColorStop(1, darkenColor(outfit.armor, 60));
+           ctx.fillStyle = torsoGrad;
            ctx.beginPath();
            ctx.moveTo(-s * 0.18, -s * 0.05);
            ctx.lineTo(-s * 0.22, s * 0.18);
@@ -1667,8 +1710,12 @@
            ctx.lineTo(s * 0.18, -s * 0.05);
            ctx.closePath();
            ctx.fill();
-           // Armor highlight
-           ctx.fillStyle = 'rgba(255,255,255,0.15)';
+           // 3D Armor specular highlight
+           const specGrad = ctx.createLinearGradient(-s*0.05, -s*0.05, s*0.05, s*0.12);
+           specGrad.addColorStop(0, 'rgba(255,255,255,0.3)');
+           specGrad.addColorStop(0.5, 'rgba(255,255,255,0.1)');
+           specGrad.addColorStop(1, 'rgba(255,255,255,0)');
+           ctx.fillStyle = specGrad;
            ctx.beginPath();
            ctx.moveTo(-s * 0.05, -s * 0.03);
            ctx.lineTo(-s * 0.08, s * 0.12);
@@ -1676,142 +1723,157 @@
            ctx.lineTo(s * 0.03, -s * 0.03);
            ctx.closePath();
            ctx.fill();
-           // Belt
-           ctx.fillStyle = '#333';
+           // Belt with 3D shading
+           const beltGrad = ctx.createLinearGradient(0, s*0.12, 0, s*0.16);
+           beltGrad.addColorStop(0, '#444'); beltGrad.addColorStop(0.5, '#222'); beltGrad.addColorStop(1, '#111');
+           ctx.fillStyle = beltGrad;
            ctx.fillRect(-s * 0.2, s * 0.12, s * 0.4, s * 0.04);
+           // Belt buckle
+           ctx.fillStyle = '#ffd700';
+           ctx.fillRect(-s*0.02, s*0.12, s*0.04, s*0.04);
 
-           // Arms
+           // 3D Arms with cylinder shading
            const armAngle = isAttacking ? -0.8 + atkPhase * 1.2 : Math.sin(frame * 0.05) * 0.15;
-           ctx.strokeStyle = outfit.skin;
-           ctx.lineWidth = s * 0.07;
            // Left arm (shield side)
+           const laGrad = ctx.createLinearGradient(-s*0.32, 0, -s*0.24, 0);
+           laGrad.addColorStop(0, darkenColor(outfit.skin, 30));
+           laGrad.addColorStop(0.5, outfit.skin);
+           laGrad.addColorStop(1, darkenColor(outfit.skin, 20));
+           ctx.strokeStyle = laGrad;
+           ctx.lineWidth = s * 0.08;
            ctx.beginPath(); ctx.moveTo(-s * 0.2, s * 0.0);
-           ctx.lineTo(-s * 0.35 - Math.sin(frame * 0.05) * 0.03, s * 0.15);
+           ctx.lineTo(-s * 0.35 - Math.sin(frame * 0.05) * s*0.02, s * 0.15);
            ctx.stroke();
            // Right arm (weapon side)
+           const raGrad = ctx.createLinearGradient(s*0.24, 0, s*0.36, 0);
+           raGrad.addColorStop(0, darkenColor(outfit.skin, 30));
+           raGrad.addColorStop(0.5, outfit.skin);
+           raGrad.addColorStop(1, darkenColor(outfit.skin, 20));
+           ctx.strokeStyle = raGrad;
            ctx.beginPath(); ctx.moveTo(s * 0.2, s * 0.0);
            const rArmX = s * (0.35 + armAngle * 0.15);
            const rArmY = s * (0.15 - armAngle * 0.1);
            ctx.lineTo(rArmX, rArmY);
            ctx.stroke();
 
-           // Weapon
+           // Weapon with glow
            ctx.strokeStyle = '#ccc';
            ctx.lineWidth = s * 0.03;
-           const wX = rArmX;
-           const wY = rArmY;
+           const wX = rArmX, wY = rArmY;
            if (isAttacking) {
-               // Swing animation
-               ctx.save();
-               ctx.translate(wX, wY);
-               ctx.rotate(-0.5 + atkPhase * 2.5);
-               drawWeapon(0, 0, s, outfit.weapon, outfit);
-               ctx.restore();
+               ctx.save(); ctx.translate(wX, wY); ctx.rotate(-0.5 + atkPhase * 2.5);
+               drawWeapon(0, 0, s, outfit.weapon, outfit); ctx.restore();
            } else {
-               ctx.save();
-               ctx.translate(wX, wY);
-               ctx.rotate(-0.8);
-               drawWeapon(0, 0, s, outfit.weapon, outfit);
-               ctx.restore();
+               ctx.save(); ctx.translate(wX, wY); ctx.rotate(-0.8);
+               drawWeapon(0, 0, s, outfit.weapon, outfit); ctx.restore();
            }
 
-           // Shield (left hand)
-           ctx.fillStyle = color;
-           ctx.globalAlpha = ctx.globalAlpha * 0.8;
-           ctx.beginPath();
-           ctx.arc(-s * 0.38, s * 0.2, s * 0.1, 0, Math.PI * 2);
-           ctx.fill();
-           ctx.strokeStyle = '#fff';
-           ctx.lineWidth = 1;
-           ctx.globalAlpha = ctx.globalAlpha * 0.5;
-           ctx.stroke();
+           // 3D Shield (left hand) - convex disc
+           const shX = -s * 0.38, shY = s * 0.2, shR = s * 0.12;
+           const shieldGrad = ctx.createRadialGradient(shX - shR*0.3, shY - shR*0.3, 0, shX, shY, shR);
+           shieldGrad.addColorStop(0, lightenColor(color, 40));
+           shieldGrad.addColorStop(0.6, color);
+           shieldGrad.addColorStop(1, darkenColor(color, 40));
+           ctx.globalAlpha = ctx.globalAlpha * 0.9;
+           ctx.fillStyle = shieldGrad;
+           ctx.beginPath(); ctx.arc(shX, shY, shR, 0, Math.PI * 2); ctx.fill();
+           ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+           ctx.lineWidth = s * 0.01; ctx.stroke();
            ctx.globalAlpha = isHurt ? 0.5 + Math.sin(frame * 0.5) * 0.3 : 1;
 
-           // Head
-           const headY = -s * 0.12 + breathe;
            // Neck
-           ctx.fillStyle = outfit.skin;
+           ctx.fillStyle = darkenColor(outfit.skin, 15);
            ctx.fillRect(-s * 0.04, -s * 0.06, s * 0.08, s * 0.06);
 
-           // Face
-           ctx.fillStyle = outfit.skin;
-           ctx.beginPath();
-           ctx.arc(0, headY, s * 0.12, 0, Math.PI * 2);
-           ctx.fill();
+           // 3D Head (sphere with lighting)
+           const headY = -s * 0.14 + breathe;
+           const headR = s * 0.14;
+           const headGrad = ctx.createRadialGradient(-headR*0.3, headY - headR*0.3, headR*0.1, 0, headY, headR);
+           headGrad.addColorStop(0, lightenColor(outfit.skin, 30));
+           headGrad.addColorStop(0.5, outfit.skin);
+           headGrad.addColorStop(1, darkenColor(outfit.skin, 40));
+           ctx.fillStyle = headGrad;
+           ctx.beginPath(); ctx.arc(0, headY, headR, 0, Math.PI * 2); ctx.fill();
 
-           // Hair
-           ctx.fillStyle = outfit.hair;
+           // Hair with volume
+           const hairGrad = ctx.createRadialGradient(0, headY - headR*0.5, headR*0.1, 0, headY - headR*0.2, headR*1.1);
+           hairGrad.addColorStop(0, lightenColor(outfit.hair, 20));
+           hairGrad.addColorStop(1, outfit.hair);
+           ctx.fillStyle = hairGrad;
            ctx.beginPath();
-           ctx.arc(0, headY - s * 0.03, s * 0.13, Math.PI, Math.PI * 2);
+           ctx.arc(0, headY - headR*0.2, headR * 1.05, Math.PI, Math.PI * 2);
            ctx.fill();
-           // Side hair
-           ctx.fillRect(-s * 0.13, headY - s * 0.05, s * 0.03, s * 0.12);
-           ctx.fillRect(s * 0.1, headY - s * 0.05, s * 0.03, s * 0.12);
+           ctx.fillRect(-headR*0.95, headY - headR*0.4, headR*0.25, headR*0.9);
+           ctx.fillRect(headR*0.7, headY - headR*0.4, headR*0.25, headR*0.9);
 
-           // Helmet
-           ctx.fillStyle = outfit.helmet;
-           ctx.globalAlpha = 0.7;
+           // 3D Helmet
+           const helmGrad = ctx.createRadialGradient(-headR*0.2, headY - headR*0.6, headR*0.1, 0, headY - headR*0.4, headR*0.9);
+           helmGrad.addColorStop(0, lightenColor(outfit.helmet, 25));
+           helmGrad.addColorStop(0.6, outfit.helmet);
+           helmGrad.addColorStop(1, darkenColor(outfit.helmet, 30));
+           ctx.fillStyle = helmGrad;
+           ctx.globalAlpha = 0.85;
            ctx.beginPath();
-           ctx.arc(0, headY - s * 0.04, s * 0.1, Math.PI * 1.1, Math.PI * 1.9);
+           ctx.arc(0, headY - headR*0.3, headR*0.85, Math.PI * 1.1, Math.PI * 1.9);
            ctx.fill();
            ctx.globalAlpha = 1;
 
-           // Eyes (anime style - big, expressive)
+           // Anime Eyes (large, expressive)
+           const eyeY = headY + headR * 0.05;
+           const eyeSpread = headR * 0.38;
+           const eyeW = headR * 0.35, eyeH = headR * 0.4;
            if (!isHurt) {
-               // White
+               // White sclera with slight shadow
                ctx.fillStyle = '#fff';
-               ctx.beginPath(); ctx.ellipse(-s * 0.045, headY - s * 0.01, s * 0.04, s * 0.045, 0, 0, Math.PI * 2); ctx.fill();
-               ctx.beginPath(); ctx.ellipse(s * 0.045, headY - s * 0.01, s * 0.04, s * 0.045, 0, 0, Math.PI * 2); ctx.fill();
-               // Iris
+               ctx.beginPath(); ctx.ellipse(-eyeSpread, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.ellipse(eyeSpread, eyeY, eyeW, eyeH, 0, 0, Math.PI * 2); ctx.fill();
+               // Colored iris
                ctx.fillStyle = color;
-               ctx.beginPath(); ctx.arc(-s * 0.045, headY + s * 0.005, s * 0.025, 0, Math.PI * 2); ctx.fill();
-               ctx.beginPath(); ctx.arc(s * 0.045, headY + s * 0.005, s * 0.025, 0, Math.PI * 2); ctx.fill();
+               const irisR = headR * 0.22;
+               ctx.beginPath(); ctx.arc(-eyeSpread, eyeY + irisR*0.15, irisR, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.arc(eyeSpread, eyeY + irisR*0.15, irisR, 0, Math.PI * 2); ctx.fill();
                // Pupil
                ctx.fillStyle = '#000';
-               ctx.beginPath(); ctx.arc(-s * 0.045, headY + s * 0.005, s * 0.012, 0, Math.PI * 2); ctx.fill();
-               ctx.beginPath(); ctx.arc(s * 0.045, headY + s * 0.005, s * 0.012, 0, Math.PI * 2); ctx.fill();
-               // Eye shine
+               ctx.beginPath(); ctx.arc(-eyeSpread, eyeY + irisR*0.15, irisR*0.5, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.arc(eyeSpread, eyeY + irisR*0.15, irisR*0.5, 0, Math.PI * 2); ctx.fill();
+               // Eye shine highlights
                ctx.fillStyle = '#fff';
-               ctx.beginPath(); ctx.arc(-s * 0.035, headY - s * 0.005, s * 0.006, 0, Math.PI * 2); ctx.fill();
-               ctx.beginPath(); ctx.arc(s * 0.055, headY - s * 0.005, s * 0.006, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.arc(-eyeSpread + irisR*0.3, eyeY - irisR*0.2, irisR*0.2, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.arc(eyeSpread + irisR*0.3, eyeY - irisR*0.2, irisR*0.2, 0, Math.PI * 2); ctx.fill();
                // Determined eyebrows
                ctx.strokeStyle = outfit.hair;
-               ctx.lineWidth = s * 0.015;
-               ctx.beginPath(); ctx.moveTo(-s * 0.07, headY - s * 0.05); ctx.lineTo(-s * 0.02, headY - s * 0.04); ctx.stroke();
-               ctx.beginPath(); ctx.moveTo(s * 0.07, headY - s * 0.05); ctx.lineTo(s * 0.02, headY - s * 0.04); ctx.stroke();
+               ctx.lineWidth = s * 0.02;
+               ctx.lineCap = 'round';
+               ctx.beginPath(); ctx.moveTo(-eyeSpread - eyeW*0.6, eyeY - eyeH*1.1); ctx.lineTo(-eyeSpread + eyeW*0.6, eyeY - eyeH*0.9); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(eyeSpread + eyeW*0.6, eyeY - eyeH*1.1); ctx.lineTo(eyeSpread - eyeW*0.6, eyeY - eyeH*0.9); ctx.stroke();
            } else {
-               // Hurt eyes (X X)
                ctx.strokeStyle = '#000';
-               ctx.lineWidth = s * 0.015;
-               const ey = headY;
-               ctx.beginPath(); ctx.moveTo(-s*0.06, ey-s*0.02); ctx.lineTo(-s*0.03, ey+s*0.01); ctx.stroke();
-               ctx.beginPath(); ctx.moveTo(-s*0.03, ey-s*0.02); ctx.lineTo(-s*0.06, ey+s*0.01); ctx.stroke();
-               ctx.beginPath(); ctx.moveTo(s*0.03, ey-s*0.02); ctx.lineTo(s*0.06, ey+s*0.01); ctx.stroke();
-               ctx.beginPath(); ctx.moveTo(s*0.06, ey-s*0.02); ctx.lineTo(s*0.03, ey+s*0.01); ctx.stroke();
+               ctx.lineWidth = s * 0.02;
+               ctx.beginPath(); ctx.moveTo(-eyeSpread-eyeW*0.5, eyeY-eyeH*0.4); ctx.lineTo(-eyeSpread+eyeW*0.5, eyeY+eyeH*0.3); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(-eyeSpread+eyeW*0.5, eyeY-eyeH*0.4); ctx.lineTo(-eyeSpread-eyeW*0.5, eyeY+eyeH*0.3); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(eyeSpread-eyeW*0.5, eyeY-eyeH*0.4); ctx.lineTo(eyeSpread+eyeW*0.5, eyeY+eyeH*0.3); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(eyeSpread+eyeW*0.5, eyeY-eyeH*0.4); ctx.lineTo(eyeSpread-eyeW*0.5, eyeY+eyeH*0.3); ctx.stroke();
            }
 
            // Mouth
            if (isAttacking) {
-               ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5;
-               ctx.beginPath(); ctx.moveTo(-s*0.03, headY + s*0.06); ctx.lineTo(s*0.03, headY + s*0.06); ctx.stroke();
+               ctx.strokeStyle = '#000'; ctx.lineWidth = s * 0.015;
+               ctx.beginPath(); ctx.moveTo(-headR*0.3, headY + headR*0.55); ctx.lineTo(headR*0.3, headY + headR*0.55); ctx.stroke();
            } else if (isHurt) {
-               ctx.strokeStyle = '#000'; ctx.lineWidth = 1;
-               ctx.beginPath(); ctx.arc(0, headY + s*0.08, s*0.03, 0, Math.PI); ctx.stroke();
+               ctx.strokeStyle = '#000'; ctx.lineWidth = s * 0.012;
+               ctx.beginPath(); ctx.arc(0, headY + headR*0.7, headR*0.25, 0, Math.PI); ctx.stroke();
            }
 
-           // Faction glow aura
-           ctx.shadowColor = color;
-           ctx.shadowBlur = 4 + Math.sin(frame * 0.1) * 2;
-           ctx.strokeStyle = color;
-           ctx.lineWidth = 0.5;
-           ctx.globalAlpha = 0.3;
-           ctx.beginPath();
-           ctx.ellipse(0, s * 0.1, s * 0.28, s * 0.5, 0, 0, Math.PI * 2);
-           ctx.stroke();
-           ctx.shadowBlur = 0;
-           ctx.globalAlpha = 1;
-
            ctx.restore();
+       }
+
+       function darkenColor(hex, amt) {
+           if (!hex || hex.length < 7) return hex;
+           const n = parseInt(hex.replace('#',''), 16);
+           const r = Math.max(0, (n >> 16) - amt);
+           const g = Math.max(0, ((n >> 8) & 0xFF) - amt);
+           const b = Math.max(0, (n & 0xFF) - amt);
+           return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
        }
 
        function drawWeapon(x, y, s, type, outfit) {
@@ -1958,7 +2020,7 @@
 
                    // Draw charging characters
                    const outfit1 = getOutfit('player');
-                   drawAnimeCharacter(ax, ay, 12, outfit1, ba.attackerColor, animFrame, 'attack');
+                   drawAnimeCharacter(ax, ay, 40, outfit1, ba.attackerColor, animFrame, 'attack');
 
                } else if (progress < 0.6) {
                    // Clash phase - impact flash
@@ -1967,7 +2029,7 @@
                    const midY = (ba.fromY + ba.toY) / 2;
 
                    // Impact flash
-                   const flashR = 15 + p * 25;
+                   const flashR = 30 + p * 50;
                    const grad = ctx.createRadialGradient(midX, midY, 0, midX, midY, flashR);
                    grad.addColorStop(0, 'rgba(255,255,255,' + (1 - p) + ')');
                    grad.addColorStop(0.5, 'rgba(255,200,50,' + (0.8 - p * 0.8) + ')');
@@ -1986,7 +2048,7 @@
                    // Sparks
                    for (let j = 0; j < 6; j++) {
                        const angle = (Math.PI * 2 * j) / 6 + p * 2;
-                       const dist = p * 30;
+                       const dist = p * 50;
                        ctx.fillStyle = '#ff0';
                        ctx.beginPath();
                        ctx.arc(midX + Math.cos(angle) * dist, midY + Math.sin(angle) * dist, 2, 0, Math.PI * 2);
@@ -2001,7 +2063,7 @@
 
                    // Winner posing
                    const outfit1 = getOutfit('player');
-                   drawAnimeCharacter(midX - 15, midY, 13, outfit1, ba.attackerColor, animFrame, 'idle');
+                   drawAnimeCharacter(midX - 25, midY, 45, outfit1, ba.attackerColor, animFrame, 'idle');
 
                    // Loser falling
                    ctx.save();
@@ -2009,7 +2071,7 @@
                    ctx.rotate(p * 1.2);
                    ctx.globalAlpha = 1 - p;
                    const outfit2 = getOutfit('player');
-                   drawAnimeCharacter(0, 0, 11, outfit2, ba.defenderColor, animFrame, 'hurt');
+                   drawAnimeCharacter(0, 0, 35, outfit2, ba.defenderColor, animFrame, 'hurt');
                    ctx.restore();
 
                } else {
