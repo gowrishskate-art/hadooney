@@ -141,7 +141,41 @@ Not currently installed locally. Skip if referenced.
 ## Git & Deployment
 
 - Branch: `main`
-- After implementing features, commit with a clear message and push
 - GitHub Pages auto-deploys from `main`
-- Never force-push to `main`
 - The kid expects to see changes live at the GitHub Pages URL after pushing
+- Never force-push to `main`
+
+### Git Hygiene Rules
+
+The working tree must be **clean** (no uncommitted changes, no untracked junk) before starting any implementation work. This is how we make sure we can always go back if something goes wrong.
+
+**Before starting work on a feature or bug fix:**
+1. Check `git status` — if it's not clean, commit or stash first
+2. Commit with a clear message explaining what you're about to change
+3. Now you have a safe rollback point
+
+**After finishing work:**
+1. Check `git status` — make sure only expected files changed
+2. `git diff` — review what changed, make sure nothing unexpected got modified
+3. Commit with a clear message
+4. Push to origin
+
+**What to track:**
+- `index.html` — the game
+- `game_design.md` — the design document
+- `CLAUDE.md` — this file (project config for coding agents)
+- `README.md` — project readme
+- `.gitignore` — ignore rules
+- `package.json` + `package-lock.json` — Playwright test dependency
+
+**What to ignore** (covered by `.gitignore`):
+- `node_modules/` — installed npm packages (reinstall with `npm install`)
+- `.claude/` — Claude Code session config (personal to each developer)
+- `test-results/` — Playwright test output (regenerated on each test run)
+- `.DS_Store`, `Thumbs.db` — OS junk
+- `.vscode/`, `.idea/`, `*.swp` — editor junk
+
+**Commit message style:**
+- Short and clear: what changed and why
+- Examples: "Fix Aztec power not deducting gold", "Add countdown timer system"
+- Always include `Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>`
