@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Claude Code session config
+.claude/
+
+# Test output
+test-results/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor junk
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
