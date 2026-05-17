@@ -138,44 +138,37 @@ Not currently installed locally. Skip if referenced.
 - Don't leave TODO comments in the code — either do it now or don't mention it
 - Don't add features beyond what was asked — three similar lines beats a premature abstraction
 
-## Git & Deployment
+## Deployment (handled automatically)
+
+The game is live at **https://gowrishskate-art.github.io/hadooney/**. When Claude says "done," the kid should be able to open that URL and see the changes.
+
+**Claude handles all of this autonomously — the kid never needs to:**
+- Run git commands
+- Know what a commit, branch, or push is
+- Worry about deployment or CI/CD
+- Understand .gitignore or what files to track
+
+### Claude's Deployment Checklist
+
+After finishing any implementation work, Claude MUST do all of these before telling the kid "done":
+
+1. **Commit** the changes with a clear message (what changed and why)
+2. **Push** to origin/main so GitHub Pages picks it up
+3. **Verify** `git status` is clean after push
+4. **Tell the kid** the changes are live at the URL
+
+### Git Rules (for Claude only — not the kid)
 
 - Branch: `main`
-- GitHub Pages auto-deploys from `main`
-- The kid expects to see changes live at the GitHub Pages URL after pushing
+- GitHub Pages auto-deploys from `main` — usually within 1-2 minutes of a push
 - Never force-push to `main`
-
-### Git Hygiene Rules
-
-The working tree must be **clean** (no uncommitted changes, no untracked junk) before starting any implementation work. This is how we make sure we can always go back if something goes wrong.
-
-**Before starting work on a feature or bug fix:**
-1. Check `git status` — if it's not clean, commit or stash first
-2. Commit with a clear message explaining what you're about to change
-3. Now you have a safe rollback point
-
-**After finishing work:**
-1. Check `git status` — make sure only expected files changed
-2. `git diff` — review what changed, make sure nothing unexpected got modified
-3. Commit with a clear message
-4. Push to origin
-
-**What to track:**
-- `index.html` — the game
-- `game_design.md` — the design document
-- `CLAUDE.md` — this file (project config for coding agents)
-- `README.md` — project readme
-- `.gitignore` — ignore rules
-- `package.json` + `package-lock.json` — Playwright test dependency
-
-**What to ignore** (covered by `.gitignore`):
-- `node_modules/` — installed npm packages (reinstall with `npm install`)
-- `.claude/` — Claude Code session config (personal to each developer)
-- `test-results/` — Playwright test output (regenerated on each test run)
-- `.DS_Store`, `Thumbs.db` — OS junk
-- `.vscode/`, `.idea/`, `*.swp` — editor junk
-
-**Commit message style:**
-- Short and clear: what changed and why
-- Examples: "Fix Aztec power not deducting gold", "Add countdown timer system"
+- Before starting work: ensure `git status` is clean (commit or stash anything pending)
+- After finishing work: commit, push, verify clean
+- Commit message style: short and clear, e.g. "Fix Aztec power not deducting gold"
 - Always include `Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>`
+
+### What to Track vs Ignore
+
+**Track:** `index.html`, `game_design.md`, `CLAUDE.md`, `README.md`, `.gitignore`, `package.json`, `package-lock.json`
+
+**Ignore** (in `.gitignore`): `node_modules/`, `.claude/`, `test-results/`, `.DS_Store`, editor junk
