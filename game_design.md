@@ -8,7 +8,7 @@
 
 ## The Big Picture
 
-**Hadooney** is a turn-based empire conquest game. You pick a historical or fictional era — each with a unique superpower — then conquer a hex-map by defeating AI opponents. Think Risk meets anime. Colorful warriors battle on a map, and you have a ticking clock.
+**Hadooney** is a turn-based empire conquest game. You pick a historical or fictional era — each with a unique superpower — then defeat AI opponents on an open battlefield. Each faction is one army with cartoon anime warriors. Think Risk meets anime. Colorful warriors battle on a green battlefield, and you have a ticking clock.
 
 **Platforms:** Browser (Chrome, Safari, Firefox). Works on Android phone + MacBook. Fully offline — no internet needed.
 
@@ -59,7 +59,7 @@ There's also a **How to Play** button on the title screen that explains the rule
 | **Era Select** | 20 cards in a grid (4 columns), each with era name, color, superpower name, stars earned | Tap/click an era card to select it, then Confirm |
 | **Difficulty** | 6 cards, each with name, timer, and a short description of what changes | Tap/click to select, then Confirm |
 | **Opponents** | A slider from 1 to 20 with a preview of how the map will look | Drag slider, tap Start Game |
-| **Gameplay** | Hex map (full screen), HUD bar at top, action buttons at bottom, scoreboard on side | Play the game (see Controls section) |
+| **Gameplay** | Open battlefield (full screen canvas), HUD bar at top, action buttons at bottom, scoreboard on side | Play the game (see Controls section) |
 | **Result** | Victory/Defeat banner, star rating (animated), detailed stats | Play Again (same settings) or Main Menu |
 
 **IMPLEMENTATION STATUS:** All screens exist and work. The HUD is missing the timer display — see Timer section below.
@@ -254,60 +254,39 @@ DIFFICULTY_PARAMS = {
 
 ---
 
-## The Map
+## The Battlefield
 
-### Hex Grid
+### Open Battlefield (No Tiles)
 
-- The map is a hexagonal grid of hex-shaped tiles
-- Each hex is one territory that can be owned by a player or AI
-- The grid is generated randomly each game using a "continent" shape — not a boring rectangle
-- **Grid size adapts to screen size.** On a phone you get fewer tiles than on a laptop. This is intentional — the game should fill the screen.
+The game uses an **open battlefield** — no hex grid, no tiles. Each faction is **one army** with a position (x, y) and a troop count. Armies are displayed as groups of cartoon anime characters on a green grass field.
 
-### How the Continent Shape Works
+- The battlefield fills the canvas (full screen)
+- **Player army** starts on the left side
+- **AI armies** spread in an arc on the right side
+- The background is a dark green grass field with a subtle grid pattern
+- Each army has a colored glow base and a label showing name + troop count
 
-1. Start with a grid of hex positions
-2. Calculate each hex's distance from the center of the grid
-3. Add random noise (±2 hexes) to the distance
-4. Any hex whose noisy distance is beyond a cutoff radius becomes water
-5. This creates an organic, blob-shaped continent surrounded by ocean
+### Army Positions
 
-**Why random noise?** Without it, the map would be a perfect circle. With noise, every game has a unique coastline — sometimes with peninsulas, sometimes with bays. This makes each game feel fresh.
+- Player starts at 12% from the left, vertically centered
+- AI opponents are placed in an arc formation on the right (60-90% from left)
+- Positions scale to fit the screen size
+- Army scale adapts so characters are always clearly visible
 
-### Terrain Types
+### How Armies Are Drawn
 
-| Terrain | Defense Bonus | Gold Bonus | Chance | Visual | Notes |
-|---|---|---|---|---|---|
-| Plains | 1.0x (none) | +0 | ~65% | Grass emoji | Normal land. Most common. |
-| Forest | 1.3x (+30%) | +1 extra gold | ~15% | Trees emoji | Good defensive position with bonus income. |
-| Mountain | 1.5x (+50%) | +0 | ~10% | Mountain emoji | Hardest to attack but no gold bonus. |
-| Water | Impassable | — | ~10% | Wave emoji | Can't be owned, entered, or affected by powers. |
-
-**Defense bonus means:** When someone attacks a tile, the defender's power is multiplied by this number. So a Forest tile with 10 troops defends as if it had 13 troops. Mountains defend as if they had 15.
-
-### Starting Territories
-
-- Player starts with **3 tiles**, each with **3-5 troops** (random)
-- Each AI starts with **3 tiles**, each with troops based on difficulty (see Difficulty table)
-- Starting positions are spread apart — no two players start next to each other if possible
-- Remaining land tiles have a **30% chance** of having **1-3 neutral troops** (random)
-- Neutral tiles with troops can be attacked just like enemy tiles
-
-### Edge Cases for the Map
-
-| Situation | What Happens |
-|---|---|
-| Not enough land tiles for all players | Regenerate the map. Keep regenerating until it works (max 100 attempts, then use a fallback grid). |
-| Player starts next to an enemy | Possible on small maps with many opponents. Not a bug — adds excitement. |
-| All tiles around you are water | Should not happen — map generation ensures starting tiles have at least 1 land neighbor. |
-| Power targets a water tile | Not allowed. Show a message "Can't target water!" |
-| Inferno/Dragon Breath hits water tiles | Skip water tiles. Only affect land tiles. |
+- Each army shows 1-5 anime characters depending on troop count (1 per 4 troops, max 5)
+- Characters have idle bobbing animation
+- Each era has unique outfit colors (armor, helmet, weapon)
+- A colored oval shadow/base glows beneath each army group
+- A label banner above shows: army name + troop count
+- Selected army has a pulsing white highlight; enemies show red highlights
 
 **IMPLEMENTATION STATUS:**
-- Hex grid, terrain types, and generation all work correctly.
-- Terrain percentages match the design.
-- BUG: Starting territories are NOT spread apart — they're assigned randomly from a shuffled list. Should add minimum distance between starting positions.
-- BUG: No fallback if map generation fails to produce enough land tiles.
-- BUG: Window resize regenerates the map with new random noise, which can change which tiles exist. Should use deterministic seed based on game session.
+- Battlefield rendering with anime characters works correctly.
+- No tiles, no hex grid — pure army-based system.
+- `lightenColor()` and `darkenColor()` helpers for 3D shading.
+- Characters scale based on canvas size and army count.
 
 ---
 
@@ -677,31 +656,37 @@ Accessible from the title screen via the "How to Play" button. It opens as a mod
 
 ## Visual Design
 
-### Characters (Warriors)
+### Battlefield Background
 
-- Drawn on hex tiles using Canvas 2D gradients for a 3D look
-- Each era has unique outfit colors matching the era theme
-- Characters have: 3D spherical head, cylindrical torso/arms/legs, shield, helmet/hair
-- Scale based on hex size — characters should be large and clearly visible
-- **Idle animation:** Subtle breathing bob (slow sine wave on Y position)
-- **Multiple characters:** Tiles with more troops show more characters (up to a max of 3 visible)
+- Dark green gradient (`#1a2f1a` to `#1e3520`) — lighter than before for better contrast
+- Subtle grass texture (200 small green dots scattered pseudo-randomly)
+- Faint grid lines for spatial reference (very low opacity)
+
+### Characters (Anime Warriors)
+
+- Drawn using Canvas 2D gradients for a 3D cartoon look
+- Each era has unique outfit colors (ERA_OUTFITS object: hair, skin, armor, weapon, helmet)
+- Characters have: 3D spherical head with anime eyes, cylindrical torso/arms/legs, shield, helmet/hair
+- Scale based on `gameState.armyScale` — adapts to screen size
+- **Idle animation:** Subtle breathing bob (sine wave on Y position)
+- **Multiple characters:** Armies with more troops show more characters (1 per 4 troops, max 5)
+- **Hurt animation:** Flashing transparency when taking damage
+- **Attack animation:** Weapon swing and arm movement during battle
+
+### Army Bases and Labels
+
+- Each army has a colored oval shadow/glow beneath it for contrast against the green field
+- Label banner above each army: dark background with colored border, white text
+- Shows: army name + troop count (e.g. "You  15 troops")
+- Selected army: pulsing white circle highlight
+- Enemy armies (when player selected): red circle highlights
 
 ### Battle Animations
 
-When you attack a tile:
-1. **Charge phase** (0.5s): Characters on the attacking tile lunge toward the target with motion lines
-2. **Clash phase** (0.3s): Bright flash at the impact point with color-coded sparks
-3. **Result phase** (0.5s): If captured, particle explosion bursts from the tile in the attacker's color. If failed, the defender's tile glows briefly.
-
-### Hex Tiles
-
-- **Normal tile:** Subtle terrain-colored background (very transparent so characters stand out)
-- **Selected tile (yours):** Pulsing white highlight
-- **Adjacent friendly tile:** Green highlight
-- **Adjacent enemy tile:** Red highlight
-- **Terrain cues:** Small emoji/icon in the corner — grass for plains, trees for forest, mountain peak for mountain, waves for water
-- **Owner color:** The border and background tint match the owner's era color
-- **Troop count:** Large number in the center of the tile
+When you attack an enemy army:
+1. **Charge phase** (0.4s): Attacking character lunges toward target with motion lines
+2. **Clash phase** (0.2s): Bright flash at midpoint with "CLASH!" text and color sparks
+3. **Result phase** (0.25s): If won, particle explosion from defender. If lost, defender glows.
 
 ### HUD (Heads-Up Display)
 

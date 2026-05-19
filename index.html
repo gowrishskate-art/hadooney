@@ -956,26 +956,26 @@
 
        // ==================== SHOP WEAPONS ====================
        const SHOP_WEAPONS = {
-           egypt:    { name: 'Sandstorm Shard', cost: 20, desc: 'Remove 25% troops from target tile', type: 'target', effect: (tile) => { tile.troops = Math.ceil(tile.troops * 0.75); } },
-           rome:     { name: 'Roman Shield', cost: 20, desc: '+50% defense on a tile for 2 turns', type: 'target_owned', effect: (tile) => { tile.defenseBonus = 1.5; setTimeout(() => { if(tile.defenseBonus === 1.5) tile.defenseBonus = 1; }, 120000); } },
-           viking:   { name: 'War Axe', cost: 20, desc: '+50% attack on your next attack', type: 'instant', effect: () => { gameState.player.berserkerActive = true; } },
-           medieval: { name: 'Castle Blueprint', cost: 25, desc: 'Fortify tile +100% defense 3 turns', type: 'target_owned', effect: (tile) => { tile.defenseBonus = 2.0; setTimeout(() => { if(tile.defenseBonus >= 2.0) tile.defenseBonus = 1; }, 180000); } },
-           ottoman:  { name: 'Mercenary', cost: 20, desc: 'Add 8 troops to any owned tile', type: 'target_owned', effect: (tile) => { tile.troops += 8; } },
-           aztec:    { name: 'Gold Amulet', cost: 15, desc: 'Gain 15 gold instantly', type: 'instant', effect: () => { gameState.player.gold += 15; } },
-           ming:     { name: 'Wall Blueprint', cost: 20, desc: 'Tile impassable for 3 turns', type: 'target_owned', effect: (tile) => { tile.impassable = true; setTimeout(() => { tile.impassable = false; }, 180000); } },
-           edo:      { name: 'Honor Token', cost: 20, desc: 'One tile invincible for 1 attack', type: 'target_owned', effect: (tile) => { tile.invincible = true; setTimeout(() => { tile.invincible = false; }, 15000); } },
-           british:  { name: 'Cannon', cost: 20, desc: 'Remove 3 troops from any tile', type: 'target', effect: (tile) => { tile.troops = Math.max(0, tile.troops - 3); if(tile.troops === 0 && tile.owner) { const o = getOwner(tile.owner); if(o) { const i = o.tiles.indexOf(tile.id); if(i>-1) o.tiles.splice(i,1); } if(tile.isCity && o) { o.eliminated = true; playSFX('eliminate'); } tile.owner = null; } } },
-           industrial:{ name: 'Machine Part', cost: 25, desc: 'Tile produces +3 gold/turn forever', type: 'target_owned', effect: (tile) => { if(!gameState.player.factories.includes(tile.id)) gameState.player.factories.push(tile.id); } },
-           cyber:    { name: 'Hack Tool', cost: 20, desc: 'Steal 2 troops from enemy tile', type: 'target_enemy', effect: (tile) => { if(tile.troops >= 2) { tile.troops -= 2; const pt = gameState.territories.find(t => t.owner === 'player'); if(pt) pt.troops += 2; } } },
-           quantum:  { name: 'Phase Device', cost: 20, desc: 'Swap troops of two owned tiles', type: 'two_owned' },
-           star:     { name: 'Laser', cost: 25, desc: 'Destroy all troops on one tile', type: 'target', effect: (tile) => { tile.troops = 0; if(tile.owner) { const o = getOwner(tile.owner); if(o) { const i = o.tiles.indexOf(tile.id); if(i>-1) o.tiles.splice(i,1); } if(tile.isCity && o) { o.eliminated = true; playSFX('eliminate'); } tile.owner = null; } } },
-           dragon:   { name: 'Dragon Scale', cost: 25, desc: '3 damage to target + adjacent tiles', type: 'target', effect: (tile, gs) => { [tile, ...gs.territories.filter(t => t !== tile && isAdjacent(tile, t) && t.terrain.passable)].forEach(t => { if(t.owner && t.owner !== 'player') { t.troops = Math.max(0, t.troops - 3); if(t.troops === 0) { const o = getOwner(t.owner); if(o) { const i = o.tiles.indexOf(t.id); if(i>-1) o.tiles.splice(i,1); } if(t.isCity && o) { o.eliminated = true; playSFX('eliminate'); } t.owner = null; } } }); } },
-           crystal:  { name: 'Crystal Fragment', cost: 20, desc: '+30% defense all tiles for 1 turn', type: 'instant', effect: () => { gameState.player.defenseBonus = 1.3; gameState.player.defenseBonusTurns = 1; } },
-           shadow:   { name: 'Shadow Dagger', cost: 15, desc: 'Remove 2 troops from enemy tile', type: 'target_enemy', effect: (tile) => { tile.troops = Math.max(0, tile.troops - 2); if(tile.troops === 0 && tile.owner) { const o = getOwner(tile.owner); if(o) { const i = o.tiles.indexOf(tile.id); if(i>-1) o.tiles.splice(i,1); } if(tile.isCity && o) { o.eliminated = true; playSFX('eliminate'); } tile.owner = null; } } },
-           thunder:  { name: 'Storm Gem', cost: 20, desc: '3 damage to 2 random enemy tiles', type: 'instant', effect: () => { const enemies = gameState.territories.filter(t => t.owner && t.owner !== 'player').sort(() => Math.random()-0.5).slice(0,2); enemies.forEach(t => { t.troops = Math.max(0, t.troops - 3); if(t.troops === 0) { const o = getOwner(t.owner); if(o) { const i = o.tiles.indexOf(t.id); if(i>-1) o.tiles.splice(i,1); } if(t.isCity && o) { o.eliminated = true; playSFX('eliminate'); } t.owner = null; } }); } },
-           void:     { name: 'Void Stone', cost: 25, desc: 'Make enemy tile neutral', type: 'target_enemy', effect: (tile) => { const o = getOwner(tile.owner); if(o) { const i = o.tiles.indexOf(tile.id); if(i>-1) o.tiles.splice(i,1); if(tile.isCity && o) { o.eliminated = true; playSFX('eliminate'); } const fi = o.factories ? o.factories.indexOf(tile.id) : -1; if(fi>-1) o.factories.splice(fi,1); } tile.owner = null; tile.troops = 0; } },
-           ember:    { name: 'Fire Bomb', cost: 20, desc: 'Fire on target + adjacent, 2 dmg/turn, 2 turns', type: 'target', effect: (tile, gs) => { [tile, ...gs.territories.filter(t => t !== tile && isAdjacent(tile, t) && t.terrain.passable && t.terrain.name !== 'Water')].forEach(t => { t.onFire = 2; }); } },
-           frost:    { name: 'Ice Shard', cost: 20, desc: 'Freeze one enemy tile for 1 turn', type: 'target_enemy', effect: (tile) => { tile.frozen = true; } }
+           egypt:     { name: 'Sandstorm Shard', cost: 20, desc: 'Remove 25% troops from enemy army', type: 'target_enemy', fx: 'pctDmg', val: 0.25 },
+           rome:      { name: 'Roman Shield', cost: 20, desc: 'Steal 50% troops from enemy army', type: 'target_enemy', fx: 'steal', val: 0.5 },
+           viking:    { name: 'War Axe', cost: 20, desc: '+100% attack on your next attack', type: 'instant', fx: 'berserker' },
+           medieval:  { name: 'Castle Blueprint', cost: 25, desc: 'Double your defense for 2 turns', type: 'instant', fx: 'defense', val: 2.0, turns: 2 },
+           ottoman:   { name: 'Mercenary', cost: 20, desc: 'Add 8 troops to your army', type: 'instant', fx: 'troops', val: 8 },
+           aztec:     { name: 'Gold Amulet', cost: 15, desc: 'Gain 15 gold instantly', type: 'instant', fx: 'gold', val: 15 },
+           ming:      { name: 'Wall Blueprint', cost: 20, desc: 'Freeze an enemy army for 1 turn', type: 'target_enemy', fx: 'freeze', val: 1 },
+           edo:       { name: 'Honor Token', cost: 20, desc: 'Become invincible for 1 attack', type: 'instant', fx: 'invincible' },
+           british:   { name: 'Cannon', cost: 20, desc: 'Remove 3 troops from enemy army', type: 'target_enemy', fx: 'flatDmg', val: 3 },
+           industrial:{ name: 'Machine Part', cost: 25, desc: '+5 gold income per turn', type: 'instant', fx: 'factory', val: 5 },
+           cyber:     { name: 'Hack Tool', cost: 20, desc: 'Steal 3 troops from enemy army', type: 'target_enemy', fx: 'stealFlat', val: 3 },
+           quantum:   { name: 'Phase Device', cost: 20, desc: 'Swap your troops with enemy army', type: 'target_enemy', fx: 'swap' },
+           star:      { name: 'Laser', cost: 25, desc: 'Destroy all troops on enemy army', type: 'target_enemy', fx: 'destroy' },
+           dragon:   { name: 'Dragon Scale', cost: 25, desc: 'Remove 5 troops from enemy army', type: 'target_enemy', fx: 'flatDmg', val: 5 },
+           crystal:  { name: 'Crystal Fragment', cost: 20, desc: '+30% defense for 1 turn', type: 'instant', fx: 'defense', val: 1.3, turns: 1 },
+           shadow:   { name: 'Shadow Dagger', cost: 15, desc: 'Remove 2 troops from enemy army', type: 'target_enemy', fx: 'flatDmg', val: 2 },
+           thunder:  { name: 'Storm Gem', cost: 20, desc: 'Hit 2 random enemies for 3 damage', type: 'instant', fx: 'thunder', val: 3 },
+           void:     { name: 'Void Stone', cost: 25, desc: 'Remove 50% troops from enemy army', type: 'target_enemy', fx: 'pctDmg', val: 0.5 },
+           ember:    { name: 'Fire Bomb', cost: 20, desc: 'Set enemy on fire (3 dmg/turn, 2 turns)', type: 'target_enemy', fx: 'fire' },
+           frost:    { name: 'Ice Shard', cost: 20, desc: 'Freeze enemy army for 2 turns', type: 'target_enemy', fx: 'freeze', val: 2 }
        };
 
        // ==================== GAME STATE ====================
@@ -986,30 +986,20 @@
            difficulty: null,
            player: {
                id: 'player', name: 'You', color: '#667eea', gold: 20,
-               tiles: [], eliminated: false, specialUsed: false,
-               specialActive: null, berserkerActive: false,
-               defenseBonus: 1, defenseBonusTurns: 0,
-               factories: [], impassableTiles: [], invincibleTiles: [],
-               weapons: [], cityTileId: null
+               troops: 15, x: 0, y: 0, eliminated: false, specialUsed: false,
+               berserkerActive: false, defenseBonus: 1, defenseBonusTurns: 0,
+               weapons: [], defeated: 0
            },
            opponents: [],
-           territories: [],
-           hexGrid: { width: 0, height: 0, hexSize: 0 },
-           selectedTile: null, targetTile: null,
            turn: 1, isPlayerTurn: true, isProcessingTurn: false,
-           specialPowerActive: false, powerTargetMode: false, powerFirstTile: null,
+           selectedArmy: null,
+           powerTargetMode: false,
            gameStartTime: 0, totalPlayTime: 0, lastSaveTime: Date.now(),
-           prevPlayerTiles: 0, prevOpponentsAlive: 0,
+           prevOpponentsAlive: 0,
            timerRemaining: 0, timerInterval: null, gameElapsed: 0,
-           weaponTargetMode: null, weaponFirstTile: null, pausedAt: null,
+           weaponTargetMode: null, pausedAt: null,
            endMessage: ''
        };
-
-       // ==================== HELPER: GET OWNER ====================
-       function getOwner(ownerId) {
-           if (ownerId === 'player') return gameState.player;
-           return gameState.opponents.find(o => o.id === ownerId) || null;
-       }
 
        // ==================== AUDIO SYSTEM ====================
        let audioCtx = null;
@@ -1245,19 +1235,10 @@
                difficulty: gameState.difficulty,
                player: { ...gameState.player },
                opponents: gameState.opponents.map(o => ({ ...o })),
-               territories: gameState.territories.map(t => ({
-                   id: t.id, col: t.col, row: t.row,
-                   terrain: t.terrain.name,
-                   owner: t.owner, troops: t.troops,
-                   onFire: t.onFire, frozen: t.frozen,
-                   defenseBonus: t.defenseBonus,
-                   impassable: t.impassable, invincible: t.invincible,
-                   isCity: t.isCity || false
-               })),
-               hexGrid: { ...gameState.hexGrid },
+               bfW: gameState.bfW, bfH: gameState.bfH,
+               armyScale: gameState.armyScale,
                turn: gameState.turn,
                isPlayerTurn: gameState.isPlayerTurn,
-               specialPowerActive: gameState.specialPowerActive,
                powerTargetMode: gameState.powerTargetMode,
                gameStartTime: gameState.gameStartTime,
                timerRemaining: gameState.timerRemaining,
@@ -1278,12 +1259,10 @@
                gameState.difficulty = data.difficulty;
                gameState.player = { ...gameState.player, ...data.player };
                if (!gameState.player.weapons) gameState.player.weapons = [];
-               if (!gameState.player.factories) gameState.player.factories = [];
                gameState.opponents = data.opponents;
-               gameState.opponents.forEach(o => { if (!o.weapons) o.weapons = []; if (!o.factories) o.factories = []; });
+               gameState.opponents.forEach(o => { if (!o.weapons) o.weapons = []; });
                gameState.turn = data.turn;
                gameState.isPlayerTurn = data.isPlayerTurn;
-               gameState.specialPowerActive = data.specialPowerActive;
                gameState.powerTargetMode = data.powerTargetMode;
                gameState.gameStartTime = data.gameStartTime;
                gameState.timerRemaining = data.timerRemaining || 0;
@@ -1292,42 +1271,16 @@
 
                showScreen('game');
                setTimeout(() => {
-                   // Rebuild map from saved tile data instead of generating
-                   const terrainMap = { Plains: TERRAIN_TYPES.PLAINS, Forest: TERRAIN_TYPES.FOREST, Mountain: TERRAIN_TYPES.MOUNTAIN, Water: TERRAIN_TYPES.WATER };
-                   gameState.territories = [];
                    const canvas = document.getElementById('game-canvas');
                    const container = document.querySelector('.game-canvas-container');
                    const rect = container.getBoundingClientRect();
                    canvas.width = rect.width * window.devicePixelRatio;
                    canvas.height = rect.height * window.devicePixelRatio;
-                   const hexSize = Math.min(canvas.width, canvas.height) / 9;
-
-                   for (const st of data.territories) {
-                       const terrain = terrainMap[st.terrain] || TERRAIN_TYPES.PLAINS;
-                       const x = st.col + (st.row % 2) * 0.5;
-                       const y = st.row * 0.866;
-                       gameState.territories.push({
-                           id: st.id, col: st.col, row: st.row,
-                           x: x * hexSize * 1.732 + hexSize,
-                           y: y * hexSize * 1.5 + hexSize,
-                           terrain, owner: st.owner, troops: st.troops,
-                           onFire: st.onFire || 0, frozen: st.frozen || false,
-                           defenseBonus: st.defenseBonus || 1,
-                           impassable: st.impassable || false, invincible: st.invincible || false,
-                           isCity: st.isCity || false
-                       });
-                   }
-
-                   // Compute hexGrid from territories
-                   if (data.territories.length > 0) {
-                       const maxCol = Math.max(...data.territories.map(t => t.col));
-                       const maxRow = Math.max(...data.territories.map(t => t.row));
-                       gameState.hexGrid = { width: maxCol + 1, height: maxRow + 1, hexSize };
-                   }
-
-                   gameState.selectedTile = null;
+                   gameState.bfW = data.bfW || canvas.width;
+                   gameState.bfH = data.bfH || canvas.height;
+                   gameState.armyScale = data.armyScale || Math.min(canvas.width, canvas.height) / 5;
+                   gameState.selectedArmy = null;
                    gameState.isProcessingTurn = false;
-                   gameState.prevPlayerTiles = gameState.player.tiles.length;
                    gameState.prevOpponentsAlive = gameState.opponents.filter(o => !o.eliminated).length;
                    initGameCanvas();
                    updateGameUI();
@@ -1413,11 +1366,9 @@
            const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
            gameState.player = {
                id: 'player', name: 'You', color: era.color, gold: 15,
-               tiles: [], eliminated: false, specialUsed: false,
-               specialActive: null, berserkerActive: false,
-               defenseBonus: 1, defenseBonusTurns: 0,
-               factories: [], impassableTiles: [], invincibleTiles: [],
-               weapons: [], cityTileId: null
+               troops: 15, x: 0, y: 0, eliminated: false, specialUsed: false,
+               berserkerActive: false, defenseBonus: 1, defenseBonusTurns: 0,
+               weapons: [], defeated: 0
            };
            gameState.opponents = [];
            const personalities = Object.values(AI_PERSONALITIES);
@@ -1425,29 +1376,24 @@
            for (let i = 0; i < gameState.opponentCount; i++) {
                gameState.opponents.push({
                    id: `ai_${i}`, name: `Empire ${i + 1}`, color: colors[i % colors.length],
-                   gold: params.aiStartGold, tiles: [], eliminated: false,
+                   gold: params.aiStartGold, troops: params.aiStartTroops * 3,
+                   x: 0, y: 0, eliminated: false, defeated: 0,
                    personality: personalities[i % personalities.length], isAI: true,
-                   specialUsed: false, weapons: [], factories: [], cityTileId: null
+                   specialUsed: false, weapons: []
                });
            }
-           generateHexMap();
-           assignStartingTerritories();
+           initBattlefield();
            gameState.turn = 1;
            gameState.isPlayerTurn = true;
            gameState.isProcessingTurn = false;
-           gameState.selectedTile = null;
-           gameState.targetTile = null;
-           gameState.specialPowerActive = false;
+           gameState.selectedArmy = null;
            gameState.powerTargetMode = false;
-           gameState.powerFirstTile = null;
            gameState.weaponTargetMode = null;
-           gameState.weaponFirstTile = null;
            gameState.gameStartTime = Date.now();
            gameState.timerRemaining = params.timer;
            gameState.gameElapsed = 0;
            gameState.pausedAt = null;
            gameState.endMessage = '';
-           gameState.prevPlayerTiles = gameState.player.tiles.length;
            gameState.prevOpponentsAlive = gameState.opponents.length;
            initGameCanvas();
            updateGameUI();
@@ -1455,143 +1401,33 @@
            startTimer();
        }
 
-       function generateHexMap() {
+       function initBattlefield() {
            const canvas = document.getElementById('game-canvas');
            const container = document.querySelector('.game-canvas-container');
            const rect = container.getBoundingClientRect();
            canvas.width = rect.width * window.devicePixelRatio;
            canvas.height = rect.height * window.devicePixelRatio;
-           const hexSize = Math.min(canvas.width, canvas.height) / 9;
-           const cols = Math.floor(canvas.width / (hexSize * 1.732));
-           const rows = Math.floor(canvas.height / (hexSize * 1.5));
-
-           const totalPlayers = 1 + gameState.opponentCount;
-           const minLandNeeded = totalPlayers * 3;
-
-           let bestTerritories = [];
-           let bestCount = 0;
-
-           // Try up to 100 times to get enough land tiles
-           for (let attempt = 0; attempt < 100; attempt++) {
-               const territories = [];
-               const centerX = cols / 2;
-               const centerY = rows / 2;
-               const maxDist = Math.sqrt(centerX * centerX + centerY * centerY) * 0.7;
-               for (let row = 0; row < rows; row++) {
-                   for (let col = 0; col < cols; col++) {
-                       const x = col + (row % 2) * 0.5;
-                       const y = row * 0.866;
-                       const distFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                       const noise = Math.random() * 0.3 + 0.7;
-                       if (distFromCenter < maxDist * noise) {
-                           let terrain;
-                           const rand = Math.random();
-                           if (rand < 0.15) terrain = TERRAIN_TYPES.FOREST;
-                           else if (rand < 0.25) terrain = TERRAIN_TYPES.MOUNTAIN;
-                           else if (rand < 0.35) terrain = TERRAIN_TYPES.WATER;
-                           else terrain = TERRAIN_TYPES.PLAINS;
-                           territories.push({
-                               id: `tile_${row}_${col}`, col, row,
-                               x: x * hexSize * 1.732 + hexSize,
-                               y: y * hexSize * 1.5 + hexSize,
-                               terrain, owner: null, troops: 0,
-                               onFire: 0, frozen: false, defenseBonus: 1,
-                               impassable: false, invincible: false, isCity: false
-                           });
-                       }
-                   }
-               }
-               const landCount = territories.filter(t => t.terrain.passable).length;
-               if (landCount >= minLandNeeded && landCount > bestCount) {
-                   bestTerritories = territories;
-                   bestCount = landCount;
-                   if (landCount >= minLandNeeded * 2) break;
-               }
-           }
-
-           // Fallback: guaranteed grid if still not enough
-           if (bestCount < minLandNeeded) {
-               bestTerritories = [];
-               const gridRows = 6, gridCols = 6;
-               for (let row = 0; row < gridRows; row++) {
-                   for (let col = 0; col < gridCols; col++) {
-                       const x = col + (row % 2) * 0.5;
-                       const y = row * 0.866;
-                       bestTerritories.push({
-                           id: `tile_${row}_${col}`, col, row,
-                           x: x * hexSize * 1.732 + hexSize,
-                           y: y * hexSize * 1.5 + hexSize,
-                           terrain: TERRAIN_TYPES.PLAINS, owner: null, troops: 0,
-                           onFire: 0, frozen: false, defenseBonus: 1,
-                           impassable: false, invincible: false, isCity: false
-                       });
-                   }
-               }
-           }
-
-           gameState.hexGrid = { width: cols, height: rows, hexSize };
-           gameState.territories = bestTerritories;
-       }
-
-       function assignStartingTerritories() {
-           const landTiles = gameState.territories.filter(t => t.terrain.passable);
+           const w = canvas.width;
+           const h = canvas.height;
            const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
-           const allPlayers = [gameState.player, ...gameState.opponents.filter(o => !o.eliminated)];
-           const totalPlayers = allPlayers.length;
 
-           // Voronoi-like distribution: pick spread-out city positions
-           const cityPositions = [];
-           const usedDistances = [];
+           gameState.player.x = w * 0.12;
+           gameState.player.y = h * 0.5;
 
-           for (let p = 0; p < totalPlayers; p++) {
-               let bestTile = null;
-               let bestMinDist = -1;
-               const shuffled = [...landTiles].sort(() => Math.random() - 0.5);
-
-               for (const tile of shuffled) {
-                   const minDistToOther = cityPositions.length === 0 ? Infinity :
-                       Math.min(...cityPositions.map(ct => Math.abs(ct.col - tile.col) + Math.abs(ct.row - tile.row)));
-                   if (minDistToOther > bestMinDist) {
-                       bestMinDist = minDistToOther;
-                       bestTile = tile;
-                   }
-               }
-
-               if (bestTile) {
-                   cityPositions.push(bestTile);
-               }
+           const n = gameState.opponents.length;
+           for (let i = 0; i < n; i++) {
+               const spread = n <= 1 ? 0 : (Math.PI * 0.8);
+               const startAngle = Math.PI / 2 - spread / 2;
+               const angle = n === 1 ? 0 : startAngle + (spread * i) / (n - 1);
+               const rx = w * 0.3;
+               const ry = h * 0.35;
+               gameState.opponents[i].x = w * 0.6 + Math.cos(angle) * rx;
+               gameState.opponents[i].y = h * 0.5 - Math.sin(angle) * ry;
            }
 
-           // Assign each land tile to nearest player's city
-           for (const tile of landTiles) {
-               let nearestCity = null;
-               let nearestDist = Infinity;
-               for (const cp of cityPositions) {
-                   const dist = Math.abs(cp.col - tile.col) + Math.abs(cp.row - tile.row);
-                   if (dist < nearestDist) {
-                       nearestDist = dist;
-                       nearestCity = cp;
-                   }
-               }
-
-               // Find which player owns this city
-               const playerIdx = cityPositions.indexOf(nearestCity);
-               if (playerIdx >= 0 && playerIdx < allPlayers.length) {
-                   const player = allPlayers[playerIdx];
-                   tile.owner = player.id;
-                   player.tiles.push(tile.id);
-                   if (tile === nearestCity) {
-                       tile.troops = player.isAI ? params.aiStartTroops + 1 : 5;
-                       tile.isCity = true;
-                       player.cityTileId = tile.id;
-                   } else {
-                       const maxDist = landTiles.length / totalPlayers;
-                       const distRatio = Math.min(1, nearestDist / (maxDist * 0.5));
-                       const base = player.isAI ? params.aiStartTroops : 3;
-                       tile.troops = Math.max(1, base - Math.floor(distRatio * 2));
-                   }
-               }
-           }
+           gameState.bfW = w;
+           gameState.bfH = h;
+           gameState.armyScale = Math.min(w, h) / 5;
        }
 
        // ==================== TIMER SYSTEM ====================
@@ -1732,88 +1568,33 @@
            const weaponEntry = gameState.player.weapons[index];
            const weapon = SHOP_WEAPONS[weaponEntry.eraId];
            if (!weapon) return;
-
            closeShop();
-
            if (weapon.type === 'instant') {
-               weapon.effect();
+               applyInstantWeapon(weapon);
                gameState.player.weapons.splice(index, 1);
-               showPowerIndicator(`Used ${weapon.name}!`);
+               showPowerIndicator(weapon.name + ' used!');
                playSFX('special');
-               renderGame();
-               updateGameUI();
-               updateScoreboard();
-           } else if (weapon.type === 'two_owned') {
-               gameState.weaponTargetMode = { weapon, index };
-               gameState.weaponFirstTile = null;
-               showPowerIndicator('Select first owned tile');
+               renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
            } else {
-               gameState.weaponTargetMode = { weapon, index };
-               gameState.weaponFirstTile = null;
-               const instructions = {
-                   target: 'Select any tile as target',
-                   target_owned: 'Select one of your tiles',
-                   target_enemy: 'Select an enemy tile'
-               };
-               showPowerIndicator(instructions[weapon.type] || 'Select target tile');
+               gameState.weaponTargetMode = { eraId: weaponEntry.eraId, index };
+               showPowerIndicator(weapon.type === 'target_enemy' ? 'Tap an enemy army' : 'Tap your army');
            }
        }
 
-       function handleWeaponTarget(tile) {
-           if (!gameState.weaponTargetMode) return;
-           const { weapon, index } = gameState.weaponTargetMode;
-
-           if (weapon.type === 'two_owned') {
-               if (!gameState.weaponFirstTile) {
-                   if (tile.owner === 'player') {
-                       gameState.weaponFirstTile = tile;
-                       showPowerIndicator('Now select second owned tile');
-                   } else {
-                       showPowerIndicator('Select your own tile!');
-                   }
-                   return;
-               } else {
-                   if (tile.owner === 'player') {
-                       const tmp = gameState.weaponFirstTile.troops;
-                       gameState.weaponFirstTile.troops = tile.troops;
-                       tile.troops = tmp;
-                       showPowerIndicator(`Used ${weapon.name}!`);
-                       playSFX('special');
-                   } else {
-                       showPowerIndicator('Select your own tile!');
-                       return;
-                   }
-                   gameState.weaponTargetMode = null;
-                   gameState.weaponFirstTile = null;
-                   gameState.player.weapons.splice(index, 1);
-                   renderGame();
-                   updateGameUI();
-                   return;
-               }
+       function applyInstantWeapon(weapon) {
+           const fx = weapon.fx;
+           if (fx === 'berserker') { gameState.player.berserkerActive = true; }
+           else if (fx === 'defense') { gameState.player.defenseBonus = weapon.val; gameState.player.defenseBonusTurns = weapon.turns || 1; }
+           else if (fx === 'troops') { gameState.player.troops += weapon.val; }
+           else if (fx === 'gold') { gameState.player.gold += weapon.val; }
+           else if (fx === 'invincible') { gameState.player._invincible = true; setTimeout(() => { gameState.player._invincible = false; }, 3000); }
+           else if (fx === 'factory') { gameState.player._factoryBonus = (gameState.player._factoryBonus || 0) + weapon.val; }
+           else if (fx === 'thunder') {
+               const enemies = getAllFactions().filter(f => f.id !== 'player').sort(() => Math.random() - 0.5).slice(0, 2);
+               for (const e of enemies) { e.troops = Math.max(0, e.troops - weapon.val); if (e.troops <= 0) { e.eliminated = true; gameState.player.defeated = (gameState.player.defeated || 0) + 1; } spawnParticles(e.x, e.y, '#fdcb6e', 8, 4); }
            }
-
-           // Validate target type
-           if (weapon.type === 'target_owned' && tile.owner !== 'player') {
-               showPowerIndicator('Select your own tile!');
-               return;
-           }
-           if (weapon.type === 'target_enemy' && (tile.owner === 'player' || !tile.owner)) {
-               showPowerIndicator('Select an enemy tile!');
-               return;
-           }
-
-           weapon.effect(tile, gameState);
-           gameState.player.weapons.splice(index, 1);
-           gameState.weaponTargetMode = null;
-           gameState.weaponFirstTile = null;
-           showPowerIndicator(`Used ${weapon.name}!`);
-           playSFX('special');
-           spawnParticles(tile.x, tile.y, '#10ac84', 8, 3);
-           renderGame();
-           updateGameUI();
-           updateScoreboard();
-           checkGameEnd();
        }
+
        // ==================== CANVAS RENDERING ====================
        let canvas, ctx;
        let canvasInitialized = false;
@@ -1838,47 +1619,13 @@
            if (gameState.screen !== 'game' || !canvas) return;
            const container = document.querySelector('.game-canvas-container');
            const rect = container.getBoundingClientRect();
+           const oldW = canvas.width, oldH = canvas.height;
            canvas.width = rect.width * window.devicePixelRatio;
            canvas.height = rect.height * window.devicePixelRatio;
-           const hexSize = Math.min(canvas.width, canvas.height) / 9;
-           const cols = Math.floor(canvas.width / (hexSize * 1.732));
-           const rows = Math.floor(canvas.height / (hexSize * 1.5));
-           const centerX = cols / 2;
-           const centerY = rows / 2;
-           const maxDist = Math.sqrt(centerX * centerX + centerY * centerY) * 0.7;
-
-           const oldTerritories = [...gameState.territories];
-           gameState.hexGrid = { width: cols, height: rows, hexSize };
-           gameState.territories = [];
-           for (let row = 0; row < rows; row++) {
-               for (let col = 0; col < cols; col++) {
-                   const x = col + (row % 2) * 0.5;
-                   const y = row * 0.866;
-                   const distFromCenter = Math.sqrt((x - centerX) ** 2 + (y - centerY) ** 2);
-                   const seed = (row * 137 + col * 251) % 100;
-                   let terrain;
-                   if (seed < 15) terrain = TERRAIN_TYPES.FOREST;
-                   else if (seed < 25) terrain = TERRAIN_TYPES.MOUNTAIN;
-                   else if (seed < 35) terrain = TERRAIN_TYPES.WATER;
-                   else terrain = TERRAIN_TYPES.PLAINS;
-                   const tileId = `tile_${row}_${col}`;
-                   const oldTile = oldTerritories.find(t => t.id === tileId);
-                   if (oldTile) {
-                       oldTile.x = x * hexSize * 1.732 + hexSize;
-                       oldTile.y = y * hexSize * 1.5 + hexSize;
-                       gameState.territories.push(oldTile);
-                   } else if (distFromCenter < maxDist * 0.85) {
-                       gameState.territories.push({
-                           id: tileId, col, row,
-                           x: x * hexSize * 1.732 + hexSize,
-                           y: y * hexSize * 1.5 + hexSize,
-                           terrain, owner: null, troops: 0,
-                           onFire: 0, frozen: false, defenseBonus: 1,
-                           impassable: false, invincible: false, isCity: false
-                       });
-                   }
-               }
-           }
+           const scaleX = canvas.width / oldW, scaleY = canvas.height / oldH;
+           gameState.player.x *= scaleX; gameState.player.y *= scaleY;
+           gameState.opponents.forEach(o => { o.x *= scaleX; o.y *= scaleY; });
+           gameState.armyScale = Math.min(canvas.width, canvas.height) / 5;
            renderGame();
        }
 
@@ -1886,134 +1633,22 @@
            e.preventDefault();
            const touch = e.touches[0];
            const rect = canvas.getBoundingClientRect();
-           const x = (touch.clientX - rect.left) * (canvas.width / rect.width);
-           const y = (touch.clientY - rect.top) * (canvas.height / rect.height);
-           handleCanvasInteraction(x, y);
+           handleCanvasInteraction((touch.clientX - rect.left) * (canvas.width / rect.width), (touch.clientY - rect.top) * (canvas.height / rect.height));
        }
        function handleTouchMove(e) { e.preventDefault(); }
        function handleTouchEnd(e) { e.preventDefault(); }
-
        function handleMouseMove(e) {
-           if (!ctx || !canvas) return;
            const rect = canvas.getBoundingClientRect();
            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-           const tile = getTileAtPosition(x, y);
-           const tooltip = document.getElementById('territory-info');
-           if (tile) {
-               const ownerName = tile.owner ? (tile.owner === 'player' ? 'You' :
-                   gameState.opponents.find(o => o.id === tile.owner)?.name || 'Unknown') : 'Neutral';
-               tooltip.innerHTML = `<div>${tile.terrain.emoji} ${tile.terrain.name}</div>
-                   <div>Owner: ${ownerName}</div><div>Troops: ${tile.troops}</div>
-                   ${tile.isCity ? '<div>🏛️ Capital</div>' : ''}
-                   ${tile.defenseBonus > 1 ? `<div>Defense: ×${tile.defenseBonus.toFixed(1)}</div>` : ''}
-                   ${tile.onFire > 0 ? `<div>🔥 On Fire: ${tile.onFire} turns</div>` : ''}
-                   ${tile.frozen ? `<div>❄️ Frozen</div>` : ''}
-                   ${tile.impassable ? `<div>🚫 Impassable</div>` : ''}`;
-               tooltip.style.left = `${e.clientX + 15}px`;
-               tooltip.style.top = `${e.clientY + 15}px`;
-               tooltip.classList.add('active');
-           } else {
-               tooltip.classList.remove('active');
-           }
+           const f = getArmyAtPosition(x, y);
+           canvas.style.cursor = f ? 'pointer' : 'default';
        }
-
        function handleCanvasClick(e) {
            const rect = canvas.getBoundingClientRect();
-           handleCanvasInteraction(
-               (e.clientX - rect.left) * (canvas.width / rect.width),
-               (e.clientY - rect.top) * (canvas.height / rect.height)
-           );
+           handleCanvasInteraction((e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
        }
 
-       function handleCanvasInteraction(x, y) {
-           if (!gameState.isPlayerTurn || gameState.isProcessingTurn) return;
-           const tile = getTileAtPosition(x, y);
-           if (!tile) return;
-           // Weapon targeting mode
-           if (gameState.weaponTargetMode) { handleWeaponTarget(tile); return; }
-           if (gameState.powerTargetMode) { handlePowerTarget(tile); return; }
-           if (gameState.selectedTile) {
-               if (tile === gameState.selectedTile) {
-                   gameState.selectedTile = null; hideActionPanel();
-               } else if (isAdjacent(gameState.selectedTile, tile)) {
-                   if (tile.owner === 'player') { reinforceTile(gameState.selectedTile, tile); }
-                   else if (tile.terrain.passable && !tile.impassable) { attackTile(gameState.selectedTile, tile); }
-                   gameState.selectedTile = null; hideActionPanel();
-               } else {
-                   if (tile.owner === 'player') { gameState.selectedTile = tile; showActionPanel(tile); }
-                   else { gameState.selectedTile = null; hideActionPanel(); }
-               }
-           } else if (tile.owner === 'player') {
-               gameState.selectedTile = tile; showActionPanel(tile);
-           }
-           renderGame();
-       }
-
-       function handlePowerTarget(tile) {
-           const mode = gameState.powerTargetMode;
-           if (mode === 'rome' || mode === 'shadow' || mode === 'quantum') {
-               if (!gameState.powerFirstTile) {
-                   if (tile.owner === 'player') {
-                       gameState.powerFirstTile = tile;
-                       showPowerIndicator('Now select destination tile (or tap same tile to cancel)');
-                   }
-               } else {
-                   if (tile === gameState.powerFirstTile) {
-                       // Cancel
-                       gameState.powerFirstTile = null;
-                       gameState.powerTargetMode = false;
-                       showPowerIndicator('Power cancelled');
-                       return;
-                   }
-                   executeTwoTilePower(gameState.powerFirstTile, tile);
-                   gameState.powerFirstTile = null;
-               }
-               return;
-           }
-           executeSpecialPower(tile);
-       }
-
-       function executeTwoTilePower(sourceTile, destTile) {
-           const era = gameState.selectedEra;
-           let success = false;
-           switch(era.id) {
-               case 'rome':
-                   if (destTile.owner === 'player' && sourceTile.troops > 1) {
-                       destTile.troops += sourceTile.troops - 1; sourceTile.troops = 1; success = true; }
-                   break;
-               case 'shadow':
-                   if (destTile.owner === 'player' && sourceTile.owner === 'player') {
-                       const c = Math.floor(sourceTile.troops / 2);
-                       sourceTile.troops -= c; destTile.troops += c; success = true; }
-                   break;
-               case 'quantum':
-                   if (destTile.owner === 'player' && sourceTile.owner === 'player') {
-                       const tmp = sourceTile.troops; sourceTile.troops = destTile.troops; destTile.troops = tmp; success = true; }
-                   break;
-           }
-           if (success) {
-               gameState.player.gold -= getDifficultyParams().powerCost; gameState.player.specialUsed = true;
-               showPowerIndicator(`${era.power} activated!`); playSFX('special');
-           } else { showPowerIndicator('Invalid target!'); }
-           gameState.powerTargetMode = false; renderGame(); updateGameUI(); checkGameEnd();
-       }
-
-       function getTileAtPosition(x, y) {
-           const hs = gameState.hexGrid.hexSize;
-           for (const tile of gameState.territories) {
-               if (Math.sqrt((x - tile.x) ** 2 + (y - tile.y) ** 2) < hs * 0.9) return tile;
-           }
-           return null;
-       }
-
-       function isAdjacent(t1, t2) {
-           const dc = Math.abs(t1.col - t2.col);
-           const dr = Math.abs(t1.row - t2.row);
-           if (t1.row === t2.row) return dc === 1;
-           if (dr === 1) { const d = t2.col - t1.col; const o = t1.row % 2; return d === o || d === o - 1; }
-           return false;
-       }
        // ==================== ANIME CHARACTER SYSTEM ====================
        let battleAnimations = [];
        let troopMovements = [];
@@ -2303,6 +1938,15 @@
            const r = Math.max(0, (n >> 16) - amt);
            const g = Math.max(0, ((n >> 8) & 0xFF) - amt);
            const b = Math.max(0, (n & 0xFF) - amt);
+           return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+       }
+
+       function lightenColor(hex, amt) {
+           if (!hex || hex.length < 7) return hex;
+           const n = parseInt(hex.replace('#',''), 16);
+           const r = Math.min(255, (n >> 16) + amt);
+           const g = Math.min(255, ((n >> 8) & 0xFF) + amt);
+           const b = Math.min(255, (n & 0xFF) + amt);
            return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
        }
 
@@ -2601,542 +2245,278 @@
        function startAnimLoop() { if (!animRunning) { animRunning = true; requestAnimationFrame(animationLoop); } }
        function stopAnimLoop() { animRunning = false; }
 
+       // ==================== ARMY RENDERING ====================
+       function getAllFactions() {
+           return [gameState.player, ...gameState.opponents].filter(f => !f.eliminated);
+       }
+
        function renderGame() {
            if (!ctx || !canvas) return;
-           ctx.clearRect(0, 0, canvas.width, canvas.height);
-           ctx.fillStyle = '#0f172a';
-           ctx.fillRect(0, 0, canvas.width, canvas.height);
-           for (const tile of gameState.territories) drawHex(tile);
-           if (gameState.selectedTile) {
+           const w = canvas.width, h = canvas.height;
+           ctx.clearRect(0, 0, w, h);
+           const bg = ctx.createLinearGradient(0, 0, w * 0.3, h);
+           bg.addColorStop(0, '#1a2f1a'); bg.addColorStop(0.5, '#1e3520'); bg.addColorStop(1, '#162a16');
+           ctx.fillStyle = bg; ctx.fillRect(0, 0, w, h);
+           for (let i = 0; i < 200; i++) {
+               const gx = (i * 137.5) % w, gy = (i * 97.3) % h;
+               const shade = 30 + (i % 3) * 15;
+               ctx.fillStyle = 'rgba(' + shade + ',' + (shade + 40) + ',' + shade + ', 0.2)';
+               ctx.fillRect(gx, gy, 2, 3);
+           }
+           ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+           ctx.lineWidth = 1;
+           for (let x = 0; x < w; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); }
+           for (let y = 0; y < h; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); }
+           for (const f of getAllFactions()) drawArmy(f);
+           if (gameState.selectedArmy) {
                const pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.1);
                ctx.globalAlpha = 0.4 + pulse * 0.4;
-               drawHexHighlight(gameState.selectedTile, '#ffffff', 2 + pulse * 2);
+               drawArmyHighlight(gameState.selectedArmy, '#ffffff', 2 + pulse * 2);
                ctx.globalAlpha = 1;
-               const movePulse = 0.3 + 0.3 * Math.sin(animFrame * 0.08 + 1);
-               ctx.globalAlpha = movePulse;
-               for (const tile of gameState.territories) {
-                   if (isAdjacent(gameState.selectedTile, tile) && tile !== gameState.selectedTile) {
-                       if (tile.owner === 'player' || (tile.terrain.passable && !tile.impassable))
-                           drawHexHighlight(tile, tile.owner === 'player' ? '#4ade80' : '#f87171', 2);
-                   }
+               const mp = 0.3 + 0.3 * Math.sin(animFrame * 0.08 + 1);
+               ctx.globalAlpha = mp;
+               for (const f of getAllFactions()) {
+                   if (f.id !== 'player') drawArmyHighlight(f, '#f87171', 2);
                }
                ctx.globalAlpha = 1;
            }
-           drawParticles();
-           drawTroopMovements();
-           drawBattleAnimations();
+           drawParticles(); drawTroopMovements(); drawBattleAnimations();
        }
 
-       function getNeighborCoords(col, row, dir) {
-           const p = row % 2;
-           const even = [[1,0],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1]];
-           const odd  = [[1,0],[1,1],[0,1],[-1,0],[0,-1],[1,-1]];
-           const d = p === 0 ? even[dir] : odd[dir];
-           return { col: col + d[0], row: row + d[1] };
-       }
-       function getHexPoints(tile) {
-           const hexSize = gameState.hexGrid.hexSize;
-           const pts = [];
-           for (let i = 0; i < 6; i++) {
-               const angle = (Math.PI / 3) * i - Math.PI / 6;
-               pts.push({ x: tile.x + hexSize * 0.9 * Math.cos(angle), y: tile.y + hexSize * 0.9 * Math.sin(angle) });
-           }
-           return pts;
-       }
-       function hexPathFromPoints(pts) {
-           ctx.beginPath(); ctx.moveTo(pts[0].x, pts[0].y);
-           for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
-           ctx.closePath();
-       }
-       function drawHex(tile) {
-           const hexSize = gameState.hexGrid.hexSize;
-           const points = getHexPoints(tile);
-           function hexPath() { hexPathFromPoints(points); }
-
-           // Terrain base fill
-           if (tile.terrain.name === 'Water') {
-               const wave = Math.sin(animFrame * 0.05 + tile.x * 0.1) * 0.15;
-               ctx.fillStyle = `rgba(30, 80, 140, ${0.6 + wave})`; hexPath(); ctx.fill();
-               ctx.fillStyle = `rgba(100, 180, 255, ${0.15 + wave})`; hexPath(); ctx.fill();
+       function drawArmy(faction) {
+           if (faction.eliminated || faction.troops <= 0) return;
+           const s = gameState.armyScale || 80;
+           const outfit = getOutfit(faction.id);
+           const color = faction.color || '#888';
+           const baseR = s * 0.55;
+           const baseY = faction.y + s * 0.15;
+           const baseGrad = ctx.createRadialGradient(faction.x, baseY, 0, faction.x, baseY, baseR * 1.3);
+           baseGrad.addColorStop(0, color + '40');
+           baseGrad.addColorStop(0.7, color + '18');
+           baseGrad.addColorStop(1, color + '00');
+           ctx.fillStyle = baseGrad;
+           ctx.beginPath(); ctx.ellipse(faction.x, baseY, baseR * 1.3, baseR * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+           ctx.fillStyle = color + '25';
+           ctx.beginPath(); ctx.ellipse(faction.x, baseY, baseR, baseR * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+           const numChars = Math.min(5, Math.max(1, Math.ceil(faction.troops / 4)));
+           const bob = Math.sin(animFrame * 0.04 + (faction.id === 'player' ? 0 : parseInt(faction.id.split('_')[1] || 0) * 3)) * s * 0.03;
+           if (numChars >= 3) {
+               drawAnimeCharacter(faction.x, faction.y + bob, s * 0.7, outfit, color, animFrame + (faction.id === 'player' ? 0 : 7), 'idle');
+               for (let e = 0; e < Math.min(3, numChars - 1); e++) {
+                   const ox = (e - (Math.min(3, numChars - 1) - 1) / 2) * s * 0.45;
+                   drawAnimeCharacter(faction.x + ox, faction.y + s * 0.12 + bob, s * 0.5, outfit, color, animFrame + e * 20, 'idle');
+               }
            } else {
-               ctx.fillStyle = tile.terrain.color + '28'; hexPath(); ctx.fill();
+               drawAnimeCharacter(faction.x, faction.y + bob, s * 0.8, outfit, color, animFrame, 'idle');
            }
-
-           // Territory fill — solid color for continuous land look
-           if (tile.owner) {
-               const owner = tile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === tile.owner);
-               if (owner) {
-                   ctx.fillStyle = owner.color + '50'; hexPath(); ctx.fill();
-                   const og = ctx.createRadialGradient(tile.x, tile.y, 0, tile.x, tile.y, hexSize * 0.8);
-                   og.addColorStop(0, owner.color + '65'); og.addColorStop(1, owner.color + '35');
-                   ctx.fillStyle = og; hexPath(); ctx.fill();
-               }
-           }
-
-           // Territory borders — only between different owners, water, and map edges
-           const neighborDirs = [[1,0],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1]];
-           const parity = tile.row % 2;
-           for (let i = 0; i < 6; i++) {
-               const next = (i + 1) % 6;
-               const nc = getNeighborCoords(tile.col, tile.row, i);
-               const neighbor = gameState.territories.find(t => t.col === nc.col && t.row === nc.row);
-               const sameOwner = neighbor && neighbor.owner === tile.owner;
-               const bothWater = !tile.terrain.passable && neighbor && !neighbor.terrain.passable;
-               if (!sameOwner && !bothWater) {
-                   ctx.beginPath();
-                   ctx.moveTo(points[i].x, points[i].y);
-                   ctx.lineTo(points[next].x, points[next].y);
-                   if (tile.owner) {
-                       const owner = tile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === tile.owner);
-                       ctx.strokeStyle = owner ? owner.color : '#ffffff';
-                       ctx.lineWidth = 2.5;
-                       ctx.shadowColor = owner ? owner.color : '#fff';
-                       ctx.shadowBlur = 4;
-                   } else if (!tile.terrain.passable) {
-                       ctx.strokeStyle = '#1a3a5c'; ctx.lineWidth = 1.5; ctx.shadowBlur = 0;
-                   } else {
-                       ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1; ctx.shadowBlur = 0;
-                   }
-                   ctx.stroke(); ctx.shadowBlur = 0;
-               }
-           }
-
-           // City golden border
-           if (tile.isCity) {
-               ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
-               ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 10;
-               hexPath(); ctx.stroke(); ctx.shadowBlur = 0;
-           }
-           // Effects
-           if (tile.impassable) {
-               ctx.fillStyle = '#00000080'; hexPath(); ctx.fill();
-               ctx.strokeStyle = '#ff000080'; ctx.lineWidth = 2;
-               ctx.beginPath();
-               ctx.moveTo(tile.x - hexSize * 0.4, tile.y - hexSize * 0.4);
-               ctx.lineTo(tile.x + hexSize * 0.4, tile.y + hexSize * 0.4);
-               ctx.moveTo(tile.x + hexSize * 0.4, tile.y - hexSize * 0.4);
-               ctx.lineTo(tile.x - hexSize * 0.4, tile.y + hexSize * 0.4);
-               ctx.stroke();
-           }
-           if (tile.onFire > 0) {
-               const flicker = 0.3 + 0.2 * Math.sin(animFrame * 0.3 + tile.x);
-               ctx.fillStyle = `rgba(255, 80, 0, ${flicker})`; hexPath(); ctx.fill();
-           }
-           if (tile.frozen) {
-               const shimmer = 0.2 + 0.1 * Math.sin(animFrame * 0.15 + tile.y);
-               ctx.fillStyle = `rgba(0, 255, 255, ${shimmer})`; hexPath(); ctx.fill();
-           }
-           if (tile.invincible) {
-               const glow = 0.5 + 0.5 * Math.sin(animFrame * 0.12);
-               ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 3;
-               ctx.shadowColor = '#ffd700'; ctx.shadowBlur = 10 + glow * 10;
-               hexPath(); ctx.stroke(); ctx.shadowBlur = 0;
-           }
-           // Terrain emoji
-           ctx.font = hexSize * 0.3 + 'px Arial';
+           const fontSize = Math.max(13, s * 0.2);
+           ctx.font = 'bold ' + fontSize + 'px Arial';
            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-           if (tile.isCity) {
-               ctx.font = hexSize * 0.35 + 'px Arial';
-               ctx.fillText('🏛️', tile.x, tile.y - hexSize * 0.5);
-           } else if (tile.terrain.name !== 'Water') {
-               ctx.fillText(tile.terrain.emoji, tile.x, tile.y - hexSize * 0.35);
-           }
-           // Characters and troop count
-           if (tile.troops > 0 && tile.owner) {
-               const owner = tile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === tile.owner);
-               const outfit = getOutfit(tile.owner);
-               const charColor = owner ? owner.color : '#888';
-               const charScale = hexSize * 0.65;
-               if (tile.troops >= 3) {
-                   drawAnimeCharacter(tile.x, tile.y + hexSize * 0.05, charScale, outfit, charColor, animFrame + tile.col * 7 + tile.row * 13, 'idle');
-                   const extras = Math.min(3, Math.floor(tile.troops / 3) - 1);
-                   for (let e = 0; e < extras; e++) {
-                       const ox = (e - (extras-1)/2) * charScale * 0.5;
-                       const oy = charScale * 0.15;
-                       drawAnimeCharacter(tile.x + ox, tile.y + hexSize * 0.05 + oy, charScale * 0.6, outfit, charColor, animFrame + e * 20, 'idle');
-                   }
-               } else {
-                   drawAnimeCharacter(tile.x, tile.y + hexSize * 0.05, charScale * 0.7, outfit, charColor, animFrame + tile.col * 7, 'idle');
-               }
-               ctx.font = 'bold ' + Math.max(9, hexSize * 0.2) + 'px Arial';
-               ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-               const badgeX = tile.x + hexSize * 0.35;
-               const badgeY = tile.y - hexSize * 0.3;
-               ctx.fillStyle = 'rgba(0,0,0,0.6)';
-               ctx.beginPath(); ctx.arc(badgeX, badgeY, hexSize * 0.14, 0, Math.PI * 2); ctx.fill();
-               ctx.fillStyle = '#fff';
-               ctx.fillText(String(tile.troops), badgeX, badgeY);
-           } else if (tile.troops > 0 && !tile.owner) {
-               ctx.font = 'bold ' + hexSize * 0.3 + 'px Arial';
-               ctx.fillStyle = '#000'; ctx.fillText(String(tile.troops), tile.x + 1, tile.y + hexSize * 0.2 + 1);
-               ctx.fillStyle = '#aaa'; ctx.fillText(String(tile.troops), tile.x, tile.y + hexSize * 0.2);
-           }
+           const label = faction.name + '  ' + faction.troops + ' troops';
+           const tw = ctx.measureText(label).width + 16;
+           const bh = fontSize + 10;
+           const bx = faction.x - tw / 2, by = faction.y - s * 0.75;
+           ctx.fillStyle = 'rgba(0,0,0,0.7)';
+           ctx.beginPath(); ctx.roundRect(bx, by, tw, bh, 6); ctx.fill();
+           ctx.strokeStyle = color;
+           ctx.lineWidth = 2;
+           ctx.beginPath(); ctx.roundRect(bx, by, tw, bh, 6); ctx.stroke();
+           ctx.fillStyle = '#fff';
+           ctx.fillText(label, faction.x, by + bh / 2);
        }
 
-       function lightenColor(hex, pct) {
-           const n = parseInt(hex.replace('#', ''), 16);
-           const r = Math.min(255, (n >> 16) + pct);
-           const g = Math.min(255, ((n >> 8) & 0xFF) + pct);
-           const b = Math.min(255, (n & 0xFF) + pct);
-           return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+       function drawArmyHighlight(faction, color, lw) {
+           const s = gameState.armyScale || 80;
+           ctx.strokeStyle = color; ctx.lineWidth = lw;
+           ctx.shadowColor = color; ctx.shadowBlur = 8;
+           ctx.beginPath(); ctx.arc(faction.x, faction.y + s * 0.1, s * 0.6, 0, Math.PI * 2); ctx.stroke();
+           ctx.shadowBlur = 0;
        }
 
-       function drawHexHighlight(tile, color, lineWidth) {
-           const points = getHexPoints(tile);
-           ctx.strokeStyle = color; ctx.lineWidth = lineWidth;
-           hexPathFromPoints(points); ctx.stroke();
-       }
-       // ==================== GAME ACTIONS ====================
-       function checkCityElimination(tile, previousOwner) {
-           if (!previousOwner || !tile.isCity) return;
-           previousOwner.eliminated = true;
-           playSFX('eliminate');
-           // Clean up their tiles
-           for (const tid of [...previousOwner.tiles]) {
-               const t = gameState.territories.find(tt => tt.id === tid);
-               if (t && t !== tile) {
-                   t.owner = null;
-                   t.troops = 0;
-               }
+       // ==================== INTERACTION ====================
+       function getArmyAtPosition(x, y) {
+           const r = (gameState.armyScale || 80) * 1.2;
+           let closest = null, closestD = r;
+           for (const f of getAllFactions()) {
+               const d = Math.sqrt((x - f.x) ** 2 + (y - f.y) ** 2);
+               if (d < closestD) { closestD = d; closest = f; }
            }
-           previousOwner.tiles = [];
-           // Clean up factories
-           if (previousOwner.factories) {
-               for (const fid of previousOwner.factories) {
-                   const ft = gameState.territories.find(tt => tt.id === fid);
-                   // Factory stays on the tile but no longer produces for eliminated player
-               }
-           }
+           return closest;
        }
 
-       function attackTile(attackerTile, defenderTile) {
-           if (attackerTile.troops <= 1) return;
-           if (defenderTile.frozen) { showPowerIndicator('That tile is frozen!'); return; }
-           const attackerOwner = attackerTile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === attackerTile.owner);
-           const defenderOwner = defenderTile.owner === 'player' ? gameState.player : (defenderTile.owner ? gameState.opponents.find(o => o.id === defenderTile.owner) : null);
-           if (!attackerOwner) return;
-           let attackPower = attackerTile.troops * (0.6 + Math.random() * 0.4);
-           if (attackerOwner.id === 'player' && gameState.player.berserkerActive) {
-               attackPower *= 2; gameState.player.berserkerActive = false;
-           } else if (attackerOwner.isAI && attackerOwner._berserkerActive) {
-               attackPower *= 2; attackerOwner._berserkerActive = false;
+       function handleCanvasInteraction(x, y) {
+           if (!gameState.isPlayerTurn || gameState.isProcessingTurn) return;
+           if (gameState.powerTargetMode) { handlePowerTarget(x, y); return; }
+           if (gameState.weaponTargetMode) { handleWeaponTarget(x, y); return; }
+           const faction = getArmyAtPosition(x, y);
+           if (!faction) { gameState.selectedArmy = null; renderGame(); return; }
+           if (gameState.selectedArmy) {
+               if (faction.id === gameState.selectedArmy.id) { gameState.selectedArmy = null; renderGame(); return; }
+               if (faction.id !== 'player') { attackArmy(gameState.selectedArmy, faction); gameState.selectedArmy = null; return; }
            }
-           if (attackerOwner.isAI) {
-               const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
-               attackPower *= (1 + params.aiAttackBonus);
+           if (faction.id === 'player') { gameState.selectedArmy = faction; renderGame(); }
+       }
+
+       // ==================== COMBAT ====================
+       function attackArmy(attacker, defender) {
+           if (attacker.troops <= 1) { showPowerIndicator('Not enough troops!'); return; }
+           if (defender.eliminated || defender.troops <= 0) return;
+           let atkPower = attacker.troops * (0.6 + Math.random() * 0.4);
+           if (attacker.id === 'player' && gameState.player.berserkerActive) {
+               atkPower *= 2; gameState.player.berserkerActive = false;
+           } else if (attacker.isAI && attacker._berserkerActive) {
+               atkPower *= 2; attacker._berserkerActive = false;
            }
-           let defensePower = defenderTile.troops * (0.5 + Math.random() * 0.4);
-           defensePower *= defenderTile.terrain.defense;
-           if (defenderTile.defenseBonus > 1) defensePower *= defenderTile.defenseBonus;
-           if (defenderTile.isCity) defensePower *= 2.0;
-           if (defenderOwner && defenderOwner.id === 'player' && gameState.player.defenseBonus > 1) defensePower *= gameState.player.defenseBonus;
-           if (defenderTile.invincible) {
-               showPowerIndicator('Attack blocked by invincibility!');
-               attackerTile.troops = Math.max(1, attackerTile.troops - 1);
-               playSFX('attack'); renderGame(); updateGameUI(); return;
-           }
+           if (attacker.isAI) atkPower *= (1 + DIFFICULTY_PARAMS[gameState.difficulty.id].aiAttackBonus);
+           let defPower = defender.troops * (0.5 + Math.random() * 0.4);
+           if (defender.id === 'player' && gameState.player.defenseBonus > 1) defPower *= gameState.player.defenseBonus;
+           if (defender._invincible) { showPowerIndicator('Attack blocked!'); attacker.troops = Math.max(1, attacker.troops - 1); playSFX('attack'); renderGame(); return; }
            playSFX('attack');
-           addBattleAnimation(attackerTile.x, attackerTile.y, defenderTile.x, defenderTile.y, attackerOwner.color, defenderOwner ? defenderOwner.color : '#888', 700);
-           if (attackPower > defensePower) {
-               const survivingTroops = Math.max(1, Math.floor(attackerTile.troops - (defenderTile.troops * 0.7)));
-               const prevOwner = defenderOwner;
-               if (defenderOwner) {
-                   const idx = defenderOwner.tiles.indexOf(defenderTile.id);
-                   if (idx > -1) defenderOwner.tiles.splice(idx, 1);
-               }
-               attackerOwner.tiles.push(defenderTile.id);
-               defenderTile.owner = attackerTile.owner;
-               defenderTile.troops = survivingTroops;
-               attackerTile.troops = 1;
-               playSFX('capture');
-               spawnParticles(defenderTile.x, defenderTile.y, attackerOwner.color, 8, 3);
-               // Check city elimination
-               if (prevOwner && prevOwner !== attackerOwner) {
-                   checkCityElimination(defenderTile, prevOwner);
-               }
-               if (defenderOwner && defenderOwner.tiles.length === 0 && !defenderOwner.eliminated) {
-                   defenderOwner.eliminated = true;
-                   playSFX('eliminate');
-               }
+           addBattleAnimation(attacker.x, attacker.y, defender.x, defender.y, attacker.color, defender.color, 700);
+           if (atkPower > defPower) {
+               const loss = Math.floor(defender.troops * 0.7);
+               attacker.troops = Math.max(1, attacker.troops - loss);
+               defender.troops = 0;
+               defender.eliminated = true;
+               attacker.defeated = (attacker.defeated || 0) + 1;
+               playSFX('capture'); playSFX('eliminate');
+               spawnParticles(defender.x, defender.y, attacker.color, 12, 4);
+               showPowerIndicator(defender.name + ' defeated!');
            } else {
-               defenderTile.troops = Math.max(1, Math.floor(defenderTile.troops - (attackerTile.troops * 0.5)));
-               attackerTile.troops = 1;
+               const loss = Math.floor(attacker.troops * 0.5);
+               attacker.troops = Math.max(1, attacker.troops - loss);
+               defender.troops = Math.max(1, defender.troops - Math.floor(attacker.troops * 0.3));
+               showPowerIndicator('Attack failed!');
            }
            renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
        }
 
-       function reinforceTile(fromTile, toTile) {
-           if (fromTile.troops <= 1) return;
-           addTroopMovement(fromTile.x, fromTile.y, toTile.x, toTile.y, gameState.player.color);
-           toTile.troops += fromTile.troops - 1; fromTile.troops = 1;
-           renderGame(); updateGameUI();
-       }
-
-       function showActionPanel(tile) {
-           const panel = document.getElementById('action-panel');
-           const buttons = document.getElementById('action-buttons');
-           buttons.innerHTML = '<button class="game-btn btn-secondary" onclick="hideActionPanel()">Cancel</button>';
-           panel.classList.add('active');
-       }
-       function hideActionPanel() { document.getElementById('action-panel').classList.remove('active'); }
-
+       // ==================== POWERS ====================
        function showRecruitPanel() {
            const params = getDifficultyParams();
-           if (gameState.player.gold < params.recruitCost) { showPowerIndicator(`Need ${params.recruitCost} gold to recruit!`); return; }
-           gameState.powerTargetMode = 'recruit';
-           showPowerIndicator(`Tap a territory you own to recruit ${params.troopsPerRecruit} troops`);
+           if (gameState.player.gold < params.recruitCost) { showPowerIndicator('Need ' + params.recruitCost + ' gold!'); return; }
+           gameState.player.gold -= params.recruitCost;
+           gameState.player.troops += params.troopsPerRecruit;
+           playSFX('recruit'); showPowerIndicator('+' + params.troopsPerRecruit + ' troops!');
+           updateGameUI(); renderGame();
        }
 
        function activateSpecialPower() {
            const params = getDifficultyParams();
-           if (gameState.player.specialUsed) { showPowerIndicator('Special power already used!'); return; }
-           if (gameState.player.gold < params.powerCost) { showPowerIndicator(`Need ${params.powerCost} gold for special power!`); return; }
+           if (gameState.player.specialUsed) { showPowerIndicator('Already used!'); return; }
+           if (gameState.player.gold < params.powerCost) { showPowerIndicator('Need ' + params.powerCost + ' gold!'); return; }
            const era = gameState.selectedEra;
-           if (era.id === 'aztec') {
-               gameState.player.gold += 30; gameState.player.gold -= params.powerCost; gameState.player.specialUsed = true;
-               showPowerIndicator('Blood Sacrifice! +30 gold'); playSFX('special'); updateGameUI(); return;
-           }
-           if (era.id === 'crystal') {
-               gameState.player.gold -= params.powerCost;
-               gameState.player.defenseBonus = 1.5; gameState.player.defenseBonusTurns = 2;
-               gameState.player.specialUsed = true;
-               showPowerIndicator('Crystal Shield! +50% defense for 2 turns'); playSFX('special'); updateGameUI(); return;
-           }
-           if (era.id === 'viking') {
-               gameState.player.gold -= params.powerCost;
-               gameState.player.berserkerActive = true; gameState.player.specialUsed = true;
-               gameState.powerTargetMode = false;
-               showPowerIndicator('Berserker Rage! Next attack 2x damage'); playSFX('special');
-               return;
-           }
+           if (era.id === 'aztec') { gameState.player.gold += 30; gameState.player.gold -= params.powerCost; gameState.player.specialUsed = true; showPowerIndicator('+30 gold!'); playSFX('special'); updateGameUI(); return; }
+           if (era.id === 'viking') { gameState.player.gold -= params.powerCost; gameState.player.berserkerActive = true; gameState.player.specialUsed = true; showPowerIndicator('Berserker Rage! 2x next attack'); playSFX('special'); return; }
+           if (era.id === 'crystal') { gameState.player.gold -= params.powerCost; gameState.player.defenseBonus = 1.5; gameState.player.defenseBonusTurns = 2; gameState.player.specialUsed = true; showPowerIndicator('+50% defense for 2 turns'); playSFX('special'); updateGameUI(); return; }
            if (era.id === 'thunder') {
-               gameState.player.gold -= params.powerCost;
-               const enemyTiles = gameState.territories.filter(t => t.owner && t.owner !== 'player');
-               if (enemyTiles.length >= 1) {
-                   enemyTiles.sort(() => Math.random() - 0.5);
-                   const targets = enemyTiles.slice(0, 3);
-                   for (const t of targets) {
-                       t.troops = Math.max(0, t.troops - 5);
-                       if (t.troops === 0) {
-                           const owner = gameState.opponents.find(o => o.id === t.owner);
-                           if (owner) {
-                               const prevOwner = owner;
-                               const idx = owner.tiles.indexOf(t.id);
-                               if (idx > -1) owner.tiles.splice(idx, 1);
-                               checkCityElimination(t, prevOwner);
-                           }
-                           t.owner = 'player'; gameState.player.tiles.push(t.id); t.troops = 1;
-                       }
-                   }
-               }
-               gameState.player.specialUsed = true;
-               showPowerIndicator('Chain Lightning!'); playSFX('special');
-               updateGameUI(); renderGame(); updateScoreboard(); checkGameEnd(); return;
+               gameState.player.gold -= params.powerCost; gameState.player.specialUsed = true;
+               const enemies = getAllFactions().filter(f => f.id !== 'player').sort(() => Math.random() - 0.5).slice(0, 3);
+               for (const e of enemies) { e.troops = Math.max(0, e.troops - 5); if (e.troops <= 0) { e.eliminated = true; gameState.player.defeated = (gameState.player.defeated || 0) + 1; } }
+               playSFX('special'); showPowerIndicator('Chain Lightning!'); renderGame(); updateScoreboard(); checkGameEnd(); return;
            }
            gameState.powerTargetMode = era.id;
-           const instructions = {
-               egypt: 'Tap an enemy tile to kill 50% of troops', rome: 'Tap source tile, then destination',
-               medieval: 'Tap a tile for Castle Wall',
-               ottoman: 'Tap a tile to recruit 15 free troops', ming: 'Tap a tile for Great Wall',
-               edo: 'Tap a tile for invincibility', british: 'Tap any tile to bombard',
-               industrial: 'Tap a tile for Factory', cyber: 'Tap enemy tile to hack',
-               quantum: 'Tap two tiles to swap', star: 'Tap a tile to orbital strike',
-               dragon: 'Tap a tile for Dragon Breath', shadow: 'Tap two tiles to clone',
-               void: 'Tap enemy tile to void', ember: 'Tap a tile for Inferno',
-               frost: 'Tap a tile for Blizzard'
-           };
-           showPowerIndicator(instructions[era.id] || 'Select target');
+           const msgs = { egypt: 'Tap an enemy army', rome: 'Tap an enemy to steal troops', medieval: 'Tap your army for defense', ottoman: 'Tap your army for +15 troops', ming: 'Tap an enemy to freeze', edo: 'Tap your army for invincibility', british: 'Tap an enemy to bombard', industrial: 'Tap your army for +5g/turn', cyber: 'Tap an enemy to hack', quantum: 'Tap an enemy to swap troops', star: 'Tap an enemy to destroy', dragon: 'Tap an enemy for Dragon Breath', shadow: 'Tap for Shadow Clone', void: 'Tap enemy to eliminate', ember: 'Tap enemy for Inferno', frost: 'Tap enemy for Blizzard' };
+           showPowerIndicator(msgs[era.id] || 'Select target');
        }
 
-       function executeSpecialPower(targetTile) {
-           const era = gameState.selectedEra;
-           const mode = gameState.powerTargetMode;
+       function handlePowerTarget(x, y) {
+           const faction = getArmyAtPosition(x, y);
+           if (!faction) { gameState.powerTargetMode = false; showPowerIndicator('Cancelled'); return; }
+           if (faction.id === 'player' && !['medieval', 'ottoman', 'edo', 'industrial'].includes(gameState.powerTargetMode)) { showPowerIndicator('Pick an enemy!'); return; }
            const params = getDifficultyParams();
-           if (mode === 'recruit') {
-               if (targetTile.owner === 'player') {
-                   gameState.player.gold -= params.recruitCost;
-                   targetTile.troops += params.troopsPerRecruit;
-                   playSFX('recruit');
-                   showPowerIndicator(`Recruited ${params.troopsPerRecruit} troops!`);
-               }
-               gameState.powerTargetMode = false; hideActionPanel(); renderGame(); updateGameUI(); return;
+           const era = gameState.selectedEra;
+           let ok = true;
+           switch (era.id) {
+               case 'egypt': faction.troops = Math.ceil(faction.troops * 0.5); break;
+               case 'rome': { const stolen = Math.floor(faction.troops * 0.5); faction.troops -= stolen; gameState.player.troops += stolen; } break;
+               case 'medieval': gameState.player.defenseBonus = 2; setTimeout(() => { gameState.player.defenseBonus = 1; }, 15000); break;
+               case 'ottoman': gameState.player.troops += 15; break;
+               case 'ming': faction._frozen = 3; break;
+               case 'edo': gameState.player._invincible = true; setTimeout(() => { gameState.player._invincible = false; }, 3000); break;
+               case 'british': faction.troops = Math.max(0, faction.troops - 5); break;
+               case 'industrial': gameState.player._factoryBonus = (gameState.player._factoryBonus || 0) + 5; break;
+               case 'cyber': { const s = Math.min(3, faction.troops); faction.troops -= s; gameState.player.troops += s; } break;
+               case 'quantum': { const tmp = gameState.player.troops; gameState.player.troops = faction.troops; faction.troops = tmp; } break;
+               case 'star': faction.troops = 0; faction.eliminated = true; gameState.player.defeated = (gameState.player.defeated || 0) + 1; break;
+               case 'dragon': { faction.troops = Math.max(0, faction.troops - 5); const others = getAllFactions().filter(f => f.id !== 'player' && f.id !== faction.id).sort(() => Math.random() - 0.5).slice(0, 2); for (const o of others) o.troops = Math.max(0, o.troops - 3); } break;
+               case 'shadow': gameState.player.troops += Math.floor(gameState.player.troops * 0.5); break;
+               case 'void': if (faction.troops < 10) { faction.troops = 0; faction.eliminated = true; gameState.player.defeated = (gameState.player.defeated || 0) + 1; } else { faction.troops = Math.floor(faction.troops * 0.3); } break;
+               case 'ember': faction._onFire = 3; break;
+               case 'frost': faction._frozen = 2; break;
+               default: ok = false;
            }
-           let success = false;
-           switch(era.id) {
-               case 'egypt':
-                   if (targetTile.owner && targetTile.owner !== 'player') {
-                       targetTile.troops = Math.ceil(targetTile.troops * 0.5); success = true; }
-                   break;
-               case 'medieval':
-                   if (targetTile.owner === 'player') {
-                       targetTile.defenseBonus = 2;
-                       setTimeout(() => { targetTile.defenseBonus = 1; }, 15000);
-                       success = true; }
-                   break;
-               case 'ottoman':
-                   if (targetTile.owner === 'player') { targetTile.troops += 15; success = true; }
-                   break;
-               case 'ming':
-                   if (targetTile.owner === 'player') {
-                       targetTile.impassable = true;
-                       setTimeout(() => { targetTile.impassable = false; }, 15000);
-                       success = true; }
-                   break;
-               case 'edo':
-                   if (targetTile.owner === 'player') {
-                       targetTile.invincible = true;
-                       setTimeout(() => { targetTile.invincible = false; }, 30000);
-                       success = true; }
-                   break;
-               case 'british':
-                   if (targetTile.terrain.passable && targetTile.troops > 0) {
-                       targetTile.troops = Math.max(0, targetTile.troops - 5);
-                       if (targetTile.troops === 0) {
-                           const prevOwner = targetTile.owner === 'player' ? gameState.player :
-                               (targetTile.owner ? gameState.opponents.find(o => o.id === targetTile.owner) : null);
-                           if (targetTile.owner) {
-                               const owner = targetTile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === targetTile.owner);
-                               if (owner) { const idx = owner.tiles.indexOf(targetTile.id); if (idx > -1) owner.tiles.splice(idx, 1); }
-                           }
-                           if (targetTile.isCity && prevOwner) { checkCityElimination(targetTile, prevOwner); }
-                           targetTile.owner = null; targetTile.troops = 0;
-                       }
-                       success = true;
-                   }
-                   break;
-               case 'industrial':
-                   if (targetTile.owner === 'player' && !gameState.player.factories.includes(targetTile.id)) {
-                       gameState.player.factories.push(targetTile.id); success = true; }
-                   break;
-               case 'cyber':
-                   if (targetTile.owner && targetTile.owner !== 'player' && targetTile.troops >= 3) {
-                       targetTile.troops -= 3;
-                       const pt = gameState.territories.find(t => t.owner === 'player');
-                       if (pt) pt.troops += 3; success = true; }
-                   break;
-               case 'star':
-                   {
-                       const prevOwner = targetTile.owner === 'player' ? gameState.player :
-                           (targetTile.owner ? gameState.opponents.find(o => o.id === targetTile.owner) : null);
-                       targetTile.troops = 0;
-                       if (targetTile.owner) {
-                           const owner = targetTile.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === targetTile.owner);
-                           if (owner) { const idx = owner.tiles.indexOf(targetTile.id); if (idx > -1) owner.tiles.splice(idx, 1); }
-                           if (targetTile.isCity && prevOwner) { checkCityElimination(targetTile, prevOwner); }
-                           targetTile.owner = null;
-                       }
-                   }
-                   success = true; break;
-               case 'dragon':
-                   {
-                       const targets = [targetTile, ...gameState.territories.filter(t => t !== targetTile && isAdjacent(targetTile, t) && t.terrain.passable && t.terrain.name !== 'Water')];
-                       for (const t of targets) {
-                           if (t.troops > 0 && (t.owner !== 'player' || !t.owner)) {
-                               t.troops = Math.max(0, t.troops - 5);
-                               if (t.troops === 0) {
-                                   const prevOwner = t.owner ? (t.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === t.owner)) : null;
-                                   const owner = t.owner ? (t.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === t.owner)) : null;
-                                   if (owner) { const idx = owner.tiles.indexOf(t.id); if (idx > -1) owner.tiles.splice(idx, 1); }
-                                   if (t.isCity && prevOwner) { checkCityElimination(t, prevOwner); }
-                                   if (t.owner && t.owner !== 'player') {
-                                       t.owner = 'player'; gameState.player.tiles.push(t.id); t.troops = 1;
-                                   } else {
-                                       t.owner = null;
-                                   }
-                               }
-                           }
-                       }
-                   }
-                   success = true; break;
-               case 'void':
-                   if (targetTile.owner && targetTile.owner !== 'player') {
-                       const owner = gameState.opponents.find(o => o.id === targetTile.owner);
-                       if (owner) {
-                           const idx = owner.tiles.indexOf(targetTile.id);
-                           if (idx > -1) owner.tiles.splice(idx, 1);
-                           if (targetTile.isCity) { checkCityElimination(targetTile, owner); }
-                           const fi = owner.factories ? owner.factories.indexOf(targetTile.id) : -1;
-                           if (fi > -1) owner.factories.splice(fi, 1);
-                       }
-                       targetTile.owner = null; targetTile.troops = 0; success = true; }
-                   break;
-               case 'ember':
-                   [targetTile, ...gameState.territories.filter(t => t !== targetTile && isAdjacent(targetTile, t) && t.terrain.passable && t.terrain.name !== 'Water')].forEach(t => { t.onFire = 3; });
-                   success = true; break;
-               case 'frost':
-                   for (const t of gameState.territories) {
-                       if (t.owner && t.owner !== 'player' && isAdjacent(targetTile, t)) t.frozen = true; }
-                   success = true; break;
-           }
-           if (success) {
-               gameState.player.gold -= params.powerCost; gameState.player.specialUsed = true;
-               showPowerIndicator(`${era.power} activated!`); playSFX('special');
-               spawnParticles(targetTile.x, targetTile.y, era.color, 12, 4);
-           } else { showPowerIndicator('Invalid target!'); }
+           if (ok) { gameState.player.gold -= params.powerCost; gameState.player.specialUsed = true; playSFX('special'); spawnParticles(faction.x, faction.y, era.color, 10, 3); showPowerIndicator(era.power + '!'); }
            gameState.powerTargetMode = false; renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
        }
 
-       function showPowerIndicator(message) {
-           const indicator = document.getElementById('power-indicator');
-           indicator.textContent = message; indicator.classList.add('active');
-           setTimeout(() => indicator.classList.remove('active'), 2000);
+       function handleWeaponTarget(x, y) {
+           const faction = getArmyAtPosition(x, y);
+           if (!faction) { gameState.weaponTargetMode = null; return; }
+           const mode = gameState.weaponTargetMode;
+           const eraId = mode.eraId || mode;
+           const idx = mode.index;
+           const weapon = SHOP_WEAPONS[eraId];
+           if (!weapon) { gameState.weaponTargetMode = null; return; }
+           if (weapon.type === 'target_enemy' && faction.id === 'player') { showPowerIndicator('Pick an enemy!'); return; }
+           if (weapon.type === 'target_owned' && faction.id !== 'player') { showPowerIndicator('Pick your army!'); return; }
+           const fx = weapon.fx;
+           if (fx === 'flatDmg') {
+               faction.troops = Math.max(0, faction.troops - weapon.val);
+           } else if (fx === 'pctDmg') {
+               faction.troops = Math.max(0, Math.ceil(faction.troops * (1 - weapon.val)));
+           } else if (fx === 'steal') {
+               const stolen = Math.floor(faction.troops * weapon.val);
+               faction.troops -= stolen; gameState.player.troops += stolen;
+           } else if (fx === 'stealFlat') {
+               const stolen = Math.min(weapon.val, faction.troops);
+               faction.troops -= stolen; gameState.player.troops += stolen;
+           } else if (fx === 'swap') {
+               const tmp = gameState.player.troops;
+               gameState.player.troops = faction.troops; faction.troops = tmp;
+           } else if (fx === 'destroy') {
+               faction.troops = 0;
+           } else if (fx === 'freeze') {
+               faction._frozen = weapon.val || 1;
+               playSFX('special'); showPowerIndicator(weapon.name + ' used!');
+               gameState.weaponTargetMode = null;
+               if (idx !== undefined) gameState.player.weapons.splice(idx, 1);
+               spawnParticles(faction.x, faction.y, '#0984e3', 8, 3);
+               renderGame(); updateGameUI(); updateScoreboard(); return;
+           } else if (fx === 'fire') {
+               faction._onFire = 2;
+           } else {
+               faction.troops = Math.max(0, faction.troops - 3);
+           }
+           if (faction.troops <= 0) { faction.eliminated = true; gameState.player.defeated = (gameState.player.defeated || 0) + 1; }
+           gameState.weaponTargetMode = null;
+           if (idx !== undefined) gameState.player.weapons.splice(idx, 1);
+           playSFX('special'); showPowerIndicator(weapon.name + ' used!');
+           spawnParticles(faction.x, faction.y, faction.color, 10, 4);
+           renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
        }
+
+       function showPowerIndicator(msg) {
+           const el = document.getElementById('power-indicator');
+           el.textContent = msg; el.classList.add('active');
+           setTimeout(() => el.classList.remove('active'), 2000);
+       }
+
        // ==================== SCOREBOARD ====================
        function updateScoreboard() {
            const sb = document.getElementById('scoreboard');
            if (!sb || gameState.screen !== 'game') return;
-           const totalLand = gameState.territories.filter(t => t.terrain.passable).length;
-           const allFactions = [
-               { name: 'You', color: gameState.player.color, tiles: gameState.player.tiles.length, eliminated: gameState.player.eliminated, isPlayer: true },
-               ...gameState.opponents.map(o => ({ name: o.name, color: o.color, tiles: o.tiles.length, eliminated: o.eliminated, isPlayer: false }))
-           ];
-           allFactions.sort((a, b) => b.tiles - a.tiles);
-           sb.innerHTML = allFactions.map(f => {
-               const pct = totalLand > 0 ? ((f.tiles / totalLand) * 100).toFixed(0) : 0;
-               return `<div class="scoreboard-row ${f.eliminated ? 'eliminated' : ''}">
-                   <div class="scoreboard-color" style="background:${f.color}"></div>
-                   <div class="scoreboard-name">${f.isPlayer ? '⭐ ' : ''}${f.name}</div>
-                   <div class="scoreboard-tiles">${f.eliminated ? '💀' : f.tiles + ' (' + pct + '%)'}</div></div>`;
+           const all = [gameState.player, ...gameState.opponents].sort((a, b) => b.troops - a.troops);
+           sb.innerHTML = all.map((f, i) => {
+               const dead = f.eliminated;
+               const you = f.id === 'player' ? 'font-weight:bold;background:rgba(255,255,255,0.1);' : '';
+               return '<div class="score-entry" style="' + you + ' ' + (dead ? 'opacity:0.4;text-decoration:line-through;' : '') + '"><span>' + (i + 1) + '.</span><span style="color:' + f.color + '">' + (dead ? '💀' : '⚔️') + '</span><span>' + f.name + '</span><span>' + (dead ? '0' : f.troops) + ' troops</span><span>' + (f.gold || 0) + 'g</span></div>';
            }).join('');
        }
 
-       // ==================== TURN MANAGEMENT ====================
-       function endTurn() {
-           if (!gameState.isPlayerTurn || gameState.isProcessingTurn) return;
-           gameState.isPlayerTurn = false;
-           gameState.isProcessingTurn = true;
-           gameState.selectedTile = null;
-           hideActionPanel();
-           gameState.weaponTargetMode = null;
-           gameState.weaponFirstTile = null;
-           gameState.prevPlayerTiles = gameState.player.tiles.length;
-           gameState.prevOpponentsAlive = gameState.opponents.filter(o => !o.eliminated).length;
-           playSFX('endturn');
-           processFireDamage();
-           for (const tile of gameState.territories) tile.frozen = false;
-           processAITurns();
-       }
-
-       function processFireDamage() {
-           for (const tile of gameState.territories) {
-               if (tile.onFire > 0) {
-                   tile.troops = Math.max(0, tile.troops - 3); tile.onFire--;
-                   if (tile.troops === 0 && tile.owner) {
-                       const prevOwner = getOwner(tile.owner);
-                       if (prevOwner) {
-                           const idx = prevOwner.tiles.indexOf(tile.id);
-                           if (idx > -1) prevOwner.tiles.splice(idx, 1);
-                           checkCityElimination(tile, prevOwner);
-                       }
-                       tile.owner = null;
-                   }
-               }
-           }
-       }
-
+       // ==================== AI ====================
        async function processAITurns() {
-           const activeAIs = gameState.opponents.filter(o => !o.eliminated);
-           for (const ai of activeAIs) {
+           for (const ai of gameState.opponents.filter(o => !o.eliminated)) {
                await processSingleAITurn(ai);
                await sleep(300);
            }
@@ -3145,253 +2525,122 @@
 
        async function processSingleAITurn(ai) {
            const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
-           let income = Math.max(1, Math.floor(ai.tiles.length * params.aiIncomePerTile));
-           // City bonus for AI
-           for (const tid of ai.tiles) {
-               const t = gameState.territories.find(tt => tt.id === tid);
-               if (t && t.isCity) income += 2;
-               if (t && t.terrain === TERRAIN_TYPES.FOREST) income += 1;
-           }
-           if (ai.factories) income += ai.factories.length * 5;
-           ai.gold += income;
-           const ownedTiles = ai.tiles.map(id => gameState.territories.find(t => t.id === id))
-               .filter(t => t && t.troops > 1 && !t.impassable && !t.frozen);
-           if (ownedTiles.length === 0) return;
-
-           // AI Superpower usage (F-03)
-           if (!ai.specialUsed && ai.gold >= 20) {
-               const powerChance = 0.3 + (ai.tiles.length > 10 ? 0.2 : 0);
-               if (Math.random() < powerChance) {
-                   await aiUseSuperpower(ai);
-               }
-           }
-
-           // AI weapon usage
-           if (ai.gold >= 20 && ai.weapons && ai.weapons.length > 0 && Math.random() < 0.3) {
-               const wIdx = Math.floor(Math.random() * ai.weapons.length);
-               const wEntry = ai.weapons[wIdx];
-               const weapon = SHOP_WEAPONS[wEntry.eraId];
-               if (weapon) {
-                   ai.weapons.splice(wIdx, 1);
-                   if (weapon.type === 'instant') {
-                       weapon.effect();
-                   } else if (weapon.type === 'target_owned') {
-                       const target = ownedTiles[Math.floor(Math.random() * ownedTiles.length)];
-                       if (target) weapon.effect(target, gameState);
-                   } else if (weapon.type === 'target_enemy' || weapon.type === 'target') {
-                       const enemies = gameState.territories.filter(t => t.owner && t.owner !== ai.id && t.terrain.passable);
-                       if (enemies.length > 0) {
-                           const target = enemies.sort((a, b) => a.troops - b.troops)[0];
-                           if (target) weapon.effect(target, gameState);
-                       }
-                   }
-               }
-           }
-
-           const minActions = params.aiActions[0];
-           const maxActions = params.aiActions[1];
-           const actions = minActions + Math.floor(Math.random() * (maxActions - minActions + 1));
+           ai.gold += Math.max(1, Math.floor(params.aiIncomePerTile * 5));
+           if (ai._factoryBonus) ai.gold += ai._factoryBonus;
+           if (ai._onFire > 0) { ai.troops = Math.max(0, ai.troops - 3); ai._onFire--; if (ai.troops <= 0) { ai.eliminated = true; playSFX('eliminate'); } }
+           if (ai._frozen > 0) { ai._frozen--; updateScoreboard(); return; }
+           if (!ai.eliminated && !ai.specialUsed && ai.gold >= 20 && Math.random() < 0.3) aiUseSuperpower(ai);
+           const minA = params.aiActions[0], maxA = params.aiActions[1];
+           const actions = minA + Math.floor(Math.random() * (maxA - minA + 1));
+           const alive = getAllFactions().filter(f => f.id !== ai.id);
            for (let i = 0; i < actions; i++) {
-               const action = Math.random();
-               const sourceTile = ownedTiles[Math.floor(Math.random() * ownedTiles.length)];
-               if (!sourceTile) continue;
-               const adjacentTiles = gameState.territories.filter(t => isAdjacent(sourceTile, t) && t.terrain.passable && !t.impassable);
-               if (adjacentTiles.length === 0) continue;
-               if (action < ai.personality.attackChance) {
-                   const targets = adjacentTiles.filter(t => t.owner !== ai.id);
-                   if (targets.length > 0) {
-                       targets.sort((a, b) => a.troops - b.troops);
-                       attackTile(sourceTile, targets[0]);
-                   }
-               } else if (action < ai.personality.attackChance + ai.personality.reinforceChance) {
-                   const friendly = adjacentTiles.filter(t => t.owner === ai.id);
-                   if (friendly.length > 0) reinforceTile(sourceTile, friendly[Math.floor(Math.random() * friendly.length)]);
+               if (ai.eliminated || alive.length === 0) break;
+               const roll = Math.random();
+               if (roll < ai.personality.attackChance && alive.length > 0) {
+                   alive.sort((a, b) => a.troops - b.troops);
+                   attackArmy(ai, alive[0]);
                } else if (ai.gold >= 10) {
-                   ai.gold -= 10; sourceTile.troops += 5;
+                   ai.gold -= 10; ai.troops += 5;
                }
            }
            updateScoreboard();
        }
 
-       async function aiUseSuperpower(ai) {
-           const aiIdx = gameState.opponents.indexOf(ai);
-           const aiEra = ERAS[(aiIdx + 1) % ERAS.length];
-           const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
-           ai.gold -= 20;
-           ai.specialUsed = true;
-
-           const enemyTiles = gameState.territories.filter(t => t.owner && t.owner !== ai.id && t.terrain.passable);
-           const ownTiles = ai.tiles.map(id => gameState.territories.find(t => t.id === id)).filter(t => t);
-
-           // Offensive powers: target weakest enemy
-           const offensiveEras = ['egypt', 'star', 'dragon', 'void', 'shadow', 'ember', 'frost', 'cyber', 'british'];
-           // Defensive powers: target own weakest
-           const defensiveEras = ['medieval', 'ming', 'edo', 'crystal'];
-           // Self powers: fire immediately
-           const selfEras = ['viking', 'aztec', 'thunder'];
-           // Utility powers: target own strongest
-           const utilityEras = ['rome', 'quantum', 'ottoman', 'industrial'];
-
-           if (selfEras.includes(aiEra.id)) {
-               if (aiEra.id === 'viking') {
-                   // Berserker - mark next attack
-                   ai._berserkerActive = true;
-               } else if (aiEra.id === 'aztec') {
-                   ai.gold += 30;
-               } else if (aiEra.id === 'thunder') {
-                   const targets = enemyTiles.sort(() => Math.random() - 0.5).slice(0, 3);
-                   for (const t of targets) {
-                       t.troops = Math.max(0, t.troops - 5);
-                       if (t.troops === 0) {
-                           const prevOwner = getOwner(t.owner);
-                           if (prevOwner) { const idx = prevOwner.tiles.indexOf(t.id); if (idx > -1) prevOwner.tiles.splice(idx, 1); checkCityElimination(t, prevOwner); }
-                           t.owner = ai.id; ai.tiles.push(t.id); t.troops = 1;
-                       }
-                   }
-               }
-           } else if (offensiveEras.includes(aiEra.id)) {
-               if (enemyTiles.length === 0) return;
-               const weakest = enemyTiles.sort((a, b) => a.troops - b.troops)[0];
-               if (aiEra.id === 'egypt') { weakest.troops = Math.ceil(weakest.troops * 0.5); }
-               else if (aiEra.id === 'star' || aiEra.id === 'british') {
-                   const prevOwner = getOwner(weakest.owner);
-                   weakest.troops = 0;
-                   if (weakest.owner) {
-                       const owner = getOwner(weakest.owner);
-                       if (owner) { const idx = owner.tiles.indexOf(weakest.id); if (idx > -1) owner.tiles.splice(idx, 1); }
-                       if (weakest.isCity && prevOwner) { checkCityElimination(weakest, prevOwner); }
-                       weakest.owner = null;
-                   }
-               } else if (aiEra.id === 'void') {
-                   const prevOwner = getOwner(weakest.owner);
-                   if (prevOwner) { const idx = prevOwner.tiles.indexOf(weakest.id); if (idx > -1) prevOwner.tiles.splice(idx, 1); if (weakest.isCity) checkCityElimination(weakest, prevOwner); }
-                   weakest.owner = null; weakest.troops = 0;
-               } else if (aiEra.id === 'shadow') { weakest.troops = Math.max(0, weakest.troops - 5); if (weakest.troops === 0) { const prevOwner = getOwner(weakest.owner); if (prevOwner) { const idx = prevOwner.tiles.indexOf(weakest.id); if (idx > -1) prevOwner.tiles.splice(idx, 1); if (weakest.isCity) checkCityElimination(weakest, prevOwner); } weakest.owner = null; } }
-               else if (aiEra.id === 'ember') {
-                   [weakest, ...gameState.territories.filter(t => t !== weakest && isAdjacent(weakest, t) && t.terrain.passable && t.terrain.name !== 'Water')].forEach(t => { t.onFire = 3; });
-               } else if (aiEra.id === 'frost') {
-                   for (const t of gameState.territories) { if (t.owner && t.owner !== ai.id && isAdjacent(weakest, t)) t.frozen = true; }
-               } else if (aiEra.id === 'dragon') {
-                   const targets = [weakest, ...gameState.territories.filter(t => t !== weakest && isAdjacent(weakest, t) && t.terrain.passable && t.terrain.name !== 'Water')];
-                   for (const t of targets) { if (t.owner && t.owner !== ai.id) { t.troops = Math.max(0, t.troops - 5); if (t.troops === 0) { const prevOwner = getOwner(t.owner); if (prevOwner) { const idx = prevOwner.tiles.indexOf(t.id); if (idx > -1) prevOwner.tiles.splice(idx, 1); if (t.isCity) checkCityElimination(t, prevOwner); } t.owner = ai.id; ai.tiles.push(t.id); t.troops = 1; } } }
-               } else if (aiEra.id === 'cyber') {
-                   if (weakest.troops >= 3) { weakest.troops -= 3; const pt = ownTiles[0]; if (pt) pt.troops += 3; }
-               }
-           } else if (defensiveEras.includes(aiEra.id)) {
-               if (ownTiles.length === 0) return;
-               const weakest = ownTiles.sort((a, b) => a.troops - b.troops)[0];
-               if (aiEra.id === 'medieval') { weakest.defenseBonus = 2; setTimeout(() => { weakest.defenseBonus = 1; }, 15000); }
-               else if (aiEra.id === 'ming') { weakest.impassable = true; setTimeout(() => { weakest.impassable = false; }, 15000); }
-               else if (aiEra.id === 'edo') { weakest.invincible = true; setTimeout(() => { weakest.invincible = false; }, 30000); }
-               else if (aiEra.id === 'crystal') { ai.defenseBonus = 1.5; ai.defenseBonusTurns = 2; }
-           } else if (utilityEras.includes(aiEra.id)) {
-               if (ownTiles.length === 0) return;
-               const strongest = ownTiles.sort((a, b) => b.troops - a.troops)[0];
-               if (aiEra.id === 'rome') {
-                   const dest = ownTiles.filter(t => t !== strongest)[0];
-                   if (dest) { dest.troops += strongest.troops - 1; strongest.troops = 1; }
-               } else if (aiEra.id === 'quantum') {
-                   const dest = ownTiles.filter(t => t !== strongest)[0];
-                   if (dest) { const tmp = strongest.troops; strongest.troops = dest.troops; dest.troops = tmp; }
-               } else if (aiEra.id === 'ottoman') { strongest.troops += 15; }
-               else if (aiEra.id === 'industrial') {
-                   if (!ai.factories) ai.factories = [];
-                   if (!ai.factories.includes(strongest.id)) ai.factories.push(strongest.id);
-               }
+       function aiUseSuperpower(ai) {
+           ai.gold -= 20; ai.specialUsed = true;
+           const enemies = getAllFactions().filter(f => f.id !== ai.id);
+           if (enemies.length === 0) return;
+           enemies.sort((a, b) => a.troops - b.troops);
+           const target = enemies[0];
+           const powers = ['egypt', 'viking', 'aztec', 'crystal', 'thunder', 'star', 'void', 'dragon', 'cyber'];
+           const power = powers[Math.floor(Math.random() * powers.length)];
+           switch (power) {
+               case 'egypt': target.troops = Math.ceil(target.troops * 0.5); break;
+               case 'viking': ai._berserkerActive = true; break;
+               case 'aztec': ai.gold += 30; break;
+               case 'crystal': ai.defenseBonus = 1.5; ai.defenseBonusTurns = 2; break;
+               case 'thunder': { const t = enemies.sort(() => Math.random() - 0.5).slice(0, 3); for (const e of t) { e.troops = Math.max(0, e.troops - 5); if (e.troops <= 0) e.eliminated = true; } } break;
+               case 'star': case 'void': target.troops = 0; target.eliminated = true; break;
+               case 'dragon': { target.troops = Math.max(0, target.troops - 5); enemies.slice(1, 3).forEach(e => e.troops = Math.max(0, e.troops - 3)); } break;
+               case 'cyber': { const s = Math.min(3, target.troops); target.troops -= s; ai.troops += s; } break;
+               default: target.troops = Math.max(0, target.troops - 3);
            }
        }
 
-       function showTurnSummary(income, tilesGained, tilesLost, opponentsDefeated) {
+       // ==================== TURNS ====================
+       function showTurnSummary(income) {
            const el = document.getElementById('turn-summary');
-           let html = `<h3>Turn ${gameState.turn - 1} Complete</h3>`;
-           html += `<div class="turn-summary-item">Income: <span>+${income} gold</span></div>`;
-           if (tilesGained > 0) html += `<div class="turn-summary-item">Territories gained: <span>+${tilesGained}</span></div>`;
-           if (tilesLost > 0) html += `<div class="turn-summary-item">Territories lost: <span>-${tilesLost}</span></div>`;
-           if (opponentsDefeated > 0) html += `<div class="turn-summary-item">Opponents eliminated: <span>${opponentsDefeated}</span></div>`;
-           el.innerHTML = html;
+           el.innerHTML = '<h3>Turn ' + (gameState.turn - 1) + '</h3><div>+' + income + ' gold</div>';
            el.classList.add('active');
-           setTimeout(() => el.classList.remove('active'), 2500);
+           setTimeout(() => el.classList.remove('active'), 2000);
        }
 
        function startNewTurn() {
            gameState.turn++;
            gameState.isPlayerTurn = true;
            gameState.isProcessingTurn = false;
-           let income = gameState.player.tiles.length;
-           for (const tileId of gameState.player.tiles) {
-               const tile = gameState.territories.find(t => t.id === tileId);
-               if (tile && tile.terrain === TERRAIN_TYPES.FOREST) income += 1;
-               if (tile && tile.isCity) income += 2;
-           }
-           income += gameState.player.factories.length * 5;
-           const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
-           income = Math.floor(income * params.playerIncomeMult);
-           gameState.player.gold += income;
            if (gameState.player.defenseBonusTurns > 0) {
                gameState.player.defenseBonusTurns--;
                if (gameState.player.defenseBonusTurns === 0) gameState.player.defenseBonus = 1;
            }
-           const tilesGained = Math.max(0, gameState.player.tiles.length - gameState.prevPlayerTiles);
-           const tilesLost = Math.max(0, gameState.prevPlayerTiles - gameState.player.tiles.length);
-           const opponentsDefeated = gameState.prevOpponentsAlive - gameState.opponents.filter(o => !o.eliminated).length;
-           showTurnSummary(income, tilesGained, tilesLost, opponentsDefeated);
-           updateGameUI(); updateScoreboard(); renderGame();
-           saveGame();
+           if (gameState.player._onFire > 0) { gameState.player.troops = Math.max(0, gameState.player.troops - 3); gameState.player._onFire--; }
+           const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
+           let income = 5 + (gameState.player.defeated || 0) * 2;
+           if (gameState.player._factoryBonus) income += gameState.player._factoryBonus;
+           income = Math.floor(income * params.playerIncomeMult);
+           gameState.player.gold += income;
+           showTurnSummary(income);
+           updateGameUI(); updateScoreboard(); renderGame(); saveGame();
        }
 
-       function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+       function endTurn() {
+           if (!gameState.isPlayerTurn || gameState.isProcessingTurn) return;
+           gameState.isPlayerTurn = false;
+           gameState.isProcessingTurn = true;
+           gameState.selectedArmy = null;
+           saveGame();
+           processAITurns();
+       }
 
-       // ==================== GAME END ====================
+       // ==================== WIN/LOSE ====================
        function checkGameEnd() {
-           if (gameState.player.eliminated || gameState.player.tiles.length === 0) { endGame(false); return; }
+           if (gameState.player.eliminated || gameState.player.troops <= 0) { endGame(false); return; }
            if (gameState.opponents.filter(o => !o.eliminated).length === 0) { endGame(true); return; }
        }
 
        function endGame(victory, message) {
-           gameState.screen = 'result';
-           gameState.endMessage = message || '';
+           gameState.screen = 'result'; gameState.endMessage = message || '';
            localStorage.removeItem('hadooney_save');
-           stopTimer();
-           stopMusic();
-           const totalLandTiles = gameState.territories.filter(t => t.terrain.passable).length;
-           const playerTerritories = gameState.player.tiles.length;
-           const percentage = totalLandTiles > 0 ? (playerTerritories / totalLandTiles) * 100 : 0;
+           stopTimer(); stopMusic();
+           const totalOpponents = gameState.opponentCount;
+           const defeated = gameState.opponents.filter(o => o.eliminated).length;
+           const ratio = totalOpponents > 0 ? defeated / totalOpponents : 0;
+           const percent = Math.round(ratio * 100);
+           const troopRatio = Math.min(1, gameState.player.troops / 15);
+           const score = ratio * 0.7 + troopRatio * 0.3;
            let stars = 0;
-           if (percentage >= 94) stars = 5; else if (percentage >= 85) stars = 4;
-           else if (percentage >= 75) stars = 3; else if (percentage >= 50) stars = 2;
-           else if (percentage >= 20) stars = 1;
-           if (victory && gameState.selectedEra) saveStars(gameState.selectedEra.id, stars);
-           const resultMsg = message || (victory ? '🏆 VICTORY! 🏆' : '💀 DEFEAT 💀');
+           if (score >= 0.9) stars = 5; else if (score >= 0.75) stars = 4; else if (score >= 0.5) stars = 3; else if (score >= 0.25) stars = 2; else if (ratio > 0) stars = 1;
+           if (victory) saveStars(gameState.selectedEra.id, stars);
+           const resultMsg = message || (victory ? 'VICTORY!' : 'DEFEAT');
            document.getElementById('result-title').textContent = resultMsg;
            document.getElementById('result-title').className = 'result-title ' + (victory ? 'victory' : 'defeat');
            document.getElementById('result-stars').innerHTML = Array(stars).fill('⭐').join('');
-
-           // Time used
            const timeUsedSec = gameState.gameElapsed || 0;
-           const timeMins = Math.floor(timeUsedSec / 60);
-           const timeSecs = timeUsedSec % 60;
-           const timeUsedStr = `${String(timeMins).padStart(2, '0')}:${String(timeSecs).padStart(2, '0')}`;
-
-           // Best stars
+           const timeStr = String(Math.floor(timeUsedSec / 60)).padStart(2, '0') + ':' + String(timeUsedSec % 60).padStart(2, '0');
            const bestStars = gameState.selectedEra ? (loadStars()[gameState.selectedEra.id] || 0) : stars;
-
-           document.getElementById('result-stats').innerHTML = `
-               <div class="result-stat"><span>Territories</span><span>${playerTerritories} / ${totalLandTiles}</span></div>
-               <div class="result-stat"><span>Land %</span><span>${percentage.toFixed(1)}%</span></div>
-               <div class="result-stat"><span>Turns</span><span>${gameState.turn}</span></div>
-               <div class="result-stat"><span>Time Used</span><span>${timeUsedStr}</span></div>
-               <div class="result-stat"><span>Difficulty</span><span>${gameState.difficulty ? gameState.difficulty.emoji + ' ' + gameState.difficulty.name : 'Medium'}</span></div>
-               <div class="result-stat"><span>Defeated</span><span>${gameState.opponents.filter(o => o.eliminated).length} / ${gameState.opponentCount}</span></div>
-               <div class="result-stat"><span>Stars</span><span>${'⭐'.repeat(stars)}</span></div>
-               <div class="result-stat"><span>Best Stars</span><span>${'⭐'.repeat(bestStars)}</span></div>`;
+           document.getElementById('result-stats').innerHTML =
+               '<div class="result-stat"><span>Your Troops</span><span>' + gameState.player.troops + '</span></div>' +
+               '<div class="result-stat"><span>Enemies Defeated</span><span>' + defeated + ' / ' + totalOpponents + '</span></div>' +
+               '<div class="result-stat"><span>Conquest</span><span>' + percent + '%</span></div>' +
+               '<div class="result-stat"><span>Turns</span><span>' + gameState.turn + '</span></div>' +
+               '<div class="result-stat"><span>Time Used</span><span>' + timeStr + '</span></div>' +
+               '<div class="result-stat"><span>Difficulty</span><span>' + (gameState.difficulty ? gameState.difficulty.emoji + ' ' + gameState.difficulty.name : 'Medium') + '</span></div>' +
+               '<div class="result-stat"><span>Stars</span><span>' + '⭐'.repeat(stars) + '</span></div>' +
+               '<div class="result-stat"><span>Best Stars</span><span>' + '⭐'.repeat(bestStars) + '</span></div>';
            playSFX(victory ? 'victory' : 'defeat');
            if (victory) spawnConfetti();
            showScreen('result');
        }
-
-       function surrenderGame() { closeMenuModal(); endGame(false); }
-       function returnToTitle() { showScreen('title'); renderEraGrid(); }
-       function playAgain() { showScreen('era'); }
 
        // ==================== UI UPDATES ====================
        function getDifficultyParams() {
@@ -3401,25 +2650,61 @@
 
        function updateGameUI() {
            const params = getDifficultyParams();
-           const totalTroops = gameState.player.tiles.reduce((sum, id) => {
-               const tile = gameState.territories.find(t => t.id === id);
-               return sum + (tile ? tile.troops : 0);
-           }, 0);
-           document.getElementById('stat-troops').textContent = totalTroops;
+           document.getElementById('stat-troops').textContent = gameState.player.troops;
            document.getElementById('stat-gold').textContent = gameState.player.gold;
-           document.getElementById('stat-territories').textContent = gameState.player.tiles.length;
+           document.getElementById('stat-territories').textContent = gameState.opponents.filter(o => !o.eliminated).length + ' enemies';
            document.getElementById('turn-number').textContent = gameState.turn;
-           const btnRecruit = document.getElementById('btn-recruit');
-           btnRecruit.textContent = `🛡️ Recruit (${params.recruitCost}g)`;
-           btnRecruit.disabled = gameState.player.gold < params.recruitCost;
-           const btnSpecial = document.getElementById('btn-special');
-           if (gameState.player.specialUsed) {
-               btnSpecial.textContent = `⚡ Used`;
-               btnSpecial.disabled = true;
-           } else {
-               btnSpecial.innerHTML = `⚡ <span id="special-name">${gameState.selectedEra ? gameState.selectedEra.power : 'Power'}</span> (${params.powerCost}g)`;
-               btnSpecial.disabled = gameState.player.gold < params.powerCost;
-           }
+           const btnR = document.getElementById('btn-recruit');
+           btnR.textContent = 'Recruit (' + params.recruitCost + 'g)';
+           btnR.disabled = gameState.player.gold < params.recruitCost;
+           const btnS = document.getElementById('btn-special');
+           if (gameState.player.specialUsed) { btnS.textContent = 'Used'; btnS.disabled = true; }
+           else { btnS.innerHTML = 'Power (' + params.powerCost + 'g)'; btnS.disabled = gameState.player.gold < params.powerCost; }
+       }
+
+       // ==================== SAVE/LOAD ====================
+       function saveGame() {
+           const data = {
+               screen: gameState.screen, selectedEra: gameState.selectedEra.id,
+               difficulty: gameState.difficulty.id, opponentCount: gameState.opponentCount,
+               turn: gameState.turn, timerRemaining: gameState.timerRemaining,
+               gameElapsed: gameState.gameElapsed, pausedAt: gameState.pausedAt,
+               player: { gold: gameState.player.gold, troops: gameState.player.troops, x: gameState.player.x, y: gameState.player.y, specialUsed: gameState.player.specialUsed, berserkerActive: gameState.player.berserkerActive, defenseBonus: gameState.player.defenseBonus, defenseBonusTurns: gameState.player.defenseBonusTurns, defeated: gameState.player.defeated, _factoryBonus: gameState.player._factoryBonus, _onFire: gameState.player._onFire, _invincible: gameState.player._invincible },
+               opponents: gameState.opponents.map(o => ({ id: o.id, name: o.name, color: o.color, gold: o.gold, troops: o.troops, x: o.x, y: o.y, eliminated: o.eliminated, defeated: o.defeated, personality: o.personality, specialUsed: o.specialUsed, _factoryBonus: o._factoryBonus, _onFire: o._onFire, _frozen: o._frozen, _berserkerActive: o._berserkerActive }))
+           };
+           localStorage.setItem('hadooney_save', JSON.stringify(data));
+       }
+
+       function continueSavedGame() {
+           try {
+               const raw = localStorage.getItem('hadooney_save');
+               if (!raw) return;
+               const data = JSON.parse(raw);
+               gameState.selectedEra = ERAS.find(e => e.id === data.selectedEra);
+               gameState.difficulty = DIFFICULTY_LEVELS.find(d => d.id === data.difficulty) || DIFFICULTY_LEVELS[1];
+               gameState.opponentCount = data.opponentCount || 5;
+               const p = data.player;
+               gameState.player = { id: 'player', name: 'You', color: gameState.selectedEra.color, gold: p.gold, troops: p.troops, x: p.x, y: p.y, eliminated: false, specialUsed: p.specialUsed, berserkerActive: p.berserkerActive || false, defenseBonus: p.defenseBonus || 1, defenseBonusTurns: p.defenseBonusTurns || 0, defeated: p.defeated || 0, weapons: [], _factoryBonus: p._factoryBonus || 0, _onFire: p._onFire || 0, _invincible: p._invincible || false };
+               gameState.opponents = data.opponents.map(o => ({ ...o, isAI: true, weapons: o.weapons || [] }));
+               gameState.turn = data.turn; gameState.timerRemaining = data.timerRemaining;
+               gameState.gameElapsed = data.gameElapsed || 0; gameState.pausedAt = data.pausedAt;
+               gameState.isPlayerTurn = true; gameState.isProcessingTurn = false;
+               gameState.selectedArmy = null; gameState.powerTargetMode = false;
+               gameState.weaponTargetMode = null; gameState.endMessage = '';
+               showScreen('game');
+               setTimeout(() => {
+                   initGameCanvas(); initBattlefield();
+                   gameState.player.x = p.x; gameState.player.y = p.y;
+                   gameState.opponents.forEach((o, i) => { if (data.opponents[i]) { o.x = data.opponents[i].x; o.y = data.opponents[i].y; } });
+                   updateGameUI(); updateScoreboard(); startTimer();
+               }, 150);
+           } catch (e) { console.error('Load failed:', e); localStorage.removeItem('hadooney_save'); }
+       }
+
+       function checkForSavedGame() {
+           const raw = localStorage.getItem('hadooney_save');
+           const btn = document.getElementById('continue-btn');
+           if (btn) btn.style.display = raw ? 'block' : 'none';
        }
 
        // ==================== START ====================
