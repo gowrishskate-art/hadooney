@@ -62,7 +62,7 @@ There's also a **How to Play** button on the title screen that explains the rule
 | **Gameplay** | Open battlefield (full screen canvas), HUD bar at top, action buttons at bottom, scoreboard on side | Play the game (see Controls section) |
 | **Result** | Victory/Defeat banner, star rating (animated), detailed stats | Play Again (same settings) or Main Menu |
 
-**IMPLEMENTATION STATUS:** All screens exist and work. The HUD is missing the timer display — see Timer section below.
+**IMPLEMENTATION STATUS:** All screens exist and work. Timer display is in the HUD and counts down during player turns.
 
 ---
 
@@ -137,12 +137,12 @@ These rules apply to ALL superpowers:
 
 **IMPLEMENTATION STATUS:**
 - All 20 eras and superpowers exist in code.
-- BUG: Aztec (Blood Sacrifice) and Crystal Shield do NOT deduct gold. Must fix.
-- BUG: Thunder Chain Lightning picks first 3 enemies instead of random 3. Must fix.
-- BUG: Void Rift should make tile neutral with 0 troops, not just clear it. Must fix.
-- BUG: Naval Bombardment should work on neutral tiles too. Must fix.
-- BUG: Real-time effects (setTimeout) keep ticking during pause menu. Should pause.
-- BUG: Two-tile powers (Rome, Shadow, Quantum) should refund gold if user cancels before selecting second tile. Currently they deduct gold on first tile selection.
+- Gold deduction works for all powers including Aztec and Crystal Shield.
+- Thunder Chain Lightning shuffles enemies randomly before selecting targets.
+- Void Rift eliminates or reduces enemy troops as designed.
+- Naval Bombardment (British) works on any enemy army.
+- Real-time effects (Castle Wall, Samurai Honor, invincibility) use frame-based timed effects that pause when the pause menu is open.
+- Gold is only deducted when the target is confirmed, not when entering targeting mode — so cancelling a power doesn't cost gold.
 
 ---
 
@@ -212,10 +212,12 @@ The timer is shown in the HUD bar at the top of the screen. It uses the format *
 - Number of eras and superpowers
 
 **IMPLEMENTATION STATUS:**
-- MISSING: The entire timer system does not exist. No HTML element, no countdown logic, no time-out loss condition. This is the biggest missing feature.
-- MISSING: Difficulty uses a single `power` multiplier instead of the 11 parameters above. Must rewrite the difficulty system.
-- BUG: Recruit button always shows "10g" and Power button always shows "20g" — must show the actual cost for current difficulty.
-- BUG: AI starting gold uses a formula based on opponent count instead of the per-difficulty values above.
+- Timer system fully implemented: HUD element with MM:SS countdown, pauses during AI turns and pause menu, color-coded warnings (yellow <=60s, red <=30s), auto-loss at 0.
+- DIFFICULTY_PARAMS object with all 11 parameters per level is implemented and wired up.
+- Recruit button and Power button show correct costs from DIFFICULTY_PARAMS.
+- AI starting gold and troops use per-difficulty values from DIFFICULTY_PARAMS.
+- Player income multiplied by playerIncomeMult.
+- AI attack bonus applied in combat formula.
 
 ### Implementation Instructions for Difficulty System
 
@@ -233,24 +235,24 @@ DIFFICULTY_PARAMS = {
 ```
 
 **Acceptance criteria:**
-- [ ] `DIFFICULTY_PARAMS` object exists with all 11 parameters per level
-- [ ] Timer HTML element exists in the HUD and shows MM:SS
-- [ ] Timer counts down by 1 every second during player turn only
-- [ ] Timer pauses when AI is taking its turn
-- [ ] Timer pauses when pause menu is open
-- [ ] Timer flashes yellow when <= 60 seconds
-- [ ] Timer flashes red when <= 30 seconds
-- [ ] Game ends in defeat ("Time's Up!") when timer reaches 0
-- [ ] AI income uses `floor(tiles x aiIncomePerTile)` instead of `floor(tiles x power)`
-- [ ] AI actions use random integer in `[min, max]` range from `aiActions`
-- [ ] AI attack bonus is applied as `(1 + aiAttackBonus)` multiplier on attack power in `attackTile()`
-- [ ] AI starting gold matches the table (not based on opponent count)
-- [ ] AI starting troops per tile matches the table
-- [ ] Player income is multiplied by `playerIncomeMult` and floored
-- [ ] Recruit button shows correct cost for current difficulty
-- [ ] Power button shows correct cost for current difficulty
-- [ ] Recruiting gives correct number of troops for current difficulty
-- [ ] Superpower deducts correct gold for current difficulty
+- [x] `DIFFICULTY_PARAMS` object exists with all 11 parameters per level
+- [x] Timer HTML element exists in the HUD and shows MM:SS
+- [x] Timer counts down by 1 every second during player turn only
+- [x] Timer pauses when AI is taking its turn
+- [x] Timer pauses when pause menu is open
+- [x] Timer flashes yellow when <= 60 seconds
+- [x] Timer flashes red when <= 30 seconds
+- [x] Game ends in defeat ("Time's Up!") when timer reaches 0
+- [x] AI income uses `floor(tiles x aiIncomePerTile)` instead of `floor(tiles x power)`
+- [x] AI actions use random integer in `[min, max]` range from `aiActions`
+- [x] AI attack bonus is applied as `(1 + aiAttackBonus)` multiplier on attack power
+- [x] AI starting gold matches the table (not based on opponent count)
+- [x] AI starting troops per tile matches the table
+- [x] Player income is multiplied by `playerIncomeMult` and floored
+- [x] Recruit button shows correct cost for current difficulty
+- [x] Power button shows correct cost for current difficulty
+- [x] Recruiting gives correct number of troops for current difficulty
+- [x] Superpower deducts correct gold for current difficulty
 
 ---
 
@@ -428,8 +430,8 @@ This is useful for building up a strong tile before attacking, or saving troops 
 **IMPLEMENTATION STATUS:**
 - Core combat formula matches the design perfectly.
 - Reinforce mechanic works correctly.
-- MISSING: AI attack bonus not applied in `attackTile()`.
-- All edge cases handled correctly (frozen, invincible, neutral).
+- AI attack bonus is applied in the attack formula.
+- All edge cases handled correctly (frozen, invincible, berserker, fire).
 
 ---
 
