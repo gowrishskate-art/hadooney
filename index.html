@@ -2856,6 +2856,11 @@
            if (gameState.opponents.filter(o => !o.eliminated).length === 0) { endGame(true); return; }
        }
 
+       function surrenderGame() {
+           closeMenuModal();
+           endGame(false, 'SURRENDERED');
+       }
+
        function endGame(victory, message) {
            gameState.screen = 'result'; gameState.endMessage = message || '';
            localStorage.removeItem('hadooney_save');
