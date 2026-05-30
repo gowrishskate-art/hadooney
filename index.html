@@ -3449,7 +3449,7 @@
            const s = gameState.armyScale || 80;
            const eraId = gameState.selectedEra ? gameState.selectedEra.id : 'rome';
            const land = ERA_LANDS[eraId] || ERA_LANDS.rome;
-           const landW = s * 1.4, landH = s * 0.55;
+           const landW = s * 1.8, landH = s * 0.7;
            const landY = faction.y + s * 0.2;
            const shadowGrad = ctx.createRadialGradient(faction.x, landY + s * 0.08, 0, faction.x, landY + s * 0.08, landW * 1.1);
            shadowGrad.addColorStop(0, 'rgba(0,0,0,0.2)');
@@ -3458,8 +3458,8 @@
            ctx.fillStyle = shadowGrad;
            ctx.beginPath(); ctx.ellipse(faction.x, landY + s * 0.08, landW * 1.1, landH * 1.1, 0, 0, Math.PI * 2); ctx.fill();
            const landGrad = ctx.createRadialGradient(faction.x, landY, 0, faction.x, landY, landW);
-           landGrad.addColorStop(0, faction.color + '35');
-           landGrad.addColorStop(0.5, faction.color + '18');
+           landGrad.addColorStop(0, faction.color + '50');
+           landGrad.addColorStop(0.5, faction.color + '28');
            landGrad.addColorStop(1, faction.color + '00');
            ctx.fillStyle = landGrad;
            ctx.beginPath(); ctx.ellipse(faction.x, landY, landW, landH, 0, 0, Math.PI * 2); ctx.fill();
@@ -3528,17 +3528,17 @@
            if (faction.eliminated || rt.troops <= 0) return;
            const outfit = getOutfit(faction.id);
            const color = faction.color || '#888';
-           const scale = Math.max(16, Math.min(22, w * 0.028));
-           const warriorY = cy + w * 0.038;
+           const scale = Math.max(24, Math.min(35, w * 0.042));
+           const warriorY = cy + w * 0.05;
            const numChars = Math.min(3, Math.max(1, Math.ceil(rt.troops / 4)));
            if (numChars === 1) {
                const bob = Math.sin(animFrame * 0.05 + cx * 0.1) * scale * 0.08;
                drawAnimeCharacter(cx, warriorY + bob, scale, outfit, color, animFrame + cx, 'idle');
            } else {
-               const spread = scale * 0.6;
+               const spread = scale * 0.7;
                for (let i = 0; i < numChars; i++) {
                    const ox = (i - (numChars - 1) / 2) * spread;
-                   const charScale = i === 0 ? scale * 1.1 : scale * 0.75;
+                   const charScale = i === 0 ? scale * 1.1 : scale * 0.8;
                    const bob = Math.sin(animFrame * 0.05 + cx * 0.1 + i * 2) * scale * 0.06;
                    drawAnimeCharacter(cx + ox, warriorY + bob, charScale, outfit, color, animFrame + i * 15 + cx, 'idle');
                }
