@@ -1731,9 +1731,12 @@
            gameState.opponents = [];
            const personalities = Object.values(AI_PERSONALITIES);
            const colors = ['#e74c3c','#9b59b6','#1abc9c','#f39c12','#34495e','#16a085','#27ae60','#2980b9','#8e44ad','#c0392b','#d35400','#7f8c8d','#2c3e50','#e67e22','#95a5a6','#bdc3c7','#2ecc71','#f1c40f','#e84393','#00cec9'];
+           const otherEras = ERAS.filter(e => !gameState.selectedEra || e.id !== gameState.selectedEra.id);
            for (let i = 0; i < gameState.opponentCount; i++) {
+               const oppEra = otherEras[i % otherEras.length];
                gameState.opponents.push({
-                   id: `ai_${i}`, name: `Empire ${i + 1}`, color: colors[i % colors.length],
+                   id: `ai_${i}`, name: oppEra.name, color: oppEra.color,
+                   era: oppEra,
                    gold: params.aiStartGold, troops: params.aiStartTroops * 3,
                    x: 0, y: 0, eliminated: false, defeated: 0,
                    personality: personalities[i % personalities.length], isAI: true,
@@ -2075,12 +2078,14 @@
        function getOutfit(ownerId) {
            if (ownerId === 'player' && gameState.selectedEra) return ERA_OUTFITS[gameState.selectedEra.id] || ERA_OUTFITS.rome;
            const opp = gameState.opponents.find(o => o.id === ownerId);
-           if (opp) {
-               const idx = gameState.opponents.indexOf(opp);
-               const keys = Object.keys(ERA_OUTFITS);
-               return ERA_OUTFITS[keys[(idx + 1) % keys.length]];
-           }
+           if (opp && opp.era) return ERA_OUTFITS[opp.era.id] || ERA_OUTFITS.rome;
            return ERA_OUTFITS.rome;
+       }
+
+       function getFactionEra(ownerId) {
+           if (ownerId === 'player') return gameState.selectedEra ? gameState.selectedEra.id : 'rome';
+           const opp = gameState.opponents.find(o => o.id === ownerId);
+           return opp && opp.era ? opp.era.id : 'rome';
        }
 
        function drawAnimeCharacter(x, y, scale, outfit, color, frame, action) {
@@ -3336,21 +3341,23 @@
        function drawTerritoryMap(eraId, w, h) {
            const map = ERA_MAPS[eraId];
            if (!map) return;
-           const land = ERA_LANDS[eraId] || ERA_LANDS.rome;
-           const terrColors = { plains: land.ground, forest: land.ground2 || '#3a6a1c', mountain: '#6b7280', city: lightenColor(land.ground, 20), water: '#3b82f6' };
+           const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
            for (const tDef of map.territories) {
                const rt = gameState.territories.find(t => t.id === tDef.id);
-               const baseColor = terrColors[tDef.terrain] || land.ground;
                ctx.beginPath();
                for (let i = 0; i < tDef.poly.length; i++) {
                    const px = tDef.poly[i][0] * w, py = tDef.poly[i][1] * h;
                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
                }
                ctx.closePath();
+               const ownerEraId = rt && rt.owner ? getFactionEra(rt.owner) : null;
+               const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
+               const terrColors = { plains: land.ground, forest: land.ground2 || '#3a6a1c', mountain: '#6b7280', city: lightenColor(land.ground, 20), water: '#3b82f6' };
+               const baseColor = terrColors[tDef.terrain] || land.ground;
                if (rt && rt.owner) {
                    const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
                    if (faction) {
-                       ctx.fillStyle = blendColors(baseColor, faction.color, 0.45);
+                       ctx.fillStyle = blendColors(baseColor, faction.color, 0.35);
                    } else {
                        ctx.fillStyle = baseColor;
                    }
@@ -3361,8 +3368,8 @@
                if (rt && rt.owner) {
                    const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
                    if (faction) {
-                       ctx.strokeStyle = faction.color + '70';
-                       ctx.lineWidth = 2.5;
+                       ctx.strokeStyle = faction.color + '60';
+                       ctx.lineWidth = 2;
                        ctx.stroke();
                    }
                }
