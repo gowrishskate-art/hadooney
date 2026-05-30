@@ -3897,7 +3897,7 @@
                turn: gameState.turn, timerRemaining: gameState.timerRemaining,
                gameElapsed: gameState.gameElapsed, pausedAt: gameState.pausedAt,
                player: { gold: gameState.player.gold, troops: gameState.player.troops, x: gameState.player.x, y: gameState.player.y, specialUsed: gameState.player.specialUsed, berserkerActive: gameState.player.berserkerActive, defenseBonus: gameState.player.defenseBonus, defenseBonusTurns: gameState.player.defenseBonusTurns, defeated: gameState.player.defeated, _factoryBonus: gameState.player._factoryBonus, _onFire: gameState.player._onFire, _invincible: gameState.player._invincible },
-               opponents: gameState.opponents.map(o => ({ id: o.id, name: o.name, color: o.color, gold: o.gold, troops: o.troops, x: o.x, y: o.y, eliminated: o.eliminated, defeated: o.defeated, personality: o.personality, specialUsed: o.specialUsed, _factoryBonus: o._factoryBonus, _onFire: o._onFire, _frozen: o._frozen, _berserkerActive: o._berserkerActive }))
+               opponents: gameState.opponents.map(o => ({ id: o.id, name: o.name, color: o.color, eraId: o.era ? o.era.id : null, gold: o.gold, troops: o.troops, x: o.x, y: o.y, eliminated: o.eliminated, defeated: o.defeated, personality: o.personality, specialUsed: o.specialUsed, _factoryBonus: o._factoryBonus, _onFire: o._onFire, _frozen: o._frozen, _berserkerActive: o._berserkerActive }))
            };
            localStorage.setItem('hadooney_save', JSON.stringify(data));
        }
@@ -3912,7 +3912,10 @@
                gameState.opponentCount = data.opponentCount || 5;
                const p = data.player;
                gameState.player = { id: 'player', name: 'You', color: gameState.selectedEra.color, gold: p.gold, troops: p.troops, x: p.x, y: p.y, eliminated: false, specialUsed: p.specialUsed, berserkerActive: p.berserkerActive || false, defenseBonus: p.defenseBonus || 1, defenseBonusTurns: p.defenseBonusTurns || 0, defeated: p.defeated || 0, weapons: [], _factoryBonus: p._factoryBonus || 0, _onFire: p._onFire || 0, _invincible: p._invincible || false };
-               gameState.opponents = data.opponents.map(o => ({ ...o, isAI: true, weapons: o.weapons || [] }));
+               gameState.opponents = data.opponents.map(o => {
+                   const era = o.eraId ? ERAS.find(e => e.id === o.eraId) || null : null;
+                   return { ...o, era, isAI: true, weapons: o.weapons || [] };
+               });
                gameState.turn = data.turn; gameState.timerRemaining = data.timerRemaining;
                gameState.gameElapsed = data.gameElapsed || 0; gameState.pausedAt = data.pausedAt;
                gameState.isPlayerTurn = true; gameState.isProcessingTurn = false;
