@@ -3347,17 +3347,27 @@
                    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
                }
                ctx.closePath();
-               ctx.fillStyle = baseColor;
+               if (rt && rt.owner) {
+                   const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
+                   if (faction) {
+                       ctx.fillStyle = blendColors(baseColor, faction.color, 0.45);
+                   } else {
+                       ctx.fillStyle = baseColor;
+                   }
+               } else {
+                   ctx.fillStyle = baseColor;
+               }
                ctx.fill();
                if (rt && rt.owner) {
                    const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
                    if (faction) {
-                       ctx.fillStyle = faction.color + '35';
-                       ctx.fill();
+                       ctx.strokeStyle = faction.color + '70';
+                       ctx.lineWidth = 2.5;
+                       ctx.stroke();
                    }
                }
-               ctx.strokeStyle = tDef.terrain === 'water' ? '#3b82f660' : '#ffffff25';
-               ctx.lineWidth = 1.5;
+               ctx.strokeStyle = tDef.terrain === 'water' ? '#3b82f660' : '#ffffff20';
+               ctx.lineWidth = 1;
                ctx.stroke();
            }
            for (const tDef of map.territories) {
