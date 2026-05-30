@@ -1790,7 +1790,7 @@
                let idx = 0;
                for (let f = 0; f < numFactions && idx < shuffled.length; f++) {
                    for (let j = 0; j < startT && idx < shuffled.length; j++, idx++) {
-                   const rt = gameState.territories[shuffled[idx].id];
+                   const rt = gameState.territories.find(t => t.id === shuffled[idx].id);
                    rt.owner = allFactions[f].id;
                    rt.troops = 2 + Math.floor(Math.random() * 3);
                    }
@@ -1816,6 +1816,7 @@
                    }
                }
            } else {
+               gameState.territories = [];
                gameState.player.x = w * 0.12;
                gameState.player.y = h * 0.5;
                const n = gameState.opponents.length;
@@ -3340,7 +3341,7 @@
 
        function drawTerritoryMap(eraId, w, h) {
            const map = ERA_MAPS[eraId];
-           if (!map) return;
+           if (!map || !gameState.territories) return;
            const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
            for (const tDef of map.territories) {
                const rt = gameState.territories.find(t => t.id === tDef.id);
