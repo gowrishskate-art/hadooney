@@ -2450,6 +2450,9 @@
                    gameState.opponents[i].y = h * 0.5 - Math.sin(angle) * h * 0.35;
                }
            }
+           buildTerritoryLookup();
+           buildTerritoryPaths(eraId, canvas.width, canvas.height);
+           invalidateBgCache(); invalidateMapCache();
        }
 
        // ==================== TIMER SYSTEM ====================
@@ -2624,6 +2627,7 @@
        function initGameCanvas() {
            canvas = document.getElementById('game-canvas');
            ctx = canvas.getContext('2d');
+           _territoryPaths = []; invalidateBgCache(); invalidateMapCache();
            if (!canvasInitialized) {
                canvas.addEventListener('click', handleCanvasClick);
                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -2648,7 +2652,7 @@
            gameState.player.x *= scaleX; gameState.player.y *= scaleY;
            gameState.opponents.forEach(o => { o.x *= scaleX; o.y *= scaleY; });
            gameState.armyScale = Math.min(canvas.width, canvas.height) / 5;
-           renderGame();
+           _territoryPaths = []; invalidateBgCache(); invalidateMapCache(); renderGame();
        }
 
        function handleTouchStart(e) {
@@ -2752,9 +2756,9 @@
            // Left leg
            const llx = -s * legSpread, llx2 = -s * legSpread * 1.3;
            const legGrad = ctx.createLinearGradient(llx - s*0.04, 0, llx + s*0.04, 0);
-           legGrad.addColorStop(0, darkenColor(outfit.armor, 30));
+           legGrad.addColorStop(0, getCachedColor(outfit.armor, -30));
            legGrad.addColorStop(0.4, outfit.armor);
-           legGrad.addColorStop(1, darkenColor(outfit.armor, 50));
+           legGrad.addColorStop(1, getCachedColor(outfit.armor, -50));
            ctx.strokeStyle = legGrad;
            ctx.lineWidth = s * 0.09;
            ctx.lineCap = 'round';
@@ -2762,9 +2766,9 @@
            // Right leg
            const rlx = s * legSpread, rlx2 = s * legSpread * 1.3;
            const legGrad2 = ctx.createLinearGradient(rlx - s*0.04, 0, rlx + s*0.04, 0);
-           legGrad2.addColorStop(0, darkenColor(outfit.armor, 30));
+           legGrad2.addColorStop(0, getCachedColor(outfit.armor, -30));
            legGrad2.addColorStop(0.4, outfit.armor);
-           legGrad2.addColorStop(1, darkenColor(outfit.armor, 50));
+           legGrad2.addColorStop(1, getCachedColor(outfit.armor, -50));
            ctx.strokeStyle = legGrad2;
            ctx.beginPath(); ctx.moveTo(rlx, s * 0.15); ctx.lineTo(rlx2, s * 0.42); ctx.stroke();
 
@@ -2787,10 +2791,10 @@
 
            // 3D Torso with gradient shading
            const torsoGrad = ctx.createLinearGradient(-s * 0.22, 0, s * 0.22, 0);
-           torsoGrad.addColorStop(0, darkenColor(outfit.armor, 40));
-           torsoGrad.addColorStop(0.3, lightenColor(outfit.armor, 15));
+           torsoGrad.addColorStop(0, getCachedColor(outfit.armor, -40));
+           torsoGrad.addColorStop(0.3, getCachedColor(outfit.armor, 15));
            torsoGrad.addColorStop(0.7, outfit.armor);
-           torsoGrad.addColorStop(1, darkenColor(outfit.armor, 60));
+           torsoGrad.addColorStop(1, getCachedColor(outfit.armor, -60));
            ctx.fillStyle = torsoGrad;
            ctx.beginPath();
            ctx.moveTo(-s * 0.18, -s * 0.05);
@@ -2825,9 +2829,9 @@
            const armAngle = isAttacking ? -0.8 + atkPhase * 1.2 : Math.sin(frame * 0.05) * 0.15;
            // Left arm (shield side)
            const laGrad = ctx.createLinearGradient(-s*0.32, 0, -s*0.24, 0);
-           laGrad.addColorStop(0, darkenColor(outfit.skin, 30));
+           laGrad.addColorStop(0, getCachedColor(outfit.skin, -30));
            laGrad.addColorStop(0.5, outfit.skin);
-           laGrad.addColorStop(1, darkenColor(outfit.skin, 20));
+           laGrad.addColorStop(1, getCachedColor(outfit.skin, -20));
            ctx.strokeStyle = laGrad;
            ctx.lineWidth = s * 0.08;
            ctx.beginPath(); ctx.moveTo(-s * 0.2, s * 0.0);
@@ -2835,9 +2839,9 @@
            ctx.stroke();
            // Right arm (weapon side)
            const raGrad = ctx.createLinearGradient(s*0.24, 0, s*0.36, 0);
-           raGrad.addColorStop(0, darkenColor(outfit.skin, 30));
+           raGrad.addColorStop(0, getCachedColor(outfit.skin, -30));
            raGrad.addColorStop(0.5, outfit.skin);
-           raGrad.addColorStop(1, darkenColor(outfit.skin, 20));
+           raGrad.addColorStop(1, getCachedColor(outfit.skin, -20));
            ctx.strokeStyle = raGrad;
            ctx.beginPath(); ctx.moveTo(s * 0.2, s * 0.0);
            const rArmX = s * (0.35 + armAngle * 0.15);
@@ -2860,9 +2864,9 @@
            // 3D Shield (left hand) - convex disc
            const shX = -s * 0.38, shY = s * 0.2, shR = s * 0.12;
            const shieldGrad = ctx.createRadialGradient(shX - shR*0.3, shY - shR*0.3, 0, shX, shY, shR);
-           shieldGrad.addColorStop(0, lightenColor(color, 40));
+           shieldGrad.addColorStop(0, getCachedColor(color, 40));
            shieldGrad.addColorStop(0.6, color);
-           shieldGrad.addColorStop(1, darkenColor(color, 40));
+           shieldGrad.addColorStop(1, getCachedColor(color, -40));
            ctx.globalAlpha = ctx.globalAlpha * 0.9;
            ctx.fillStyle = shieldGrad;
            ctx.beginPath(); ctx.arc(shX, shY, shR, 0, Math.PI * 2); ctx.fill();
@@ -2871,22 +2875,22 @@
            ctx.globalAlpha = isHurt ? 0.5 + Math.sin(frame * 0.5) * 0.3 : 1;
 
            // Neck
-           ctx.fillStyle = darkenColor(outfit.skin, 15);
+           ctx.fillStyle = getCachedColor(outfit.skin, -15);
            ctx.fillRect(-s * 0.04, -s * 0.06, s * 0.08, s * 0.06);
 
            // 3D Head (sphere with lighting)
            const headY = -s * 0.14 + breathe;
            const headR = s * 0.14;
            const headGrad = ctx.createRadialGradient(-headR*0.3, headY - headR*0.3, headR*0.1, 0, headY, headR);
-           headGrad.addColorStop(0, lightenColor(outfit.skin, 30));
+           headGrad.addColorStop(0, getCachedColor(outfit.skin, 30));
            headGrad.addColorStop(0.5, outfit.skin);
-           headGrad.addColorStop(1, darkenColor(outfit.skin, 40));
+           headGrad.addColorStop(1, getCachedColor(outfit.skin, -40));
            ctx.fillStyle = headGrad;
            ctx.beginPath(); ctx.arc(0, headY, headR, 0, Math.PI * 2); ctx.fill();
 
            // Hair with volume
            const hairGrad = ctx.createRadialGradient(0, headY - headR*0.5, headR*0.1, 0, headY - headR*0.2, headR*1.1);
-           hairGrad.addColorStop(0, lightenColor(outfit.hair, 20));
+           hairGrad.addColorStop(0, getCachedColor(outfit.hair, 20));
            hairGrad.addColorStop(1, outfit.hair);
            ctx.fillStyle = hairGrad;
            ctx.beginPath();
@@ -2897,9 +2901,9 @@
 
            // 3D Helmet
            const helmGrad = ctx.createRadialGradient(-headR*0.2, headY - headR*0.6, headR*0.1, 0, headY - headR*0.4, headR*0.9);
-           helmGrad.addColorStop(0, lightenColor(outfit.helmet, 25));
+           helmGrad.addColorStop(0, getCachedColor(outfit.helmet, 25));
            helmGrad.addColorStop(0.6, outfit.helmet);
-           helmGrad.addColorStop(1, darkenColor(outfit.helmet, 30));
+           helmGrad.addColorStop(1, getCachedColor(outfit.helmet, -30));
            ctx.fillStyle = helmGrad;
            ctx.globalAlpha = 0.85;
            ctx.beginPath();
@@ -2963,6 +2967,27 @@
            const g = Math.max(0, ((n >> 8) & 0xFF) - amt);
            const b = Math.max(0, (n & 0xFF) - amt);
            return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+       }
+
+       // ==================== COLOR CACHE ====================
+       const _colorCache = new Map();
+       function getCachedColor(hex, amt) {
+           const key = hex + '|' + amt;
+           if (_colorCache.has(key)) return _colorCache.get(key);
+           const n = parseInt(hex.replace('#',''), 16);
+           let r, g, b;
+           if (amt >= 0) {
+               r = Math.min(255, (n >> 16) + amt);
+               g = Math.min(255, ((n >> 8) & 0xFF) + amt);
+               b = Math.min(255, (n & 0xFF) + amt);
+           } else {
+               r = Math.max(0, (n >> 16) + amt);
+               g = Math.max(0, ((n >> 8) & 0xFF) + amt);
+               b = Math.max(0, (n & 0xFF) + amt);
+           }
+           const result = '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+           _colorCache.set(key, result);
+           return result;
        }
 
        function lightenColor(hex, amt) {
@@ -3252,11 +3277,51 @@
                    ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
                    ctx.restore();
                } else {
+                   // Fake glow: draw larger faded circle behind
+                   ctx.globalAlpha = Math.max(0, p.life * 0.3);
+                   ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life * 2, 0, Math.PI * 2); ctx.fill();
+                   ctx.globalAlpha = Math.max(0, p.life);
                    ctx.beginPath(); ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2); ctx.fill();
-                   ctx.shadowColor = p.color; ctx.shadowBlur = 8; ctx.fill(); ctx.shadowBlur = 0;
                }
            }
            ctx.globalAlpha = 1;
+       }
+
+
+       // ==================== OFFSCREEN CANVAS CACHE ====================
+       let _bgCache = null, _bgCacheW = 0, _bgCacheH = 0, _bgCacheEra = '';
+       let _mapCache = null, _mapCacheW = 0, _mapCacheH = 0;
+       let _mapDirty = true;
+       let _territoryById = new Map();
+       let _territoryPaths = [];
+       let _renderDirty = true;
+       let _lastRenderFrame = 0;
+       let _throttleCounter = 0;
+
+       function invalidateMapCache() { _mapDirty = true; _renderDirty = true; }
+       function invalidateBgCache() { _bgCacheEra = ''; _renderDirty = true; }
+       function markDirty() { _renderDirty = true; }
+
+       function buildTerritoryLookup() {
+           _territoryById = new Map();
+           if (!gameState.territories) return;
+           for (const t of gameState.territories) _territoryById.set(t.id, t);
+       }
+
+       function buildTerritoryPaths(eraId, w, h) {
+           const map = ERA_MAPS[eraId];
+           if (!map) { _territoryPaths = []; return; }
+           _territoryPaths = [];
+           for (const tDef of map.territories) {
+               const path = new Path2D();
+               for (let i = 0; i < tDef.poly.length; i++) {
+                   const [px, py] = mapCoords(tDef.poly[i][0], tDef.poly[i][1], w, h);
+                   i === 0 ? path.moveTo(px, py) : path.lineTo(px, py);
+               }
+               path.closePath();
+               const [cx, cy] = getTerritoryCenter(tDef, w, h);
+               _territoryPaths.push({ id: tDef.id, path, cx, cy, terrain: tDef.terrain, name: tDef.name, adj: tDef.adj });
+           }
        }
 
        function animationLoop() {
@@ -3264,11 +3329,27 @@
            animFrame++;
            updateParticles();
            tickTimedEffects();
-           if (particles.length > 0 || gameState.screen === 'game') renderGame();
+           // Only render when something changed or animations active
+           const hasParticles = particles.length > 0;
+           const hasBattleAnims = battleAnimations.length > 0;
+           const hasTroopMovements = troopMovements.length > 0;
+           const isActive = hasParticles || hasBattleAnims || hasTroopMovements || _renderDirty;
+           if (gameState.screen === 'game' && isActive) {
+               renderGame();
+               _renderDirty = false;
+           } else if (gameState.screen === 'game' && _renderDirty) {
+               // Idle throttle: only render every 4th frame when nothing is happening
+               _throttleCounter++;
+               if (_throttleCounter >= 4) {
+                   renderGame();
+                   _renderDirty = false;
+                   _throttleCounter = 0;
+               }
+           }
            requestAnimationFrame(animationLoop);
        }
 
-       function startAnimLoop() { if (!animRunning) { animRunning = true; requestAnimationFrame(animationLoop); } }
+       function startAnimLoop() { if (!animRunning) { animRunning = true; _renderDirty = true; requestAnimationFrame(animationLoop); } }
        function stopAnimLoop() { animRunning = false; }
 
        // ==================== ERA LANDSCAPES ====================
@@ -3315,7 +3396,7 @@
            drawEraLandmarks(eraId, w, h, horizonY, land);
            // Ground with perspective
            const gndGrad = ctx.createLinearGradient(0, horizonY, 0, h);
-           gndGrad.addColorStop(0, lightenColor(land.ground, 15));
+           gndGrad.addColorStop(0, getCachedColor(land.ground, 15));
            gndGrad.addColorStop(0.3, land.ground);
            gndGrad.addColorStop(1, land.ground2);
            ctx.fillStyle = gndGrad;
@@ -3942,8 +4023,31 @@
            const w = canvas.width, h = canvas.height;
            ctx.clearRect(0, 0, w, h);
            const eraId = gameState.selectedEra ? gameState.selectedEra.id : 'rome';
-           drawEraBackground(eraId, w, h);
-           drawTerritoryMap(eraId, w, h);
+           // Cached background
+           if (!_bgCache || _bgCacheW !== w || _bgCacheH !== h || _bgCacheEra !== eraId) {
+               _bgCache = document.createElement('canvas');
+               _bgCache.width = w; _bgCache.height = h;
+               const bgCtx = _bgCache.getContext('2d');
+               const origCtx = ctx;
+               ctx = bgCtx;
+               drawEraBackground(eraId, w, h);
+               ctx = origCtx;
+               _bgCacheW = w; _bgCacheH = h; _bgCacheEra = eraId;
+           }
+           ctx.drawImage(_bgCache, 0, 0);
+           // Cached territory map
+           if (_mapDirty || !_mapCache || _mapCacheW !== w || _mapCacheH !== h) {
+               _mapCache = document.createElement('canvas');
+               _mapCache.width = w; _mapCache.height = h;
+               const mCtx = _mapCache.getContext('2d');
+               const origCtx = ctx;
+               ctx = mCtx;
+               drawTerritoryMap(eraId, w, h);
+               ctx = origCtx;
+               _mapCacheW = w; _mapCacheH = h;
+               _mapDirty = false;
+           }
+           ctx.drawImage(_mapCache, 0, 0);
            for (const f of getAllFactions()) drawArmyLand(f);
            for (const f of getAllFactions()) drawArmy(f);
            if (gameState.selectedArmy) {
@@ -3964,18 +4068,25 @@
        function drawTerritoryMap(eraId, w, h) {
            const map = ERA_MAPS[eraId];
            if (!map || !gameState.territories) return;
+           if (_territoryPaths.length === 0 || _territoryPaths[0].id === undefined) buildTerritoryPaths(eraId, w, h);
+           buildTerritoryLookup();
            const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
            for (const tDef of map.territories) {
-               const rt = gameState.territories.find(t => t.id === tDef.id);
-               ctx.beginPath();
-               for (let i = 0; i < tDef.poly.length; i++) {
-                   const [px, py] = mapCoords(tDef.poly[i][0], tDef.poly[i][1], w, h);
-                   i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+               const rt = _territoryById.get(tDef.id);
+               const tp = _territoryPaths[tDef.id];
+               if (tp) {
+                   ctx.beginPath(tp.path);
+               } else {
+                   ctx.beginPath();
+                   for (let i = 0; i < tDef.poly.length; i++) {
+                       const [px, py] = mapCoords(tDef.poly[i][0], tDef.poly[i][1], w, h);
+                       i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                   }
+                   ctx.closePath();
                }
-               ctx.closePath();
                const ownerEraId = rt && rt.owner ? getFactionEra(rt.owner) : null;
                const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
-               const terrColors = { plains: land.ground, forest: land.ground2 || '#3a6a1c', mountain: '#6b7280', city: lightenColor(land.ground, 20), water: '#3b82f6' };
+               const terrColors = { plains: land.ground, forest: land.ground2 || '#3a6a1c', mountain: '#6b7280', city: getCachedColor(land.ground, 20), water: '#3b82f6' };
                const baseColor = terrColors[tDef.terrain] || land.ground;
                if (rt && rt.owner) {
                    const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
@@ -4034,7 +4145,7 @@
            }
            for (const tDef of map.territories) {
                if (tDef.terrain === 'water') continue;
-               const rt = gameState.territories.find(t => t.id === tDef.id);
+               const rt = _territoryById.get(tDef.id);
                if (!rt || !rt.owner) continue;
                const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
                if (!faction) continue;
@@ -4151,17 +4262,17 @@
            if (faction.eliminated || rt.troops <= 0) return;
            const outfit = getOutfit(faction.id);
            const color = faction.color || '#888';
-           const scale = Math.max(32, Math.min(55, Math.min(w, h) * 0.065));
-           const warriorY = cy + scale * 0.1;
-           const numChars = Math.min(3, Math.max(1, Math.ceil(rt.troops / 4)));
+           const scale = Math.max(45, Math.min(80, Math.min(w, h) * 0.09));
+           const warriorY = cy;
+           const numChars = Math.min(3, Math.max(1, Math.ceil(rt.troops / 3)));
            if (numChars === 1) {
                const bob = Math.sin(animFrame * 0.05 + cx * 0.1) * scale * 0.08;
                drawAnimeCharacter(cx, warriorY + bob, scale, outfit, color, animFrame + cx, 'idle');
            } else {
-               const spread = scale * 0.7;
+               const spread = scale * 0.8;
                for (let i = 0; i < numChars; i++) {
                    const ox = (i - (numChars - 1) / 2) * spread;
-                   const charScale = i === 0 ? scale * 1.1 : scale * 0.8;
+                   const charScale = i === 0 ? scale * 1.05 : scale * 0.85;
                    const bob = Math.sin(animFrame * 0.05 + cx * 0.1 + i * 2) * scale * 0.06;
                    drawAnimeCharacter(cx + ox, warriorY + bob, charScale, outfit, color, animFrame + i * 15 + cx, 'idle');
                }
@@ -4171,9 +4282,10 @@
        function drawArmyHighlight(faction, color, lw) {
            const s = gameState.armyScale || 80;
            ctx.strokeStyle = color; ctx.lineWidth = lw;
-           ctx.shadowColor = color; ctx.shadowBlur = 8;
+           ctx.globalAlpha = 0.6;
+           ctx.beginPath(); ctx.arc(faction.x, faction.y + s * 0.1, s * 0.6 + 3, 0, Math.PI * 2); ctx.stroke();
+           ctx.globalAlpha = 1;
            ctx.beginPath(); ctx.arc(faction.x, faction.y + s * 0.1, s * 0.6, 0, Math.PI * 2); ctx.stroke();
-           ctx.shadowBlur = 0;
        }
 
        // ==================== INTERACTION ====================
@@ -4233,7 +4345,7 @@
                defender.troops = Math.max(1, defender.troops - Math.floor(attacker.troops * 0.3));
                showPowerIndicator('Attack failed!');
            }
-           renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
+           invalidateMapCache(); renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
        }
 
        // ==================== POWERS ====================
@@ -4292,7 +4404,7 @@
                default: ok = false;
            }
            if (ok) { gameState.player.gold -= params.powerCost; gameState.player.specialUsed = true; playSFX('special'); spawnParticles(faction.x, faction.y, era.color, 10, 3); showPowerIndicator(era.power + '!'); }
-           gameState.powerTargetMode = false; renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
+           gameState.powerTargetMode = false; invalidateMapCache(); renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
        }
 
        function handleWeaponTarget(x, y) {
@@ -4338,7 +4450,7 @@
            if (idx !== undefined) gameState.player.weapons.splice(idx, 1);
            playSFX('special'); showPowerIndicator(weapon.name + ' used!');
            spawnParticles(faction.x, faction.y, faction.color, 10, 4);
-           renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
+           invalidateMapCache(); renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
        }
 
        function showPowerIndicator(msg) {
@@ -4435,7 +4547,7 @@
            income = Math.floor(income * params.playerIncomeMult);
            gameState.player.gold += income;
            showTurnSummary(income);
-           updateGameUI(); updateScoreboard(); renderGame(); saveGame();
+           updateGameUI(); updateScoreboard(); invalidateMapCache(); renderGame(); saveGame();
        }
 
        function endTurn() {
