@@ -2270,7 +2270,9 @@
 
        function playAgain() {
            stopTimer(); stopMusic();
-           initializeGame();
+           localStorage.removeItem('hadooney_save');
+           showScreen('game');
+           setTimeout(() => initializeGame(), 150);
        }
 
        function showScreen(screenId) {
