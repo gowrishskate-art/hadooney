@@ -772,9 +772,9 @@
            <div class="opponent-slider-container">
                <input type="range" class="opponent-slider" id="opponent-slider" min="1" max="20" value="5" oninput="updateOpponentCount(this.value)">
            </div>
-           <div class="opponent-info">
+           <div class="opponent-info" id="opponent-info">
                <p>More opponents = greater challenge!</p>
-               <p>Each AI starts with 3 territories</p>
+               <p>Battlefield will have <strong>6 territories</strong> (1 for you + 5 for opponents)</p>
            </div>
        </div>
        <div class="screen-nav">
@@ -2290,7 +2290,11 @@
 
        function updateOpponentCount(value) {
            gameState.opponentCount = parseInt(value);
+           const total = parseInt(value) + 1;
            document.getElementById('opponent-count').textContent = value;
+           document.getElementById('opponent-info').innerHTML =
+               '<p>More opponents = greater challenge!</p>' +
+               '<p> battlefield will have <strong>' + total + ' territories</strong> (1 for you + ' + value + ' for opponents)</p>';
        }
 
        function showHowToPlay() { document.getElementById('how-to-play-modal').classList.add('active'); }
@@ -2398,42 +2402,80 @@
 
            gameState.bfW = w;
            gameState.bfH = h;
-           gameState.armyScale = map ? Math.min(w, h) / 10 : Math.min(w, h) / 5;
 
-           if (map) {
-               const allFactions = [{ id: 'player' }, ...gameState.opponents.map((o, i) => ({ id: o.id }))];
-               const landTerrs = map.territories.filter(t => t.terrain !== 'water');
-               const shuffled = [...landTerrs].sort(() => Math.random() - 0.5);
-               const numFactions = allFactions.length;
-               const startT = Math.max(2, Math.min(3, Math.floor(shuffled.length / numFactions)));
-               gameState.territories = map.territories.map(t => ({
-                   id: t.id, owner: null, troops: 0, terrain: t.terrain
-               }));
-               let idx = 0;
-               for (let f = 0; f < numFactions && idx < shuffled.length; f++) {
-                   for (let j = 0; j < startT && idx < shuffled.length; j++, idx++) {
-                   const rt = gameState.territories.find(t => t.id === shuffled[idx].id);
-                   rt.owner = allFactions[f].id;
-                   rt.troops = 2 + Math.floor(Math.random() * 3);
+           const allFactions = [{ id: 'player' }, ...gameState.opponents.map(o => ({ id: o.id }))];
+           const numFactions = allFactions.length;
+
+           if (map && numFactions > 1) {
+               const terrains = ['plains', 'forest', 'mountain', 'city'];
+               const eraNames = map.territories.map(t => t.name);
+               const cols = Math.ceil(Math.sqrt(numFactions * 1.5));
+               const rows = Math.ceil(numFactions / cols);
+               const hexW = 0.78 / cols;
+               const hexH = 0.72 / rows;
+               const offsetX = (1 - cols * hexW) / 2 + hexW * 0.11;
+               const offsetY = (1 - rows * hexH) / 2 + hexH * 0.18;
+
+               const dynamicTerrs = [];
+               for (let i = 0; i < numFactions; i++) {
+                   const col = i % cols;
+                   const row = Math.floor(i / cols);
+                   let cx = offsetX + col * hexW + hexW * 0.39;
+                   let cy = offsetY + row * hexH + hexH * 0.45;
+                   if (row % 2 === 1) cx += hexW * 0.5;
+                   const hw = hexW * 0.38;
+                   const hh = hexH * 0.38;
+                   const poly = [];
+                   for (let s = 0; s < 6; s++) {
+                       const angle = Math.PI / 3 * s - Math.PI / 6;
+                       poly.push([cx + hw * Math.cos(angle), cy + hh * Math.sin(angle)]);
                    }
+                   const adj = [];
+                   if (i > 0) adj.push(i - 1);
+                   if (i < numFactions - 1) adj.push(i + 1);
+                   const prevRow = i - cols;
+                   if (prevRow >= 0) adj.push(prevRow);
+                   const nextRow = i + cols;
+                   if (nextRow < numFactions) adj.push(nextRow);
+                   if (row % 2 === 1) {
+                       if (i - cols - 1 >= 0) adj.push(i - cols - 1);
+                       if (i + cols - 1 < numFactions) adj.push(i + cols - 1);
+                   } else {
+                       if (i - cols + 1 < numFactions && i - cols + 1 >= 0) adj.push(i - cols + 1);
+                       if (i + cols + 1 < numFactions) adj.push(i + cols + 1);
+                   }
+                   dynamicTerrs.push({
+                       id: i,
+                       name: eraNames[i % eraNames.length],
+                       poly: poly,
+                       terrain: terrains[i % terrains.length],
+                       adj: [...new Set(adj)]
+                   });
                }
-               for (const f of allFactions) {
-                   const owned = gameState.territories.filter(t => t.owner === f.id);
-                   if (owned.length > 0) {
-                       const centerTerr = owned[Math.floor(owned.length / 2)];
-                       const tDef = map.territories[centerTerr.id];
-                       const [cx, cy] = getTerritoryCenter(tDef, w, h);
-                       if (f.id === 'player') {
-                           gameState.player.x = cx;
-                           gameState.player.y = cy;
-                           gameState.player.troops = owned.reduce((s, t) => s + t.troops, 0);
-                       } else {
-                           const opp = gameState.opponents.find(o => o.id === f.id);
-                           if (opp) {
-                               opp.x = cx;
-                               opp.y = cy;
-                               opp.troops = owned.reduce((s, t) => s + t.troops, 0);
-                           }
+
+               gameState.armyScale = Math.min(w, h) / 10;
+               gameState.territories = dynamicTerrs.map(t => ({
+                   id: t.id, owner: allFactions[t.id].id,
+                   troops: 2 + Math.floor(Math.random() * 3),
+                   terrain: t.terrain
+               }));
+               gameState._dynamicMap = dynamicTerrs;
+               ERA_MAPS[eraId]._dynamic = dynamicTerrs;
+
+               for (let i = 0; i < numFactions; i++) {
+                   const tDef = dynamicTerrs[i];
+                   const cx = (tDef.poly.reduce((s, p) => s + p[0], 0) / 6) * w;
+                   const cy = (tDef.poly.reduce((s, p) => s + p[1], 0) / 6) * h;
+                   if (allFactions[i].id === 'player') {
+                       gameState.player.x = cx;
+                       gameState.player.y = cy;
+                       gameState.player.troops = gameState.territories[i].troops;
+                   } else {
+                       const opp = gameState.opponents.find(o => o.id === allFactions[i].id);
+                       if (opp) {
+                           opp.x = cx;
+                           opp.y = cy;
+                           opp.troops = gameState.territories[i].troops;
                        }
                    }
                }
@@ -2441,6 +2483,7 @@
                gameState.territories = [];
                gameState.player.x = w * 0.12;
                gameState.player.y = h * 0.5;
+               gameState.armyScale = Math.min(w, h) / 5;
                const n = gameState.opponents.length;
                for (let i = 0; i < n; i++) {
                    const spread = n <= 1 ? 0 : (Math.PI * 0.8);
@@ -3310,16 +3353,19 @@
 
        function buildTerritoryPaths(eraId, w, h) {
            const map = ERA_MAPS[eraId];
-           if (!map) { _territoryPaths = []; return; }
+           const terrDefs = map && map._dynamic ? map._dynamic : (map ? map.territories : null);
+           if (!terrDefs) { _territoryPaths = []; return; }
            _territoryPaths = [];
-           for (const tDef of map.territories) {
+           for (const tDef of terrDefs) {
                const path = new Path2D();
                for (let i = 0; i < tDef.poly.length; i++) {
-                   const [px, py] = mapCoords(tDef.poly[i][0], tDef.poly[i][1], w, h);
+                   const px = tDef.poly[i][0] * w;
+                   const py = tDef.poly[i][1] * h;
                    i === 0 ? path.moveTo(px, py) : path.lineTo(px, py);
                }
                path.closePath();
-               const [cx, cy] = getTerritoryCenter(tDef, w, h);
+               const cx = tDef.poly.reduce((s, p) => s + p[0], 0) / tDef.poly.length * w;
+               const cy = tDef.poly.reduce((s, p) => s + p[1], 0) / tDef.poly.length * h;
                _territoryPaths.push({ id: tDef.id, path, cx, cy, terrain: tDef.terrain, name: tDef.name, adj: tDef.adj });
            }
        }
@@ -4071,19 +4117,13 @@
            if (_territoryPaths.length === 0 || _territoryPaths[0].id === undefined) buildTerritoryPaths(eraId, w, h);
            buildTerritoryLookup();
            const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
-           for (const tDef of map.territories) {
-               const rt = _territoryById.get(tDef.id);
-               const tp = _territoryPaths[tDef.id];
-               if (tp) {
-                   ctx.beginPath(tp.path);
-               } else {
-                   ctx.beginPath();
-                   for (let i = 0; i < tDef.poly.length; i++) {
-                       const [px, py] = mapCoords(tDef.poly[i][0], tDef.poly[i][1], w, h);
-                       i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-                   }
-                   ctx.closePath();
-               }
+           const terrDefs = map._dynamic || map.territories;
+           for (let ti = 0; ti < _territoryPaths.length; ti++) {
+               const tp = _territoryPaths[ti];
+               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
+               if (!tDef) continue;
+               ctx.beginPath(tp.path);
+               const rt = _territoryById.get(tp.id);
                const ownerEraId = rt && rt.owner ? getFactionEra(rt.owner) : null;
                const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
                const terrColors = { plains: land.ground, forest: land.ground2 || '#3a6a1c', mountain: '#6b7280', city: getCachedColor(land.ground, 20), water: '#3b82f6' };
@@ -4111,20 +4151,19 @@
                ctx.lineWidth = 1;
                ctx.stroke();
            }
-           for (const tDef of map.territories) {
-               if (tDef.terrain === 'water') continue;
-               const [cx, cy] = getTerritoryCenter(tDef, w, h);
-               for (const adjId of tDef.adj) {
+           for (let ti = 0; ti < _territoryPaths.length; ti++) {
+               const tp = _territoryPaths[ti];
+               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
+               if (!tDef || tDef.terrain === 'water') continue;
+               for (const adjId of (tDef.adj || [])) {
                    if (adjId <= tDef.id) continue;
-                   const adjDef = map.territories[adjId];
-                   if (adjDef.terrain === 'water') {
-                       const [ax, ay] = getTerritoryCenter(adjDef, w, h);
-                       ctx.setLineDash([4, 4]);
-                       ctx.strokeStyle = '#ffffff15';
-                       ctx.lineWidth = 1;
-                       ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(ax, ay); ctx.stroke();
-                       ctx.setLineDash([]);
-                   }
+                   const adjTp = _territoryPaths.find(p => p.id === adjId);
+                   if (!adjTp) continue;
+                   ctx.setLineDash([4, 4]);
+                   ctx.strokeStyle = '#ffffff25';
+                   ctx.lineWidth = 1;
+                   ctx.beginPath(); ctx.moveTo(tp.cx, tp.cy); ctx.lineTo(adjTp.cx, adjTp.cy); ctx.stroke();
+                   ctx.setLineDash([]);
                }
            }
            if (map.features) {
@@ -4135,21 +4174,24 @@
                        ctx.globalAlpha = 0.5;
                        ctx.beginPath();
                        for (let i = 0; i < feat.points.length; i++) {
-                           const [rx, ry] = mapCoords(feat.points[i][0], feat.points[i][1], w, h);
-                           i === 0 ? ctx.moveTo(rx, ry) : ctx.lineTo(rx, ry);
+                           const px = feat.points[i][0] * w;
+                           const py = feat.points[i][1] * h;
+                           i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
                        }
                        ctx.stroke();
                        ctx.globalAlpha = 1;
                    }
                }
            }
-           for (const tDef of map.territories) {
-               if (tDef.terrain === 'water') continue;
-               const rt = _territoryById.get(tDef.id);
+           for (let ti = 0; ti < _territoryPaths.length; ti++) {
+               const tp = _territoryPaths[ti];
+               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
+               if (!tDef || tDef.terrain === 'water') continue;
+               const rt = _territoryById.get(tp.id);
                if (!rt || !rt.owner) continue;
                const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
                if (!faction) continue;
-               const [cx, cy] = getTerritoryCenter(tDef, w, h);
+               const cx = tp.cx, cy = tp.cy;
                const fontSize = Math.max(10, w * 0.018);
                ctx.font = 'bold ' + fontSize + 'px Arial';
                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -4169,7 +4211,7 @@
                ctx.fillStyle = '#fff';
                ctx.fillText(troopText, cx, cy + fontSize * 0.35);
                const flagY = cy - fontSize * 1.6;
-               const flagWave = Math.sin(animFrame * 0.08 + tDef.id * 2) * 2;
+               const flagWave = Math.sin(animFrame * 0.08 + tp.id * 2) * 2;
                ctx.strokeStyle = '#65432180'; ctx.lineWidth = 1.5;
                ctx.beginPath(); ctx.moveTo(cx, flagY + 8); ctx.lineTo(cx, flagY); ctx.stroke();
                ctx.fillStyle = faction.color + 'cc';
