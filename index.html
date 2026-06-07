@@ -5323,38 +5323,329 @@
        function drawArmyLand(faction) {
            if (faction.eliminated || faction.troops <= 0) return;
            const s = gameState.armyScale || 80;
-           const eraId = gameState.selectedEra ? gameState.selectedEra.id : 'rome';
-           const land = ERA_LANDS[eraId] || ERA_LANDS.rome;
+           const factionEraId = getFactionEra(faction.id);
+           const land = ERA_LANDS[factionEraId] || ERA_LANDS.rome;
            const landW = s * 1.8, landH = s * 0.7;
            const landY = faction.y + s * 0.2;
-           const shadowGrad = ctx.createRadialGradient(faction.x, landY + s * 0.08, 0, faction.x, landY + s * 0.08, landW * 1.1);
+           const fx = faction.x, fy = landY;
+           const seed = faction.id === 'player' ? 42 : parseInt(faction.id.replace('ai_','')) * 137 + 42;
+
+           function seededRand(i) { return ((seed + i * 7919) % 997) / 997; }
+
+           // Shadow
+           const shadowGrad = ctx.createRadialGradient(fx, fy + s * 0.08, 0, fx, fy + s * 0.08, landW * 1.1);
            shadowGrad.addColorStop(0, 'rgba(0,0,0,0.2)');
            shadowGrad.addColorStop(0.7, 'rgba(0,0,0,0.08)');
            shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
            ctx.fillStyle = shadowGrad;
-           ctx.beginPath(); ctx.ellipse(faction.x, landY + s * 0.08, landW * 1.1, landH * 1.1, 0, 0, Math.PI * 2); ctx.fill();
-           const landGrad = ctx.createRadialGradient(faction.x, landY, 0, faction.x, landY, landW);
+           ctx.beginPath(); ctx.ellipse(fx, fy + s * 0.08, landW * 1.1, landH * 1.1, 0, 0, Math.PI * 2); ctx.fill();
+
+           // Era-specific land base
+           const landGrad = ctx.createRadialGradient(fx, fy, 0, fx, fy, landW);
            landGrad.addColorStop(0, faction.color + '50');
            landGrad.addColorStop(0.5, faction.color + '28');
            landGrad.addColorStop(1, faction.color + '00');
            ctx.fillStyle = landGrad;
-           ctx.beginPath(); ctx.ellipse(faction.x, landY, landW, landH, 0, 0, Math.PI * 2); ctx.fill();
-           ctx.fillStyle = blendColors(land.ground, '#8B7355', 0.15) + '50';
-           ctx.beginPath(); ctx.ellipse(faction.x, landY, landW * 0.65, landH * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+           ctx.beginPath(); ctx.ellipse(fx, fy, landW, landH, 0, 0, Math.PI * 2); ctx.fill();
+
+           // Inner terrain fill
+           ctx.fillStyle = land.ground + '60';
+           ctx.beginPath(); ctx.ellipse(fx, fy, landW * 0.75, landH * 0.65, 0, 0, Math.PI * 2); ctx.fill();
+
+           // Era-specific terrain details
+           drawEraLandDetail(factionEraId, fx, fy, landW, landH, s, land, seed, seededRand);
+
+           // Faction border ring
            ctx.strokeStyle = faction.color + '45';
            ctx.lineWidth = 2;
-           ctx.beginPath(); ctx.ellipse(faction.x, landY, landW * 0.95, landH * 0.75, 0, 0, Math.PI * 2); ctx.stroke();
-           const flagY = landY - s * 0.15;
+           ctx.beginPath(); ctx.ellipse(fx, fy, landW * 0.95, landH * 0.75, 0, 0, Math.PI * 2); ctx.stroke();
+
+           // Flags
+           const flagY = fy - s * 0.15;
            for (let side = -1; side <= 1; side += 2) {
-               const fx = faction.x + landW * 0.2 * side;
+               const flagX = fx + landW * 0.2 * side;
                ctx.strokeStyle = '#654321'; ctx.lineWidth = 2;
-               ctx.beginPath(); ctx.moveTo(fx, flagY + s * 0.35); ctx.lineTo(fx, flagY); ctx.stroke();
+               ctx.beginPath(); ctx.moveTo(flagX, flagY + s * 0.35); ctx.lineTo(flagX, flagY); ctx.stroke();
                const flagWave = Math.sin(animFrame * 0.08 + side * 2) * 3;
                ctx.fillStyle = faction.color + 'cc';
-               ctx.beginPath(); ctx.moveTo(fx, flagY); ctx.lineTo(fx + side * 12, flagY + 5 + flagWave); ctx.lineTo(fx, flagY + 10); ctx.fill();
+               ctx.beginPath(); ctx.moveTo(flagX, flagY); ctx.lineTo(flagX + side * 12, flagY + 5 + flagWave); ctx.lineTo(flagX, flagY + 10); ctx.fill();
            }
            if (faction.id === 'player') {
-               drawCatapult(faction.x + s * 0.7, faction.y + s * 0.1, s, faction.color);
+               drawCatapult(fx + s * 0.7, faction.y + s * 0.1, s, faction.color);
+           }
+       }
+
+       function drawEraLandDetail(eraId, fx, fy, lw, lh, s, land, seed, rng) {
+           const dark = ['void','shadow','cyber','quantum','star'].includes(eraId);
+           const fiery = ['dragon','ember'].includes(eraId);
+           const icy = ['frost'].includes(eraId);
+           const sandy = ['egypt','ottoman'].includes(eraId);
+           const green = ['rome','viking','medieval','british','ming','edo'].includes(eraId);
+           const jungle = ['aztec'].includes(eraId);
+           const grime = ['industrial'].includes(eraId);
+           const electric = ['thunder'].includes(eraId);
+           const crystalline = ['crystal'].includes(eraId);
+
+           if (sandy) {
+               // Sand dunes with ripple lines
+               for (let i = 0; i < 8; i++) {
+                   const dx = (rng(i) - 0.5) * lw * 1.2;
+                   const dy = (rng(i + 20) - 0.5) * lh * 1.0;
+                   const rippleW = lw * (0.15 + rng(i + 40) * 0.25);
+                   ctx.strokeStyle = land.accent + '35';
+                   ctx.lineWidth = 1;
+                   ctx.beginPath();
+                   ctx.moveTo(fx + dx - rippleW, fy + dy);
+                   ctx.quadraticCurveTo(fx + dx, fy + dy - 2 - rng(i+60)*3, fx + dx + rippleW, fy + dy);
+                   ctx.stroke();
+               }
+               // Scattered sand grains
+               for (let i = 0; i < 15; i++) {
+                   const gx = fx + (rng(i+100) - 0.5) * lw * 1.3;
+                   const gy = fy + (rng(i+110) - 0.5) * lh * 1.0;
+                   ctx.fillStyle = land.accent + '25';
+                   ctx.beginPath(); ctx.arc(gx, gy, 1 + rng(i+120), 0, Math.PI * 2); ctx.fill();
+               }
+               // Small rock formations
+               for (let i = 0; i < 3; i++) {
+                   const rx = fx + (rng(i+200) - 0.5) * lw * 0.9;
+                   const ry = fy + rng(i+210) * lh * 0.3;
+                   const rs = 2 + rng(i+220) * 4;
+                   ctx.fillStyle = blendColors(land.ground, '#8B7355', 0.3) + '40';
+                   ctx.beginPath(); ctx.ellipse(rx, ry, rs, rs * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+               }
+           } else if (green) {
+               // Grass tufts
+               for (let i = 0; i < 20; i++) {
+                   const gx = fx + (rng(i) - 0.5) * lw * 1.3;
+                   const gy = fy + (rng(i+30) - 0.5) * lh * 0.9;
+                   const gh = 4 + rng(i+60) * 8;
+                   const gspread = 2 + rng(i+90) * 3;
+                   const grassCol = blendColors(land.ground, '#2d6a1a', 0.3 + rng(i+120)*0.2);
+                   ctx.strokeStyle = grassCol + '60';
+                   ctx.lineWidth = 1;
+                   ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx - gspread, gy - gh); ctx.stroke();
+                   ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + gspread*0.7, gy - gh*0.8); ctx.stroke();
+                   ctx.beginPath(); ctx.moveTo(gx + 2, gy); ctx.lineTo(gx + 2 + gspread*0.5, gy - gh*0.6); ctx.stroke();
+               }
+               // Small flowers / dots
+               for (let i = 0; i < 6; i++) {
+                   const dx = fx + (rng(i+150) - 0.5) * lw * 1.0;
+                   const dy = fy + (rng(i+160) - 0.5) * lh * 0.7;
+                   const flowerColors = ['#ff6b6b','#feca57','#fff','#ff9ff3'];
+                   ctx.fillStyle = flowerColors[i % flowerColors.length] + '40';
+                   ctx.beginPath(); ctx.arc(dx, dy, 1.5, 0, Math.PI * 2); ctx.fill();
+               }
+               // Dirt patches
+               for (let i = 0; i < 4; i++) {
+                   const dx = fx + (rng(i+180) - 0.5) * lw * 0.8;
+                   const dy = fy + (rng(i+190) - 0.3) * lh * 0.5;
+                   ctx.fillStyle = '#8B7355' + '18';
+                   ctx.beginPath(); ctx.ellipse(dx, dy, 5+rng(i+200)*8, 3+rng(i+210)*4, rng(i+220)*0.5, 0, Math.PI * 2); ctx.fill();
+               }
+           } else if (icy) {
+               // Ice cracks
+               for (let i = 0; i < 6; i++) {
+                   const sx = fx + (rng(i) - 0.5) * lw * 1.0;
+                   const sy = fy + (rng(i+10) - 0.5) * lh * 0.8;
+                   ctx.strokeStyle = '#0984e3' + '40';
+                   ctx.lineWidth = 1;
+                   ctx.beginPath(); ctx.moveTo(sx, sy);
+                   for (let j = 0; j < 3; j++) {
+                       ctx.lineTo(sx + (rng(i+j*10+20)-0.5)*15, sy + (rng(i+j*10+30)-0.5)*10);
+                   }
+                   ctx.stroke();
+               }
+               // Snow sparkle
+               for (let i = 0; i < 12; i++) {
+                   const sx = fx + (rng(i+50) - 0.5) * lw * 1.2;
+                   const sy = fy + (rng(i+60) - 0.5) * lh * 0.9;
+                   const sparkle = 0.3 + Math.sin(animFrame * 0.05 + i * 1.7) * 0.2;
+                   ctx.fillStyle = 'rgba(255,255,255,' + sparkle.toFixed(2) + ')';
+                   ctx.beginPath(); ctx.arc(sx, sy, 1 + rng(i+70), 0, Math.PI * 2); ctx.fill();
+               }
+               // Frost patches
+               for (let i = 0; i < 4; i++) {
+                   const dx = fx + (rng(i+80) - 0.5) * lw * 0.8;
+                   const dy = fy + (rng(i+90) - 0.5) * lh * 0.6;
+                   ctx.fillStyle = '#b8d4e8' + '25';
+                   ctx.beginPath(); ctx.ellipse(dx, dy, 6+rng(i+100)*8, 3+rng(i+110)*4, 0, 0, Math.PI*2); ctx.fill();
+               }
+           } else if (fiery) {
+               // Lava cracks
+               for (let i = 0; i < 8; i++) {
+                   const sx = fx + (rng(i) - 0.5) * lw * 1.0;
+                   const sy = fy + (rng(i+10) - 0.5) * lh * 0.8;
+                   const glow = 0.2 + Math.sin(animFrame * 0.04 + i * 2) * 0.15;
+                   ctx.strokeStyle = 'rgba(255,100,0,' + glow.toFixed(2) + ')';
+                   ctx.lineWidth = 1.5;
+                   ctx.beginPath(); ctx.moveTo(sx, sy);
+                   for (let j = 0; j < 4; j++) {
+                       ctx.lineTo(sx + (rng(i+j*7+20)-0.5)*20, sy + (rng(i+j*7+30)-0.5)*12);
+                   }
+                   ctx.stroke();
+               }
+               // Ember glow spots
+               for (let i = 0; i < 6; i++) {
+                   const ex = fx + (rng(i+50) - 0.5) * lw * 0.9;
+                   const ey = fy + (rng(i+60) - 0.5) * lh * 0.7;
+                   const glow = 0.15 + Math.sin(animFrame * 0.06 + i * 3) * 0.1;
+                   const emGrad = ctx.createRadialGradient(ex, ey, 0, ex, ey, 6);
+                   emGrad.addColorStop(0, 'rgba(255,80,0,' + glow.toFixed(2) + ')');
+                   emGrad.addColorStop(1, 'rgba(255,80,0,0)');
+                   ctx.fillStyle = emGrad;
+                   ctx.beginPath(); ctx.arc(ex, ey, 6, 0, Math.PI*2); ctx.fill();
+               }
+               // Scattered rocks
+               for (let i = 0; i < 5; i++) {
+                   const rx = fx + (rng(i+80) - 0.5) * lw * 0.8;
+                   const ry = fy + (rng(i+90) - 0.5) * lh * 0.6;
+                   ctx.fillStyle = '#2a0a00' + '50';
+                   ctx.beginPath(); ctx.ellipse(rx, ry, 2+rng(i+100)*3, 1.5+rng(i+110)*2, 0, 0, Math.PI*2); ctx.fill();
+               }
+           } else if (dark) {
+               // Glowing circuit lines (cyber) or dots (star/void/quantum/shadow)
+               const lineColor = land.accent;
+               if (eraId === 'cyber') {
+                   for (let i = 0; i < 5; i++) {
+                       const lx = fx + (rng(i) - 0.5) * lw * 0.9;
+                       const ly = fy + (rng(i+10) - 0.5) * lh * 0.7;
+                       ctx.strokeStyle = lineColor + '30';
+                       ctx.lineWidth = 1;
+                       ctx.beginPath(); ctx.moveTo(lx, ly); ctx.lineTo(lx + 10 + rng(i+20)*10, ly); ctx.stroke();
+                       ctx.beginPath(); ctx.moveTo(lx + 5, ly - 5); ctx.lineTo(lx + 5, ly + 5); ctx.stroke();
+                   }
+               }
+               // Glowing dots
+               for (let i = 0; i < 10; i++) {
+                   const dx = fx + (rng(i+30) - 0.5) * lw * 1.0;
+                   const dy = fy + (rng(i+40) - 0.5) * lh * 0.8;
+                   const pulse = 0.2 + Math.sin(animFrame * 0.04 + i * 2.1) * 0.15;
+                   ctx.fillStyle = lineColor + Math.round(pulse * 255).toString(16).padStart(2,'0');
+                   ctx.beginPath(); ctx.arc(dx, dy, 1 + rng(i+50)*2, 0, Math.PI*2); ctx.fill();
+               }
+               if (eraId === 'star') {
+                   // Tiny stars
+                   for (let i = 0; i < 8; i++) {
+                       const sx = fx + (rng(i+60) - 0.5) * lw * 1.1;
+                       const sy = fy + (rng(i+70) - 0.5) * lh * 0.9;
+                       const twinkle = 0.3 + Math.sin(animFrame*0.06 + i*3.7)*0.25;
+                       ctx.fillStyle = 'rgba(255,215,0,' + twinkle.toFixed(2) + ')';
+                       ctx.beginPath(); ctx.arc(sx, sy, 0.5+rng(i+80), 0, Math.PI*2); ctx.fill();
+                   }
+               }
+           } else if (jungle) {
+               // Thick jungle vegetation
+               for (let i = 0; i < 18; i++) {
+                   const gx = fx + (rng(i) - 0.5) * lw * 1.3;
+                   const gy = fy + (rng(i+20) - 0.5) * lh * 0.9;
+                   const gh = 5 + rng(i+40) * 10;
+                   const leafCol = blendColors(land.ground, '#1a5a2a', rng(i+60)*0.3);
+                   ctx.strokeStyle = leafCol + '55';
+                   ctx.lineWidth = 1.5;
+                   ctx.beginPath(); ctx.moveTo(gx, gy);
+                   ctx.quadraticCurveTo(gx + (rng(i+80)-0.5)*6, gy - gh*0.6, gx + (rng(i+90)-0.5)*4, gy - gh);
+                   ctx.stroke();
+               }
+               // Vine-like curls
+               for (let i = 0; i < 4; i++) {
+                   const vx = fx + (rng(i+100) - 0.5) * lw * 0.8;
+                   const vy = fy + (rng(i+110) - 0.5) * lh * 0.6;
+                   ctx.strokeStyle = '#1d7a3e' + '30';
+                   ctx.lineWidth = 1;
+                   ctx.beginPath(); ctx.moveTo(vx, vy);
+                   ctx.bezierCurveTo(vx+5, vy-8, vx-5, vy-12, vx+3, vy-18);
+                   ctx.stroke();
+               }
+               // Flower buds
+               for (let i = 0; i < 5; i++) {
+                   const bx = fx + (rng(i+130) - 0.5) * lw * 0.9;
+                   const by = fy + (rng(i+140) - 0.5) * lh * 0.7;
+                   ctx.fillStyle = '#c0a030' + '40';
+                   ctx.beginPath(); ctx.arc(bx, by, 2, 0, Math.PI*2); ctx.fill();
+               }
+           } else if (grime) {
+               // Industrial soot and pipes
+               for (let i = 0; i < 6; i++) {
+                   const px = fx + (rng(i) - 0.5) * lw * 0.9;
+                   const py = fy + (rng(i+10) - 0.5) * lh * 0.7;
+                   const pw = 8 + rng(i+20) * 12;
+                   ctx.strokeStyle = '#555' + '35';
+                   ctx.lineWidth = 2 + rng(i+30) * 2;
+                   ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + pw, py); ctx.stroke();
+               }
+               // Soot patches
+               for (let i = 0; i < 8; i++) {
+                   const sx = fx + (rng(i+40) - 0.5) * lw * 1.0;
+                   const sy = fy + (rng(i+50) - 0.5) * lh * 0.8;
+                   ctx.fillStyle = '#3a3a3a' + '25';
+                   ctx.beginPath(); ctx.ellipse(sx, sy, 4+rng(i+60)*6, 2+rng(i+70)*3, 0, 0, Math.PI*2); ctx.fill();
+               }
+               // Gear marks
+               for (let i = 0; i < 3; i++) {
+                   const gx = fx + (rng(i+80) - 0.5) * lw * 0.7;
+                   const gy = fy + (rng(i+90) - 0.5) * lh * 0.5;
+                   ctx.strokeStyle = '#888' + '25';
+                   ctx.lineWidth = 1;
+                   ctx.beginPath(); ctx.arc(gx, gy, 3+rng(i+100)*4, 0, Math.PI*2); ctx.stroke();
+               }
+           } else if (electric) {
+               // Lightning cracks
+               for (let i = 0; i < 5; i++) {
+                   const sx = fx + (rng(i) - 0.5) * lw * 0.9;
+                   const sy = fy - lh * 0.3 + rng(i+10) * lh * 0.2;
+                   const flash = 0.2 + Math.sin(animFrame * 0.08 + i * 4) * 0.15;
+                   ctx.strokeStyle = 'rgba(253,203,110,' + flash.toFixed(2) + ')';
+                   ctx.lineWidth = 1.5;
+                   ctx.beginPath(); ctx.moveTo(sx, sy);
+                   let cx = sx, cy = sy;
+                   for (let j = 0; j < 4; j++) {
+                       cx += (rng(i+j*5+20)-0.5) * 10;
+                       cy += 3 + rng(i+j*5+30) * 5;
+                       ctx.lineTo(cx, cy);
+                   }
+                   ctx.stroke();
+               }
+               // Scorched patches
+               for (let i = 0; i < 6; i++) {
+                   const dx = fx + (rng(i+50) - 0.5) * lw * 0.8;
+                   const dy = fy + (rng(i+60) - 0.5) * lh * 0.6;
+                   ctx.fillStyle = '#1a1a0a' + '30';
+                   ctx.beginPath(); ctx.ellipse(dx, dy, 3+rng(i+70)*5, 2+rng(i+80)*3, 0, 0, Math.PI*2); ctx.fill();
+               }
+           } else if (crystalline) {
+               // Crystal shards
+               for (let i = 0; i < 8; i++) {
+                   const cx2 = fx + (rng(i) - 0.5) * lw * 1.0;
+                   const cy2 = fy + (rng(i+10) - 0.5) * lh * 0.8;
+                   const cs = 2 + rng(i+20) * 4;
+                   const angle = rng(i+30) * Math.PI;
+                   const shimmer = 0.2 + Math.sin(animFrame * 0.04 + i * 1.9) * 0.15;
+                   ctx.fillStyle = 'rgba(129,236,236,' + shimmer.toFixed(2) + ')';
+                   ctx.beginPath();
+                   ctx.moveTo(cx2, cy2 - cs);
+                   ctx.lineTo(cx2 + cs*0.4, cy2);
+                   ctx.lineTo(cx2, cy2 + cs*0.3);
+                   ctx.lineTo(cx2 - cs*0.4, cy2);
+                   ctx.closePath(); ctx.fill();
+               }
+               // Frost mist
+               for (let i = 0; i < 5; i++) {
+                   const mx = fx + (rng(i+40) - 0.5) * lw * 0.8;
+                   const my = fy + (rng(i+50) - 0.5) * lh * 0.6;
+                   ctx.fillStyle = '#81ecec' + '15';
+                   ctx.beginPath(); ctx.ellipse(mx, my, 6+rng(i+60)*8, 3+rng(i+70)*4, 0, 0, Math.PI*2); ctx.fill();
+               }
+           } else {
+               // Generic fallback — subtle grass/rock detail
+               for (let i = 0; i < 12; i++) {
+                   const gx = fx + (rng(i) - 0.5) * lw * 1.1;
+                   const gy = fy + (rng(i+10) - 0.5) * lh * 0.8;
+                   const gh = 3 + rng(i+20) * 6;
+                   ctx.strokeStyle = land.accent + '35';
+                   ctx.lineWidth = 1;
+                   ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + (rng(i+30)-0.5)*4, gy - gh); ctx.stroke();
+               }
            }
        }
 
