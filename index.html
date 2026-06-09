@@ -3,6 +3,7 @@
 <head>
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
    <title>Hadooney - Empire Wars</title>
    <style>
        * {
@@ -12,6 +13,11 @@
            -webkit-tap-highlight-color: transparent;
        }
 
+       :root {
+           --era-primary: #667eea;
+           --era-glow: rgba(102, 126, 234, 0.3);
+       }
+
        body {
            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #0f0f23 100%);
@@ -19,19 +25,34 @@
            min-height: 100vh;
            overflow-x: hidden;
            touch-action: manipulation;
+           --era-primary: #667eea;
+           --era-glow: rgba(102, 126, 234, 0.3);
+       }
+
+       body::before {
+           content: '';
+           position: fixed;
+           top: 0; left: 0; right: 0; bottom: 0;
+           background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.5) 100%);
+           pointer-events: none;
+           z-index: 1;
        }
 
        .screen {
            display: none;
            min-height: 100vh;
            padding: 20px;
-           animation: fadeIn 0.3s ease;
+           transition: opacity 0.4s ease, transform 0.4s ease;
+           opacity: 0;
+           transform: translateY(15px);
        }
 
        .screen.active {
            display: flex;
            flex-direction: column;
            align-items: center;
+           opacity: 1;
+           transform: translateY(0);
        }
 
        @keyframes fadeIn {
@@ -49,9 +70,44 @@
            50% { box-shadow: 0 0 40px currentColor, 0 0 60px currentColor; }
        }
 
+       .floating-gold {
+           position: fixed;
+           font-family: 'Cinzel', serif;
+           font-weight: bold;
+           font-size: 1.2rem;
+           color: #feca57;
+           text-shadow: 0 0 10px rgba(254, 202, 87, 0.5);
+           pointer-events: none;
+           z-index: 300;
+           animation: floatUp 1.5s ease-out forwards;
+       }
+
+       @keyframes floatUp {
+           0% { opacity: 1; transform: translateY(0) scale(1); }
+           50% { opacity: 1; transform: translateY(-30px) scale(1.2); }
+           100% { opacity: 0; transform: translateY(-60px) scale(0.8); }
+       }
+
        @keyframes float {
            0%, 100% { transform: translateY(0); }
            50% { transform: translateY(-10px); }
+       }
+
+       @keyframes screenShake {
+           0%, 100% { transform: translate(0, 0); }
+           10% { transform: translate(-3px, -2px); }
+           20% { transform: translate(3px, 1px); }
+           30% { transform: translate(-2px, 3px); }
+           40% { transform: translate(2px, -1px); }
+           50% { transform: translate(-1px, 2px); }
+           60% { transform: translate(1px, -2px); }
+           70% { transform: translate(-3px, 1px); }
+           80% { transform: translate(2px, -3px); }
+           90% { transform: translate(-1px, 2px); }
+       }
+
+       .screen-shake {
+           animation: screenShake 0.3s ease-out;
        }
 
        /* Title Screen */
@@ -61,6 +117,7 @@
        }
 
        .logo {
+           font-family: 'Cinzel', serif;
            font-size: clamp(2.5rem, 8vw, 5rem);
            font-weight: bold;
            background: linear-gradient(45deg, #ff6b6b, #feca57, #48dbfb, #ff9ff3, #54a0ff);
@@ -95,17 +152,47 @@
            font-weight: bold;
            text-transform: uppercase;
            letter-spacing: 2px;
+           position: relative;
+           overflow: hidden;
+       }
+
+       .btn::after {
+           content: '';
+           position: absolute;
+           top: 50%;
+           left: 50%;
+           width: 0;
+           height: 0;
+           border-radius: 50%;
+           background: rgba(255, 255, 255, 0.2);
+           transform: translate(-50%, -50%);
+           transition: width 0.4s ease, height 0.4s ease;
+       }
+
+       .btn:active::after {
+           width: 300px;
+           height: 300px;
        }
 
        .btn-primary {
            background: linear-gradient(45deg, #667eea, #764ba2);
            color: white;
            animation: glow 2s ease-in-out infinite;
+           box-shadow: 0 4px 15px var(--era-glow, rgba(102, 126, 234, 0.3));
        }
 
        .btn-primary:hover, .btn-primary:active {
            transform: scale(1.05);
            filter: brightness(1.2);
+       }
+
+       .btn-primary:hover {
+           box-shadow: 0 8px 25px var(--era-glow, rgba(102, 126, 234, 0.5));
+       }
+
+       .btn-primary:active {
+           transform: scale(0.98);
+           box-shadow: 0 2px 10px var(--era-glow, rgba(102, 126, 234, 0.2));
        }
 
        .btn-secondary {
@@ -193,9 +280,11 @@
        }
 
        .screen-title {
+           font-family: 'Cinzel', serif;
            font-size: clamp(1.5rem, 4vw, 2.5rem);
            margin-bottom: 20px;
            text-align: center;
+           color: var(--era-primary);
        }
 
        .screen-nav {
@@ -268,6 +357,14 @@
            margin-bottom: 10px;
            flex-wrap: wrap;
            gap: 10px;
+           background: rgba(10, 10, 26, 0.7);
+           backdrop-filter: blur(12px);
+           -webkit-backdrop-filter: blur(12px);
+           border: 1px solid rgba(255, 255, 255, 0.1);
+           border-radius: 15px;
+           padding: 12px 20px;
+           position: relative;
+           z-index: 2;
        }
 
        .game-stats {
@@ -285,7 +382,7 @@
 
        .stat-value {
            font-weight: bold;
-           color: #667eea;
+           color: var(--era-primary);
        }
 
        .turn-indicator {
@@ -307,6 +404,8 @@
            height: 100%;
            border-radius: 10px;
            touch-action: none;
+           position: relative;
+           z-index: 0;
        }
 
        .game-controls {
@@ -317,6 +416,8 @@
            width: 100%;
            max-width: 800px;
            margin: 15px auto;
+           position: relative;
+           z-index: 2;
        }
 
        .game-btn {
@@ -339,6 +440,13 @@
            color: white;
            padding: 15px 30px;
            font-size: 1rem;
+           box-shadow: 0 4px 15px rgba(238, 90, 111, 0.4);
+           animation: endTurnPulse 2s ease-in-out infinite;
+       }
+
+       @keyframes endTurnPulse {
+           0%, 100% { box-shadow: 0 4px 15px rgba(238, 90, 111, 0.4); }
+           50% { box-shadow: 0 4px 25px rgba(238, 90, 111, 0.7); }
        }
 
        .btn-special {
@@ -401,6 +509,7 @@
        }
 
        .result-title {
+           font-family: 'Cinzel', serif;
            font-size: clamp(2rem, 6vw, 3rem);
            margin-bottom: 20px;
        }
@@ -459,7 +568,11 @@
        }
 
        .modal-content {
-           background: #1a1a2e;
+           background: rgba(26, 26, 46, 0.95);
+           backdrop-filter: blur(20px);
+           -webkit-backdrop-filter: blur(20px);
+           border: 1px solid rgba(255, 255, 255, 0.15);
+           box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
            border-radius: 20px;
            padding: 30px;
            max-width: 500px;
@@ -469,9 +582,10 @@
        }
 
        .modal-title {
+           font-family: 'Cinzel', serif;
            font-size: 1.5rem;
            margin-bottom: 20px;
-           color: #667eea;
+           color: var(--era-primary);
        }
 
        .modal-section {
@@ -594,9 +708,14 @@
            margin: 0 auto 10px;
            max-height: 120px;
            overflow-y: auto;
-           background: rgba(0, 0, 0, 0.3);
+           background: rgba(10, 10, 26, 0.6);
+           backdrop-filter: blur(8px);
+           -webkit-backdrop-filter: blur(8px);
+           border: 1px solid rgba(255, 255, 255, 0.08);
            border-radius: 10px;
            padding: 8px;
+           position: relative;
+           z-index: 2;
        }
 
        .scoreboard-row {
@@ -2224,6 +2343,7 @@
            try {
                const data = JSON.parse(raw);
                gameState.selectedEra = data.selectedEra;
+               applyEraTheme(gameState.selectedEra);
                gameState.opponentCount = data.opponentCount;
                gameState.difficulty = data.difficulty;
                gameState.player = { ...gameState.player, ...data.player };
@@ -2276,15 +2396,36 @@
        }
 
        function showScreen(screenId) {
-           document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-           document.getElementById(screenId + '-screen').classList.add('active');
-           gameState.screen = screenId;
-           if (screenId === 'difficulty') buildDifficultyGrid();
-           if (screenId === 'title') checkForSavedGame();
+           const currentScreens = document.querySelectorAll('.screen.active');
+           currentScreens.forEach(s => {
+               s.style.opacity = '0';
+               s.style.transform = 'translateY(-15px)';
+           });
+           setTimeout(() => {
+               currentScreens.forEach(s => s.classList.remove('active'));
+               const target = document.getElementById(screenId + '-screen');
+               target.classList.add('active');
+               void target.offsetWidth;
+               target.style.opacity = '1';
+               target.style.transform = 'translateY(0)';
+               gameState.screen = screenId;
+               if (screenId === 'difficulty') buildDifficultyGrid();
+               if (screenId === 'title') checkForSavedGame();
+           }, 350);
+       }
+
+       function applyEraTheme(era) {
+           const color = era ? era.color : '#667eea';
+           document.documentElement.style.setProperty('--era-primary', color);
+           const r = parseInt(color.slice(1,3),16);
+           const g = parseInt(color.slice(3,5),16);
+           const b = parseInt(color.slice(5,7),16);
+           document.documentElement.style.setProperty('--era-glow', `rgba(${r},${g},${b},0.3)`);
        }
 
        function selectEra(eraId) {
            gameState.selectedEra = ERAS.find(e => e.id === eraId);
+           applyEraTheme(gameState.selectedEra);
            document.querySelectorAll('.era-card').forEach(c => c.classList.remove('selected'));
            document.querySelector(`[data-era="${eraId}"]`).classList.add('selected');
            document.getElementById('continue-to-opponents').disabled = false;
@@ -4373,14 +4514,15 @@
            }
        }
 
-       function spawnConfetti() {
+       function spawnConfetti(eraColorOverride) {
            const era = gameState.selectedEra;
-           const colors = era ? [era.color, '#feca57', '#ff6b6b', '#48dbfb', '#ff9ff3', '#54a0ff', '#10ac84'] :
+           const eraColor = eraColorOverride || (era ? era.color : null);
+           const colors = eraColor ? [eraColor, '#feca57', '#ff6b6b', '#48dbfb', '#ff9ff3', '#54a0ff', '#10ac84'] :
                ['#feca57', '#ff6b6b', '#48dbfb', '#ff9ff3', '#54a0ff'];
            const cw = canvas ? canvas.width : 800;
            for (let i = 0; i < 50; i++) {
                const x = Math.random() * cw;
-               const color = colors[Math.floor(Math.random() * colors.length)];
+               const color = i % 3 === 0 ? eraColor : colors[Math.floor(Math.random() * colors.length)];
                particles.push({
                    x, y: -20,
                    vx: (Math.random() - 0.5) * 4,
@@ -4388,7 +4530,7 @@
                    life: 1.0,
                    decay: 0.003 + Math.random() * 0.005,
                    size: 3 + Math.random() * 4,
-                   color,
+                   color: color || colors[Math.floor(Math.random() * colors.length)],
                    isConfetti: true
                });
            }
@@ -5978,6 +6120,9 @@
                defender.troops = Math.max(1, defender.troops - Math.floor(attacker.troops * 0.3));
                showPowerIndicator('Attack failed!');
            }
+           const gameScreen = document.getElementById('game-screen');
+           gameScreen.classList.add('screen-shake');
+           setTimeout(() => gameScreen.classList.remove('screen-shake'), 300);
            invalidateMapCache(); renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
        }
 
@@ -6159,6 +6304,19 @@
 
        // ==================== TURNS ====================
        function showTurnSummary(income) {
+           if (income > 0) {
+               const goldEl = document.getElementById('stat-gold');
+               if (goldEl) {
+                   const rect = goldEl.getBoundingClientRect();
+                   const floater = document.createElement('div');
+                   floater.className = 'floating-gold';
+                   floater.textContent = '+' + income + 'g';
+                   floater.style.left = rect.left + 'px';
+                   floater.style.top = rect.top + 'px';
+                   document.body.appendChild(floater);
+                   setTimeout(() => floater.remove(), 1500);
+               }
+           }
            const el = document.getElementById('turn-summary');
            el.innerHTML = '<h3>Turn ' + (gameState.turn - 1) + '</h3><div>+' + income + ' gold</div>';
            el.classList.add('active');
@@ -6233,7 +6391,7 @@
                '<div class="result-stat"><span>Stars</span><span>' + '⭐'.repeat(stars) + '</span></div>' +
                '<div class="result-stat"><span>Best Stars</span><span>' + '⭐'.repeat(bestStars) + '</span></div>';
            playSFX(victory ? 'victory' : 'defeat');
-           if (victory) spawnConfetti();
+           if (victory) spawnConfetti(gameState.selectedEra ? gameState.selectedEra.color : null);
            showScreen('result');
        }
 
