@@ -111,8 +111,26 @@
        }
 
        /* Title Screen */
+       #title-canvas {
+           position: absolute;
+           top: 0; left: 0;
+           width: 100%; height: 100%;
+           z-index: -1;
+       }
        #title-screen {
+           position: relative;
+           overflow: hidden;
            justify-content: center;
+           text-align: center;
+       }
+       .title-content {
+           position: relative;
+           z-index: 2;
+           display: flex;
+           flex-direction: column;
+           align-items: center;
+           justify-content: center;
+           min-height: 100vh;
            text-align: center;
        }
 
@@ -221,51 +239,75 @@
            margin: 20px 0;
        }
 
+       .era-section-header {
+           font-family: 'Cinzel', serif;
+           font-size: 1.1rem;
+           color: var(--era-primary, #667eea);
+           text-align: center;
+           padding: 8px 16px;
+           margin: 15px 0 10px;
+           background: rgba(255,255,255,0.03);
+           border-bottom: 1px solid rgba(255,255,255,0.08);
+           letter-spacing: 2px;
+           text-transform: uppercase;
+       }
        .era-card {
-           background: rgba(255, 255, 255, 0.05);
-           border: 2px solid transparent;
+           background: rgba(255,255,255,0.05);
+           border: 2px solid rgba(255,255,255,0.08);
            border-radius: 15px;
-           padding: 15px;
+           padding: 0;
            cursor: pointer;
            transition: all 0.3s ease;
            text-align: center;
+           overflow: hidden;
+           position: relative;
        }
-
+       .era-card-canvas {
+           width: 100%;
+           height: 120px;
+           display: block;
+       }
+       .era-card-body {
+           padding: 12px 10px;
+       }
        .era-card:hover, .era-card:active {
            transform: translateY(-5px);
            border-color: var(--era-color);
-           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+           box-shadow: 0 10px 30px rgba(0,0,0,0.4), 0 0 20px var(--era-glow, rgba(102,126,234,0.2));
        }
-
        .era-card.selected {
            border-color: var(--era-color);
-           background: rgba(255, 255, 255, 0.1);
-           box-shadow: 0 0 20px var(--era-color);
+           background: rgba(255,255,255,0.08);
+           box-shadow: 0 0 25px var(--era-glow, rgba(102,126,234,0.3));
        }
-
-       .era-emoji {
-           font-size: 2.5rem;
-           margin-bottom: 10px;
+       .era-badge {
+           display: inline-block;
+           padding: 2px 8px;
+           border-radius: 10px;
+           font-size: 0.6rem;
+           text-transform: uppercase;
+           letter-spacing: 1px;
+           font-weight: bold;
+           margin-bottom: 4px;
        }
-
+       .era-badge.historical {
+           background: rgba(254,202,87,0.15);
+           color: #feca57;
+       }
+       .era-badge.fictional {
+           background: rgba(162,155,254,0.15);
+           color: #a29bfe;
+       }
        .era-name {
            font-weight: bold;
            margin-bottom: 5px;
            color: var(--era-color);
        }
-
-       .era-desc {
-           font-size: 0.75rem;
-           color: #888;
-           margin-bottom: 8px;
-       }
-
-       .era-power {
+       .era-power-tag {
            font-size: 0.7rem;
-           color: #aaa;
-           font-style: italic;
+           color: #ccc;
+           margin-top: 4px;
        }
-
        .era-stars {
            margin-top: 8px;
        }
@@ -853,13 +895,16 @@
 <body>
    <!-- Title Screen -->
    <div id="title-screen" class="screen active">
-       <div class="logo">⚔️ HADOONEY ⚔️</div>
-       <div class="subtitle">Empire Wars</div>
-       <button class="btn btn-primary" onclick="showScreen('era')">▶ PLAY</button>
-       <button class="btn btn-continue" id="btn-continue" style="display:none" onclick="continueSavedGame()">▶ CONTINUE GAME</button>
-       <button class="btn btn-secondary" onclick="showHowToPlay()">📖 HOW TO PLAY</button>
-       <div class="play-time">
-           ⏱️ Total Play Time: <span id="total-play-time">00:00:00</span>
+       <canvas id="title-canvas"></canvas>
+       <div class="title-content">
+           <div class="logo">⚔️ HADOONEY ⚔️</div>
+           <div class="subtitle" id="subtitle-text">Empire Wars</div>
+           <button class="btn btn-primary" onclick="showScreen('era')">⚔️ PLAY</button>
+           <button class="btn btn-continue" id="btn-continue" style="display:none" onclick="continueSavedGame()">⚔️ CONTINUE</button>
+           <button class="btn btn-secondary" onclick="showHowToPlay()">📖 HOW TO PLAY</button>
+           <div class="play-time">
+               ⏱️ Total Play Time: <span id="total-play-time">00:00:00</span>
+           </div>
        </div>
    </div>
 
@@ -2253,6 +2298,7 @@
        }
        // ==================== INITIALIZATION ====================
        function init() {
+           initTitleCanvas();
            loadPlayTime();
            renderEraGrid();
            updatePlayTimeDisplay();
@@ -2286,17 +2332,116 @@
        function renderEraGrid() {
            const grid = document.getElementById('era-grid');
            const stars = loadStars();
-           grid.innerHTML = ERAS.map(era => {
-               const eraStars = stars[era.id] || 0;
-               const starDisplay = Array(5).fill(0).map((_, i) =>
-                   `<span class="star ${i < eraStars ? '' : 'empty'}">★</span>`).join('');
-               return `<div class="era-card" data-era="${era.id}" style="--era-color: ${era.color}" onclick="selectEra('${era.id}')">
-                   <div class="era-emoji">${era.emoji}</div>
-                   <div class="era-name">${era.name}</div>
-                   <div class="era-desc">${era.historical ? 'Historical' : 'Fictional'}</div>
-                   <div class="era-power">⚡ ${era.power}</div>
-                   <div class="era-stars">${starDisplay}</div></div>`;
-           }).join('');
+           const historical = ERAS.filter(e => e.historical);
+           const fictional = ERAS.filter(e => !e.historical);
+           let html = '';
+           if (historical.length) {
+               html += '<div class="era-section-header">⚔️ Historical Eras</div>';
+               html += historical.map(era => eraCardHTML(era, stars)).join('');
+           }
+           if (fictional.length) {
+               html += '<div class="era-section-header">✨ Fictional Eras</div>';
+               html += fictional.map(era => eraCardHTML(era, stars)).join('');
+           }
+           grid.innerHTML = html;
+           drawEraCardPreviews();
+       }
+
+       function eraCardHTML(era, stars) {
+           const eraStars = stars[era.id] || 0;
+           const starDisplay = Array(5).fill(0).map((_, i) =>
+               `<span class="star ${i < eraStars ? '' : 'empty'}">★</span>`).join('');
+           const badgeClass = era.historical ? 'historical' : 'fictional';
+           const badgeLabel = era.historical ? 'Historical' : 'Fictional';
+           return `<div class="era-card" data-era="${era.id}" style="--era-color:${era.color}" onclick="selectEra('${era.id}')">
+               <canvas class="era-card-canvas" id="era-canvas-${era.id}" width="200" height="120"></canvas>
+               <div class="era-card-body">
+                   <span class="era-badge ${badgeClass}">${badgeLabel}</span>
+                   <div class="era-name" style="color:${era.color}">${era.name}</div>
+                   <div class="era-power-tag">⚡ ${era.power}</div>
+                   <div class="era-stars">${starDisplay}</div>
+               </div>
+           </div>`;
+       }
+
+       function drawEraCardPreviews() {
+           ERAS.forEach(era => {
+               const canvas = document.getElementById('era-canvas-' + era.id);
+               if (!canvas) return;
+               const ctx = canvas.getContext('2d');
+               const w = canvas.width, h = canvas.height;
+               const land = ERA_LANDS[era.id] || ERA_LANDS.rome;
+
+               // Sky
+               const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.55);
+               skyGrad.addColorStop(0, land.sky);
+               const mid = blendColors(land.sky, land.ground, 0.3);
+               skyGrad.addColorStop(1, mid);
+               ctx.fillStyle = skyGrad;
+               ctx.fillRect(0, 0, w, h * 0.55);
+
+               // Ground
+               const gndGrad = ctx.createLinearGradient(0, h * 0.5, 0, h);
+               gndGrad.addColorStop(0, land.ground);
+               gndGrad.addColorStop(1, land.ground2);
+               ctx.fillStyle = gndGrad;
+               ctx.fillRect(0, h * 0.5, w, h * 0.5);
+
+               // Mini landmark silhouette
+               const cx = w * 0.5, base = h * 0.5, s = Math.min(w, h) * 0.12;
+               ctx.fillStyle = land.accent + '30';
+               ctx.strokeStyle = land.accent + '25';
+               ctx.lineWidth = 1;
+
+               // Draw a simplified landmark based on era
+               if (era.id === 'egypt') {
+                   ctx.beginPath(); ctx.moveTo(cx-s, base); ctx.lineTo(cx, base-s*1.2); ctx.lineTo(cx+s, base); ctx.closePath(); ctx.fill();
+                   ctx.beginPath(); ctx.moveTo(cx+s*0.6, base); ctx.lineTo(cx+s, base-s*0.5); ctx.lineTo(cx+s*1.4, base); ctx.closePath(); ctx.fill();
+               } else if (era.id === 'rome') {
+                   ctx.beginPath(); ctx.ellipse(cx, base-s*0.2, s*1.0, s*0.5, 0, Math.PI, 0); ctx.lineTo(cx+s, base); ctx.lineTo(cx-s, base); ctx.closePath(); ctx.fill();
+               } else if (era.id === 'viking') {
+                   ctx.beginPath(); ctx.moveTo(cx-s*1.2, base); ctx.quadraticCurveTo(cx, base-s*0.3, cx+s*1.2, base); ctx.closePath(); ctx.fill();
+                   ctx.beginPath(); ctx.moveTo(cx, base-s*0.3); ctx.lineTo(cx, base-s*0.9); ctx.stroke();
+               } else if (era.id === 'cyber') {
+                   ctx.fillRect(cx-s*0.2, base-s*1.2, s*0.4, s*1.2);
+                   ctx.shadowColor = land.accent; ctx.shadowBlur = 10;
+                   ctx.fillRect(cx-s*0.1, base-s*1.3, s*0.2, s*0.1);
+                   ctx.shadowBlur = 0;
+               } else if (era.id === 'dragon') {
+                   ctx.beginPath(); ctx.moveTo(cx-s*1.2, base); ctx.lineTo(cx-s*0.2, base-s*1.1); ctx.lineTo(cx+s*0.3, base-s*0.8); ctx.lineTo(cx+s*1.2, base); ctx.closePath(); ctx.fill();
+               } else if (era.id === 'star') {
+                   ctx.fillRect(cx-s*0.8, base-s*0.3, s*1.6, s*0.2);
+                   ctx.fillRect(cx-s*0.15, base-s*0.8, s*0.3, s*0.6);
+                   ctx.fillRect(cx-s*1.2, base-s*0.35, s*0.3, s*0.3);
+                   ctx.fillRect(cx+s*0.9, base-s*0.35, s*0.3, s*0.3);
+               } else if (era.id === 'frost') {
+                   ctx.beginPath(); ctx.moveTo(cx-s*0.8, base); ctx.lineTo(cx-s*0.4, base-s*1.0); ctx.lineTo(cx, base-s*0.6); ctx.lineTo(cx+s*0.5, base-s*1.1); ctx.lineTo(cx+s*0.8, base); ctx.closePath(); ctx.fill();
+               } else if (era.id === 'medieval' || era.id === 'british') {
+                   ctx.fillRect(cx-s*0.6, base-s*0.5, s*1.2, s*0.5);
+                   ctx.fillRect(cx-s*0.7, base-s*0.7, s*0.25, s*0.2);
+                   ctx.fillRect(cx+s*0.45, base-s*0.7, s*0.25, s*0.2);
+                   ctx.fillRect(cx-s*0.15, base-s*0.8, s*0.3, s*0.3);
+               } else {
+                   // Generic tower
+                   ctx.fillRect(cx-s*0.15, base-s*0.8, s*0.3, s*0.8);
+                   ctx.fillRect(cx-s*0.4, base-s*0.2, s*0.8, s*0.1);
+               }
+
+               // Mini floating particles
+               for (let i = 0; i < 8; i++) {
+                   const px = (i * 31 + 15) % w;
+                   const py = (i * 23 + 10) % h;
+                   ctx.fillStyle = land.accent + '25';
+                   ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill();
+               }
+
+               // Bottom gradient overlay for smooth text transition
+               const botGrad = ctx.createLinearGradient(0, h * 0.4, 0, h * 0.55);
+               botGrad.addColorStop(0, land.accent + '00');
+               botGrad.addColorStop(1, land.ground + '00');
+               ctx.fillStyle = botGrad;
+               ctx.fillRect(0, h * 0.4, w, h * 0.15);
+           });
        }
 
        function loadStars() {
@@ -2410,7 +2555,15 @@
                target.style.transform = 'translateY(0)';
                gameState.screen = screenId;
                if (screenId === 'difficulty') buildDifficultyGrid();
+               if (screenId === 'era') {
+                   setTimeout(drawEraCardPreviews, 400);
+               }
                if (screenId === 'title') checkForSavedGame();
+               if (screenId === 'title') {
+                   initTitleCanvas();
+               } else {
+                   stopTitleCanvas();
+               }
            }, 350);
        }
 
@@ -6461,6 +6614,338 @@
            const raw = localStorage.getItem('hadooney_save');
            const btn = document.getElementById('continue-btn');
            if (btn) btn.style.display = raw ? 'block' : 'none';
+       }
+
+       // ==================== TITLE SCREEN CANVAS ====================
+       let titleCanvas, titleCtx, titleRunning = false, titleFrame = 0;
+       let titleEraIndex = 0, titleEraTimer = 0;
+       const TITLE_ERA_ORDER = ['egypt','rome','viking','medieval','cyber','dragon','frost','star','quantum','ember','crystal','shadow','thunder','void','ottoman','aztec','ming','edo','british','industrial'];
+       const TITLE_ERAS_PER_SCENE = 4;
+
+       function initTitleCanvas() {
+           titleCanvas = document.getElementById('title-canvas');
+           if (!titleCanvas) return;
+           titleCtx = titleCanvas.getContext('2d');
+           resizeTitleCanvas();
+           window.addEventListener('resize', resizeTitleCanvas);
+           titleRunning = true;
+           requestAnimationFrame(titleLoop);
+       }
+
+       function resizeTitleCanvas() {
+           if (!titleCanvas) return;
+           titleCanvas.width = window.innerWidth;
+           titleCanvas.height = window.innerHeight;
+       }
+
+       function stopTitleCanvas() {
+           titleRunning = false;
+       }
+
+       function titleLoop(ts) {
+           if (!titleRunning) return;
+           titleFrame++;
+           titleEraTimer++;
+
+           // Cycle era every 300 frames (~5 seconds at 60fps)
+           if (titleEraTimer >= 300) {
+               titleEraTimer = 0;
+               titleEraIndex = (titleEraIndex + 1) % TITLE_ERA_ORDER.length;
+           }
+
+           // Cycle subtitle taglines every ~3 seconds
+           if (titleFrame % 180 === 0) {
+               const subtitles = ['Empire Wars', '20 Eras. Infinite Wars.', 'Conquer. Command. Prevail.', 'Choose Your Destiny.'];
+               const subEl = document.getElementById('subtitle-text');
+               if (subEl) subEl.textContent = subtitles[Math.floor(titleFrame / 180) % subtitles.length];
+           }
+
+           const eraId = TITLE_ERA_ORDER[titleEraIndex];
+           const land = ERA_LANDS[eraId] || ERA_LANDS.rome;
+           const w = titleCanvas.width, h = titleCanvas.height;
+
+           // Sky gradient
+           const skyGrad = titleCtx.createLinearGradient(0, 0, 0, h * 0.45);
+           skyGrad.addColorStop(0, land.sky);
+           const midSky = blendColors(land.sky, land.ground, 0.3);
+           skyGrad.addColorStop(0.7, midSky);
+           skyGrad.addColorStop(1, land.ground);
+           titleCtx.fillStyle = skyGrad;
+           titleCtx.fillRect(0, 0, w, h * 0.5);
+
+           // Sun/moon
+           const dark = ['void','shadow','cyber','quantum','star'].includes(eraId);
+           const hot = ['dragon','ember','egypt'].includes(eraId);
+           const cx = w * 0.82, cy = h * 0.15, cr = Math.min(w, h) * 0.04;
+           if (dark) {
+               titleCtx.fillStyle = '#dde' + '30';
+               titleCtx.beginPath(); titleCtx.arc(cx, cy, cr, 0, Math.PI * 2); titleCtx.fill();
+           } else {
+               const sunColor = hot ? '#ff6b35' : '#ffd700';
+               const glowGrad = titleCtx.createRadialGradient(cx, cy, cr * 0.3, cx, cy, cr * 4);
+               glowGrad.addColorStop(0, sunColor + '25');
+               glowGrad.addColorStop(1, sunColor + '00');
+               titleCtx.fillStyle = glowGrad;
+               titleCtx.beginPath(); titleCtx.arc(cx, cy, cr * 4, 0, Math.PI * 2); titleCtx.fill();
+               titleCtx.fillStyle = sunColor + 'bb';
+               titleCtx.beginPath(); titleCtx.arc(cx, cy, cr, 0, Math.PI * 2); titleCtx.fill();
+           }
+
+           // Stars for dark eras
+           if (dark || eraId === 'frost') {
+               for (let i = 0; i < 60; i++) {
+                   const sx = ((i * 137.5 + 50) % w);
+                   const sy = ((i * 97.3 + 20) % (h * 0.4));
+                   const brightness = 0.3 + 0.7 * Math.abs(Math.sin(titleFrame * 0.02 + i));
+                   titleCtx.fillStyle = `rgba(255,255,255,${brightness * 0.6})`;
+                   titleCtx.beginPath();
+                   titleCtx.arc(sx, sy, 1 + (i % 3) * 0.5, 0, Math.PI * 2);
+                   titleCtx.fill();
+               }
+           }
+
+           // Clouds (not for dark eras)
+           if (!dark) {
+               for (let i = 0; i < 6; i++) {
+                   const cloudX = ((i * 271.3 + titleFrame * 0.2) % (w + 300)) - 150;
+                   const cloudY = h * (0.08 + (i % 3) * 0.1);
+                   const cw = 80 + (i % 3) * 50;
+                   titleCtx.fillStyle = land.sky + '20';
+                   titleCtx.beginPath(); titleCtx.ellipse(cloudX, cloudY, cw, cw * 0.3, 0, 0, Math.PI * 2); titleCtx.fill();
+                   titleCtx.beginPath(); titleCtx.ellipse(cloudX - cw * 0.4, cloudY + 5, cw * 0.6, cw * 0.2, 0, 0, Math.PI * 2); titleCtx.fill();
+                   titleCtx.beginPath(); titleCtx.ellipse(cloudX + cw * 0.35, cloudY + 3, cw * 0.5, cw * 0.22, 0, 0, Math.PI * 2); titleCtx.fill();
+               }
+           }
+
+           // Mountains/backdrop
+           if (!dark) {
+               const horizonY = h * 0.42;
+               titleCtx.fillStyle = land.accent + '15';
+               titleCtx.beginPath();
+               titleCtx.moveTo(0, horizonY);
+               for (let x = 0; x <= w; x += 40) {
+                   const mh = Math.sin(x * 0.003) * h * 0.06 + Math.sin(x * 0.007 + 1) * h * 0.04;
+                   titleCtx.lineTo(x, horizonY - Math.abs(mh));
+               }
+               titleCtx.lineTo(w, horizonY);
+               titleCtx.closePath();
+               titleCtx.fill();
+           }
+
+           // Era landmarks (simplified silhouettes)
+           drawTitleLandmark(eraId, w, h);
+
+           // Ground
+           const horizonY = h * 0.42;
+           const gndGrad = titleCtx.createLinearGradient(0, horizonY, 0, h);
+           gndGrad.addColorStop(0, blendColors(land.ground, land.ground2, 0.3));
+           gndGrad.addColorStop(0.5, land.ground);
+           gndGrad.addColorStop(1, land.ground2);
+           titleCtx.fillStyle = gndGrad;
+           titleCtx.fillRect(0, horizonY, w, h - horizonY);
+
+           // Ground perspective lines
+           const vpX = w * 0.5, vpY = horizonY;
+           titleCtx.strokeStyle = land.accent + '12';
+           titleCtx.lineWidth = 1;
+           for (let i = 0; i < 12; i++) {
+               const angle = -0.6 + (i / 11) * 1.2;
+               titleCtx.beginPath(); titleCtx.moveTo(vpX, vpY);
+               titleCtx.lineTo(vpX + Math.cos(angle) * w, h); titleCtx.stroke();
+           }
+
+           // Floating era particles
+           drawTitleParticles(eraId, w, h, titleFrame);
+
+           // Vignette
+           const vigGrad = titleCtx.createRadialGradient(w/2, h/2, h * 0.3, w/2, h/2, h * 0.8);
+           vigGrad.addColorStop(0, 'rgba(0,0,0,0)');
+           vigGrad.addColorStop(1, 'rgba(0,0,0,0.6)');
+           titleCtx.fillStyle = vigGrad;
+           titleCtx.fillRect(0, 0, w, h);
+
+           // Era name watermark
+           const eraData = ERAS.find(e => e.id === eraId);
+           if (eraData) {
+               titleCtx.save();
+               titleCtx.globalAlpha = 0.04;
+               titleCtx.font = `bold ${Math.min(w * 0.15, 120)}px Cinzel, serif`;
+               titleCtx.fillStyle = land.accent;
+               titleCtx.textAlign = 'center';
+               titleCtx.fillText(eraData.name.toUpperCase(), w/2, h * 0.65);
+               titleCtx.restore();
+           }
+
+           requestAnimationFrame(titleLoop);
+       }
+
+       function drawTitleLandmark(eraId, w, h) {
+           const horizonY = h * 0.42;
+           const land = ERA_LANDS[eraId] || ERA_LANDS.rome;
+           titleCtx.save();
+           titleCtx.fillStyle = land.accent + '25';
+           titleCtx.strokeStyle = land.accent + '20';
+           titleCtx.lineWidth = 2;
+
+           const cx = w * 0.5, base = horizonY;
+           const s = Math.min(w, h) * 0.08;
+
+           switch(eraId) {
+               case 'egypt':
+                   // Pyramid silhouette
+                   titleCtx.beginPath();
+                   titleCtx.moveTo(cx - s, base); titleCtx.lineTo(cx, base - s * 1.3); titleCtx.lineTo(cx + s, base);
+                   titleCtx.closePath(); titleCtx.fill(); titleCtx.stroke();
+                   // Second smaller pyramid
+                   titleCtx.beginPath();
+                   titleCtx.moveTo(cx + s * 0.8, base); titleCtx.lineTo(cx + s * 1.3, base - s * 0.7); titleCtx.lineTo(cx + s * 1.8, base);
+                   titleCtx.closePath(); titleCtx.fill();
+                   break;
+               case 'rome':
+                   // Colosseum arc
+                   titleCtx.beginPath();
+                   titleCtx.ellipse(cx, base - s * 0.3, s * 1.2, s * 0.8, 0, Math.PI, 0);
+                   titleCtx.lineTo(cx + s * 1.2, base); titleCtx.lineTo(cx - s * 1.2, base);
+                   titleCtx.closePath(); titleCtx.fill(); titleCtx.stroke();
+                   // Columns
+                   for (let i = -2; i <= 2; i++) {
+                       titleCtx.fillRect(cx + i * s * 0.45 - 3, base - s * 0.8, 6, s * 0.8);
+                   }
+                   break;
+               case 'viking':
+                   // Longship silhouette
+                   titleCtx.beginPath();
+                   titleCtx.moveTo(cx - s * 1.5, base);
+                   titleCtx.quadraticCurveTo(cx - s * 1.2, base - s * 0.4, cx - s * 0.3, base - s * 0.3);
+                   titleCtx.lineTo(cx + s * 0.3, base - s * 0.3);
+                   titleCtx.quadraticCurveTo(cx + s * 1.2, base - s * 0.4, cx + s * 1.5, base);
+                   titleCtx.closePath(); titleCtx.fill();
+                   // Mast
+                   titleCtx.beginPath();
+                   titleCtx.moveTo(cx, base - s * 0.3); titleCtx.lineTo(cx, base - s * 1.2);
+                   titleCtx.stroke();
+                   // Sail
+                   titleCtx.beginPath();
+                   titleCtx.moveTo(cx, base - s * 1.1);
+                   titleCtx.quadraticCurveTo(cx + s * 0.4, base - s * 0.8, cx, base - s * 0.5);
+                   titleCtx.closePath(); titleCtx.fill();
+                   break;
+               case 'medieval':
+               case 'british':
+                   // Castle
+                   titleCtx.fillRect(cx - s * 0.8, base - s * 0.6, s * 1.6, s * 0.6);
+                   titleCtx.fillRect(cx - s * 0.9, base - s * 0.9, s * 0.3, s * 0.3);
+                   titleCtx.fillRect(cx + s * 0.6, base - s * 0.9, s * 0.3, s * 0.3);
+                   titleCtx.fillRect(cx - s * 0.2, base - s * 1.0, s * 0.4, s * 0.4);
+                   break;
+               case 'cyber':
+                   // Circuit tower
+                   titleCtx.fillRect(cx - s * 0.3, base - s * 1.5, s * 0.6, s * 1.5);
+                   titleCtx.fillRect(cx - s * 0.6, base - s * 1.2, s * 1.2, s * 0.15);
+                   titleCtx.fillRect(cx - s * 0.5, base - s * 0.8, s * 1.0, s * 0.15);
+                   // Glow
+                   titleCtx.shadowColor = land.accent;
+                   titleCtx.shadowBlur = 15;
+                   titleCtx.fillRect(cx - s * 0.15, base - s * 1.6, s * 0.3, s * 0.1);
+                   titleCtx.shadowBlur = 0;
+                   break;
+               case 'star':
+                   // Space station
+                   titleCtx.fillRect(cx - s * 1.0, base - s * 0.4, s * 2.0, s * 0.3);
+                   titleCtx.fillRect(cx - s * 0.2, base - s * 1.0, s * 0.4, s * 0.7);
+                   // Solar panels
+                   titleCtx.fillRect(cx - s * 1.5, base - s * 0.5, s * 0.4, s * 0.5);
+                   titleCtx.fillRect(cx + s * 1.1, base - s * 0.5, s * 0.4, s * 0.5);
+                   break;
+               case 'dragon':
+                   // Volcano
+                   titleCtx.beginPath();
+                   titleCtx.moveTo(cx - s * 1.5, base);
+                   titleCtx.lineTo(cx - s * 0.3, base - s * 1.3);
+                   titleCtx.lineTo(cx + s * 0.2, base - s * 1.1);
+                   titleCtx.lineTo(cx + s * 1.5, base);
+                   titleCtx.closePath(); titleCtx.fill();
+                   // Lava glow at top
+                   const lavaGrad = titleCtx.createRadialGradient(cx - s * 0.05, base - s * 1.2, 0, cx - s * 0.05, base - s * 1.2, s * 0.4);
+                   lavaGrad.addColorStop(0, '#ff450040');
+                   lavaGrad.addColorStop(1, '#ff450000');
+                   titleCtx.fillStyle = lavaGrad;
+                   titleCtx.beginPath(); titleCtx.arc(cx - s * 0.05, base - s * 1.2, s * 0.4, 0, Math.PI * 2); titleCtx.fill();
+                   break;
+               case 'frost':
+                   // Ice castle
+                   titleCtx.beginPath();
+                   titleCtx.moveTo(cx - s, base);
+                   titleCtx.lineTo(cx - s * 0.6, base - s * 1.2);
+                   titleCtx.lineTo(cx, base - s * 0.8);
+                   titleCtx.lineTo(cx + s * 0.7, base - s * 1.3);
+                   titleCtx.lineTo(cx + s, base);
+                   titleCtx.closePath(); titleCtx.fill();
+                   // Ice crystals
+                   titleCtx.strokeStyle = '#ffffff30';
+                   titleCtx.lineWidth = 1;
+                   for (let i = 0; i < 5; i++) {
+                       const ix = cx + (Math.random() - 0.5) * s * 2;
+                       const iy = base - Math.random() * s;
+                       for (let a = 0; a < 6; a++) {
+                           const angle = a * Math.PI / 3;
+                           titleCtx.beginPath();
+                           titleCtx.moveTo(ix, iy);
+                           titleCtx.lineTo(ix + Math.cos(angle) * 8, iy + Math.sin(angle) * 8);
+                           titleCtx.stroke();
+                       }
+                   }
+                   break;
+               case 'quantum':
+                   // Portal
+                   titleCtx.beginPath();
+                   titleCtx.ellipse(cx, base - s * 0.8, s * 0.8, s * 0.8, 0, 0, Math.PI * 2);
+                   titleCtx.strokeStyle = land.accent + '40';
+                   titleCtx.lineWidth = 3;
+                   titleCtx.stroke();
+                   // Inner swirl
+                   for (let a = 0; a < Math.PI * 4; a += 0.1) {
+                       const r = a * s * 0.05;
+                       const px = cx + Math.cos(a + titleFrame * 0.02) * r;
+                       const py = base - s * 0.8 + Math.sin(a + titleFrame * 0.02) * r;
+                       titleCtx.fillStyle = land.accent + '20';
+                       titleCtx.beginPath(); titleCtx.arc(px, py, 2, 0, Math.PI * 2); titleCtx.fill();
+                   }
+                   break;
+               default:
+                   // Generic tower/monument for other eras
+                   titleCtx.fillRect(cx - s * 0.2, base - s * 1.0, s * 0.4, s);
+                   titleCtx.fillRect(cx - s * 0.5, base - s * 0.3, s * 1.0, s * 0.15);
+           }
+           titleCtx.restore();
+       }
+
+       function drawTitleParticles(eraId, w, h, frame) {
+           const land = ERA_LANDS[eraId] || ERA_LANDS.rome;
+           const isDark = ['void','shadow','cyber','quantum','star'].includes(eraId);
+
+           for (let i = 0; i < 25; i++) {
+               const px = ((i * 173.7 + frame * (0.3 + (i % 3) * 0.2)) % w);
+               const py = ((i * 131.3 + frame * (0.5 + (i % 2) * 0.3)) % h);
+               const size = 1 + (i % 3);
+               const alpha = 0.2 + 0.3 * Math.sin(frame * 0.03 + i * 2);
+
+               if (eraId === 'egypt') {
+                   titleCtx.fillStyle = `rgba(210,180,120,${alpha})`;
+               } else if (eraId === 'frost') {
+                   titleCtx.fillStyle = `rgba(255,255,255,${alpha + 0.2})`;
+               } else if (eraId === 'ember' || eraId === 'dragon') {
+                   titleCtx.fillStyle = `rgba(255,100,30,${alpha})`;
+               } else if (isDark) {
+                   titleCtx.fillStyle = `rgba(${parseInt(land.accent.slice(1,3),16)},${parseInt(land.accent.slice(3,5),16)},${parseInt(land.accent.slice(5,7),16)},${alpha + 0.2})`;
+               } else {
+                   titleCtx.fillStyle = `rgba(255,255,200,${alpha * 0.5})`;
+               }
+
+               titleCtx.beginPath();
+               titleCtx.arc(px, py, size, 0, Math.PI * 2);
+               titleCtx.fill();
+           }
        }
 
        // ==================== START ====================
