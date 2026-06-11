@@ -827,9 +827,55 @@
        }
 
        .turn-summary-item span {
-           color: #667eea;
-           font-weight: bold;
+            color: #feca57;
+            font-weight: bold;
        }
+
+       /* Tutorial Overlay */
+       .tutorial-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 500;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+       }
+       .tutorial-overlay.active { display: flex; }
+       .tutorial-box {
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #667eea;
+            border-radius: 16px;
+            padding: 24px 30px;
+            max-width: 340px;
+            width: 90%;
+            text-align: center;
+       }
+       .tutorial-box h3 { color: #feca57; margin-bottom: 12px; font-size: 1.2rem; }
+       .tutorial-box p { color: #ccc; margin-bottom: 16px; font-size: 0.95rem; line-height: 1.5; }
+       .tutorial-box .tutorial-arrow { font-size: 2rem; margin-bottom: 10px; }
+       .tutorial-box .tutorial-dots { margin: 12px 0; }
+       .tutorial-box .tutorial-dots span {
+            display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+            background: #555; margin: 0 4px; transition: background 0.2s;
+       }
+       .tutorial-box .tutorial-dots span.active { background: #667eea; }
+       .tutorial-btns { display: flex; gap: 10px; justify-content: center; }
+       .tutorial-btns button {
+            padding: 8px 20px; border-radius: 20px; border: none; cursor: pointer;
+            font-weight: bold; font-size: 0.9rem; transition: transform 0.15s;
+       }
+       .tutorial-btns button:active { transform: scale(0.95); }
+       .tutorial-btns .tut-next { background: #667eea; color: #fff; }
+       .tutorial-btns .tut-skip { background: #333; color: #999; }
+
+       /* Territory income breakdown in turn summary */
+       .income-breakdown {
+            font-size: 0.85rem; color: #aaa; margin-top: 8px; text-align: left;
+       }
+       .income-breakdown div { padding: 2px 0; }
+       .income-breakdown span { float: right; color: #feca57; }
 
        /* Continue Game Button */
        .btn-continue {
@@ -1588,6 +1634,55 @@
   animation: slideRight 0.4s ease-out 0.3s both;
 }
 
+/* AI Chat Bubbles */
+.ai-bubble {
+    position: absolute;
+    background: white;
+    color: #1a1a2e;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    z-index: 200;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    white-space: nowrap;
+}
+.ai-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid white;
+}
+
+/* Era Combat Modifier HUD */
+.era-mod-indicator {
+    position: fixed;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.7);
+    color: #feca57;
+    padding: 4px 14px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    z-index: 190;
+    pointer-events: none;
+}
+
+/* Cavalry button */
+.btn-cavalry {
+    background: linear-gradient(45deg, #e17055, #d63031);
+    color: white;
+}
+
    </style>
 </head>
 <body>
@@ -1663,6 +1758,8 @@
        </div>
        <div class="game-controls">
            <button class="game-btn btn-recruit" id="btn-recruit" onclick="showRecruitPanel()">🛡️ Recruit (10g)</button>
+           <button class="game-btn btn-cavalry" id="btn-cavalry" onclick="recruitCavalry()">🐎 Cavalry (15g)</button>
+           <button class="game-btn btn-monument" id="btn-monument" onclick="buildMonumentForPlayer()" style="background:linear-gradient(45deg,#feca57,#f6b93b);color:#333;display:none">🏛️ Monument (30g)</button>
            <button class="game-btn btn-special" id="btn-special" onclick="activateSpecialPower()">⚡ <span id="special-name">Power</span> (20g)</button>
            <button class="game-btn btn-end-turn" onclick="endTurn()">END TURN</button>
            <button class="game-btn btn-shop" id="btn-shop" onclick="openShop()" style="background:linear-gradient(45deg,#10ac84,#1dd1a1);color:white">🛒 Shop</button>
@@ -1681,6 +1778,7 @@
        <div class="result-container">
            <canvas id="result-cinematic-canvas" style="position:absolute;inset:0;z-index:0;width:100%;height:100%;"></canvas>
            <h1 class="result-title" id="result-title">VICTORY!</h1>
+           <p class="result-subtitle" id="result-subtitle" style="font-size:1rem;color:#ccc;margin:8px 0 16px;font-style:italic;max-width:400px;line-height:1.5;text-align:center;"></p>
            <div class="result-stars" id="result-stars">⭐⭐⭐⭐⭐</div>
            <div class="result-stats" id="result-stats"></div>
            <div class="screen-nav">
@@ -1758,13 +1856,29 @@
    <!-- Power Activation Indicator -->
    <div class="power-indicator" id="power-indicator"></div>
 
+   <!-- Era Combat Modifier Indicator -->
+   <div class="era-mod-indicator" id="era-mod-indicator" style="display:none"></div>
+
    <!-- Turn Summary Notification -->
+   <!-- Tutorial Overlay -->
+   <div class="tutorial-overlay" id="tutorial-overlay">
+       <div class="tutorial-box">
+           <div class="tutorial-arrow" id="tutorial-arrow">👆</div>
+           <h3 id="tutorial-title">Welcome!</h3>
+           <p id="tutorial-text">Tap your army to select it, then tap an enemy to attack.</p>
+           <div class="tutorial-dots" id="tutorial-dots"></div>
+           <div class="tutorial-btns">
+               <button class="tut-skip" onclick="closeTutorial()">Skip</button>
+               <button class="tut-next" id="tutorial-next-btn" onclick="nextTutorialStep()">Next</button>
+           </div>
+       </div>
+   </div>
    <div class="turn-summary" id="turn-summary"></div>
 
    <script>
        // ==================== GAME DATA ====================
        const ERAS = [
-           { id: 'egypt', name: 'Ancient Egypt', emoji: '🏜️', color: '#feca57', power: 'Sandstorm', powerDesc: 'Kill 50% troops on an enemy army', historical: true },
+           { id: 'egypt', name: 'Ancient Egypt', emoji: '🏜️', color: '#feca57', power: 'Sandstorm', powerDesc: 'Halve enemy troops, weaken adjacent armies 15%', historical: true },
            { id: 'rome', name: 'Roman Empire', emoji: '🏛️', color: '#c44569', power: 'Legion March', powerDesc: 'Steal 50% troops from an enemy army', historical: true },
            { id: 'viking', name: 'Viking Age', emoji: '⚔️', color: '#5f27cd', power: 'Berserker Rage', powerDesc: 'Next attack deals 2x damage', historical: true },
            { id: 'medieval', name: 'Medieval Europe', emoji: '🏰', color: '#8395a7', power: 'Castle Wall', powerDesc: 'Double your defense for 2 turns', historical: true },
@@ -2842,7 +2956,7 @@
        let sfxGainNode = null;
 
        const ERA_MUSIC = {
-           egypt:       { scale: [261.63, 293.66, 329.63, 392.00, 440.00], tempo: 300, wave: 'sine',     noteLen: 0.4 },
+           egypt:       { scale: [261.63, 293.66, 329.63, 392.00, 440.00, 523.25], tempo: 280, wave: 'triangle', noteLen: 0.5, drone: 130.81 },
            rome:        { scale: [220.00, 246.94, 293.66, 329.63, 369.99], tempo: 250, wave: 'triangle', noteLen: 0.3 },
            viking:      { scale: [196.00, 220.00, 261.63, 293.66, 329.63], tempo: 200, wave: 'sawtooth', noteLen: 0.2 },
            medieval:    { scale: [261.63, 293.66, 349.23, 392.00, 440.00], tempo: 400, wave: 'sine',     noteLen: 0.5 },
@@ -2901,11 +3015,29 @@
 
            switch(type) {
                case 'attack':
-                   osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, t);
-                   osc.frequency.exponentialRampToValueAtTime(80, t + 0.15);
-                   gain.gain.setValueAtTime(0.4, t);
-                   gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-                   osc.start(t); osc.stop(t + 0.2);
+                   // Phase 5.3: Era-specific attack sound for Egypt
+                   if (gameState.selectedEra && gameState.selectedEra.id === 'egypt') {
+                       osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, t);
+                       osc.frequency.exponentialRampToValueAtTime(200, t + 0.15);
+                       gain.gain.setValueAtTime(0.4, t);
+                       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+                       osc.start(t); osc.stop(t + 0.2);
+                       // Second oscillator for reed instrument feel
+                       var osc2 = audioCtx.createOscillator();
+                       var gain2 = audioCtx.createGain();
+                       osc2.type = 'sine'; osc2.frequency.setValueAtTime(600, t);
+                       osc2.frequency.exponentialRampToValueAtTime(300, t + 0.2);
+                       gain2.gain.setValueAtTime(0.1, t);
+                       gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+                       osc2.connect(gain2); gain2.connect(sfxGainNode);
+                       osc2.start(t); osc2.stop(t + 0.2);
+                   } else {
+                       osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, t);
+                       osc.frequency.exponentialRampToValueAtTime(80, t + 0.15);
+                       gain.gain.setValueAtTime(0.4, t);
+                       gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+                       osc.start(t); osc.stop(t + 0.2);
+                   }
                    break;
                case 'capture':
                    osc.type = 'sine'; osc.frequency.setValueAtTime(400, t);
@@ -2973,6 +3105,10 @@
                playNote(note2, music.noteLen * 0.8, music.wave);
            } else {
                playNote(note, music.noteLen, music.wave);
+           }
+           // Phase 5.2: Drone note support for Egypt (low C3)
+           if (music.drone && Math.random() < 0.1) {
+               playNote(music.drone, music.noteLen * 2, 'sine');
            }
        }
 
@@ -3268,6 +3404,12 @@
        }
 
        function applyEraTheme(era) {
+           // Phase 7.1: Egypt-specific gold theme override
+           if (era && era.id === 'egypt') {
+               document.documentElement.style.setProperty('--era-primary', '#C9A84C');
+               document.documentElement.style.setProperty('--era-glow', 'rgba(201,168,76,0.3)');
+               return;
+           }
            const color = era ? era.color : '#667eea';
            document.documentElement.style.setProperty('--era-primary', color);
            const r = parseInt(color.slice(1,3),16);
@@ -3348,21 +3490,28 @@
                id: 'player', name: 'You', color: era.color, gold: 15,
                troops: 15, x: 0, y: 0, eliminated: false, specialUsed: false,
                berserkerActive: false, defenseBonus: 1, defenseBonusTurns: 0,
-               weapons: [], defeated: 0
+               weapons: [], defeated: 0, cavalry: 0
            };
+           // Phase 1.3: Pharaoh's Divine Shield (once-per-game save)
+           if (era.id === 'egypt') gameState.player._pharaohShield = true;
+           // Phase 2.2: Monument tracking
+           gameState.player.monuments = [];
            gameState.opponents = [];
            const personalities = Object.values(AI_PERSONALITIES);
            const colors = ['#e74c3c','#9b59b6','#1abc9c','#f39c12','#34495e','#16a085','#27ae60','#2980b9','#8e44ad','#c0392b','#d35400','#7f8c8d','#2c3e50','#e67e22','#95a5a6','#bdc3c7','#2ecc71','#f1c40f','#e84393','#00cec9'];
+           // Phase 6.2: Egypt-specific AI opponent names
+           const egyptAINames = ['Ramesses', 'Nefertiti', 'Thutmose', 'Hatshepsut', 'Cleopatra', 'Amenhotep', 'Khufu', 'Tutankhamun'];
            const otherEras = ERAS.filter(e => !gameState.selectedEra || e.id !== gameState.selectedEra.id);
            for (let i = 0; i < gameState.opponentCount; i++) {
                const oppEra = otherEras[i % otherEras.length];
+               const oppName = (era.id === 'egypt') ? egyptAINames[i % egyptAINames.length] : oppEra.name;
                gameState.opponents.push({
-                   id: `ai_${i}`, name: oppEra.name, color: oppEra.color,
+                   id: `ai_${i}`, name: oppName, color: oppEra.color,
                    era: oppEra,
                    gold: params.aiStartGold, troops: params.aiStartTroops * 3,
                    x: 0, y: 0, eliminated: false, defeated: 0,
                    personality: personalities[i % personalities.length], isAI: true,
-                   specialUsed: false, weapons: []
+                   specialUsed: false, weapons: [], cavalry: 0, _threatLevel: 0
                });
            }
            initBattlefield();
@@ -3384,6 +3533,9 @@
            updateGameUI();
            updateScoreboard();
            startTimer();
+           setTimeout(() => showTutorial(), 500);
+           // Phase 4.1: Show era intro narrative
+           if (ERA_INTRO_TEXT[era.id]) setTimeout(() => showEraIntro(era), 300);
        }
 
        function initBattlefield() {
@@ -3404,7 +3556,64 @@
            const allFactions = [{ id: 'player' }, ...gameState.opponents.map(o => ({ id: o.id }))];
            const numFactions = allFactions.length;
 
-           if (map && numFactions > 1) {
+           // Use era's predefined territory map when available and has more territories than factions
+           const terrDefs = (map && map.territories && map.territories.length > numFactions)
+               ? map.territories : null;
+
+           if (terrDefs) {
+               const totalTerritories = terrDefs.length;
+
+               gameState.armyScale = Math.min(w, h) / 10;
+
+               // Divide territories among factions, player gets the extras
+               const basePerFaction = Math.floor(totalTerritories / numFactions);
+               const remainder = totalTerritories % numFactions;
+
+               gameState.territories = terrDefs.map((tDef, i) => {
+                   let factionIdx = 0;
+                   let offset = 0;
+                   for (let f = 0; f < numFactions; f++) {
+                       const count = basePerFaction + (f < remainder ? 1 : 0);
+                       if (i < offset + count) { factionIdx = f; break; }
+                       offset += count;
+                   }
+                   return {
+                       id: tDef.id,
+                       name: tDef.name,
+                       owner: allFactions[factionIdx].id,
+                       troops: 1 + Math.floor(Math.random() * 2),
+                       terrain: tDef.terrain,
+                       adj: tDef.adj || []
+                   };
+               });
+
+               // Store the map data for rendering (buildTerritoryPaths reads this)
+               ERA_MAPS[eraId]._dynamic = terrDefs;
+               gameState._dynamicMap = terrDefs;
+
+               // Place each faction's army at the center of their first territory
+               for (let fi = 0; fi < numFactions; fi++) {
+                   const factionTerrs = gameState.territories.filter(t => t.owner === allFactions[fi].id);
+                   if (factionTerrs.length > 0) {
+                       const tDef = terrDefs[factionTerrs[0].id];
+                       const cx = tDef.poly.reduce((s, p) => s + p[0], 0) / tDef.poly.length * w;
+                       const cy = tDef.poly.reduce((s, p) => s + p[1], 0) / tDef.poly.length * h;
+                       if (allFactions[fi].id === 'player') {
+                           gameState.player.x = cx;
+                           gameState.player.y = cy;
+                           gameState.player.troops = factionTerrs[0].troops;
+                       } else {
+                           const opp = gameState.opponents.find(o => o.id === allFactions[fi].id);
+                           if (opp) {
+                               opp.x = cx;
+                               opp.y = cy;
+                               opp.troops = factionTerrs[0].troops;
+                           }
+                       }
+                   }
+               }
+           } else if (map && numFactions > 1) {
+               // Fallback: generate generic territories when no predefined map
                const terrains = ['plains', 'forest', 'mountain', 'city'];
                const eraNames = map.territories.map(t => t.name);
                const cols = Math.ceil(Math.sqrt(numFactions * 1.5));
@@ -3478,6 +3687,7 @@
                    }
                }
            } else {
+               // No map at all — place armies without territories
                gameState.territories = [];
                gameState.player.x = w * 0.12;
                gameState.player.y = h * 0.5;
@@ -3715,17 +3925,6 @@
        }
        function handleTouchMove(e) { e.preventDefault(); }
        function handleTouchEnd(e) { e.preventDefault(); }
-       function handleMouseMove(e) {
-           const rect = canvas.getBoundingClientRect();
-           const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-           const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-           const f = getArmyAtPosition(x, y);
-           canvas.style.cursor = f ? 'pointer' : 'default';
-       }
-       function handleCanvasClick(e) {
-           const rect = canvas.getBoundingClientRect();
-           handleCanvasInteraction((e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
-       }
 
        // ==================== ANIME CHARACTER SYSTEM ====================
        let battleAnimations = [];
@@ -5474,7 +5673,7 @@
                path.closePath();
                const cx = tDef.poly.reduce((s, p) => s + p[0], 0) / tDef.poly.length * w;
                const cy = tDef.poly.reduce((s, p) => s + p[1], 0) / tDef.poly.length * h;
-               _territoryPaths.push({ id: tDef.id, path, cx, cy, terrain: tDef.terrain, name: tDef.name, adj: tDef.adj });
+               _territoryPaths.push({ id: tDef.id, path, cx, cy, terrain: tDef.terrain, name: tDef.name, adj: tDef.adj, _rawPoly: tDef.poly.map(p => [p[0] * w, p[1] * h]) });
            }
        }
 
@@ -5483,6 +5682,15 @@
            animFrame++;
            updateParticles();
            if (typeof updateAllEnhancedEffects === 'function') updateAllEnhancedEffects();
+           // Phase 3.4: Spawn scarab particles for Egypt era (1 per 60 frames)
+           if (gameState.selectedEra && gameState.selectedEra.id === 'egypt' && typeof emitParticles === 'function' && animFrame % 60 === 0 && typeof canvas !== 'undefined') {
+               emitParticles(Math.random() * canvas.width, Math.random() * canvas.height, {
+                   count: 1, type: 'spark', speed: 0.5, life: 120, size: 2.5,
+                   color: '#d4a574', fadeOut: 0.008, sizeDecay: 0.002, gravity: -0.01,
+                   spread: 0.3, direction: Math.PI * 0.2
+               });
+               _renderDirty = true;
+           }
            tickTimedEffects();
            // Only render when something changed or animations active
            const hasParticles = particles.length > 0;
@@ -5610,6 +5818,18 @@
                ctx.beginPath(); ctx.arc(cx, cy, cr * 3, 0, Math.PI * 2); ctx.fill();
                ctx.fillStyle = sunColor + 'cc';
                ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.fill();
+               // Phase 3.2: Egypt lens flare rays
+               if (eraId === 'egypt') {
+                   ctx.save(); ctx.translate(cx, cy); ctx.rotate(animFrame * 0.005);
+                   for (let i = 0; i < 6; i++) {
+                       ctx.rotate(Math.PI / 3);
+                       var flareAlpha = 0.08 + 0.04 * Math.sin(animFrame * 0.02 + i);
+                       ctx.strokeStyle = 'rgba(255,180,50,' + flareAlpha.toFixed(3) + ')';
+                       ctx.lineWidth = 2;
+                       ctx.beginPath(); ctx.moveTo(0, cr); ctx.lineTo(0, cr * 4); ctx.stroke();
+                   }
+                   ctx.restore();
+               }
            }
        }
 
@@ -5785,6 +6005,13 @@
            ctx.moveTo(x, base - s); ctx.lineTo(x - s * 0.7, base); ctx.lineTo(x + s * 0.7, base);
            ctx.closePath(); ctx.fill();
            ctx.strokeStyle = color + '30'; ctx.lineWidth = 1; ctx.stroke();
+           // Phase 3.1: Animated pyramid capstone glow
+           var glowAlpha = 0.15 + 0.1 * Math.sin(animFrame * 0.03);
+           var grad = ctx.createRadialGradient(x, base - s, 0, x, base - s, s * 0.5);
+           grad.addColorStop(0, 'rgba(254,202,87,' + glowAlpha.toFixed(3) + ')');
+           grad.addColorStop(1, 'rgba(254,202,87,0)');
+           ctx.fillStyle = grad;
+           ctx.beginPath(); ctx.arc(x, base - s, s * 0.5, 0, Math.PI * 2); ctx.fill();
        }
        function drawObelisk(x, base, s, color) {
            ctx.fillStyle = color + '35';
@@ -6170,6 +6397,134 @@
            }
        }
 
+       // Phase 3.3: Nile River on the battle map
+       function drawNileRiver(w, h) {
+           ctx.save();
+           var shimmerAlpha = 0.3 + 0.1 * Math.sin(animFrame * 0.015);
+           ctx.strokeStyle = 'rgba(30,144,255,' + shimmerAlpha.toFixed(3) + ')';
+           ctx.lineWidth = Math.max(8, w * 0.015);
+           ctx.lineCap = 'round';
+           ctx.beginPath();
+           ctx.moveTo(0, h * 0.55);
+           ctx.bezierCurveTo(w * 0.2, h * 0.4, w * 0.35, h * 0.65, w * 0.5, h * 0.5);
+           ctx.bezierCurveTo(w * 0.65, h * 0.35, w * 0.8, h * 0.6, w, h * 0.45);
+           ctx.stroke();
+           // Lighter center shimmer
+           ctx.strokeStyle = 'rgba(100,200,255,' + (shimmerAlpha * 0.4).toFixed(3) + ')';
+           ctx.lineWidth = Math.max(3, w * 0.005);
+           ctx.beginPath();
+           ctx.moveTo(0, h * 0.55);
+           ctx.bezierCurveTo(w * 0.2, h * 0.4, w * 0.35, h * 0.65, w * 0.5, h * 0.5);
+           ctx.bezierCurveTo(w * 0.65, h * 0.35, w * 0.8, h * 0.6, w, h * 0.45);
+           ctx.stroke();
+           ctx.restore();
+       }
+
+       // Phase 3.5: Sandstorm weather effect
+       var _sandstormNextTrigger = 600;
+       var _sandstormActive = false;
+       var _sandstormEnd = 0;
+       function drawEgyptSandstorm(w, h) {
+           // Trigger sandstorms at random intervals (10-20 seconds at 60fps = 600-1200 frames)
+           if (!_sandstormActive && animFrame >= _sandstormNextTrigger) {
+               _sandstormActive = true;
+               _sandstormEnd = animFrame + 120 + Math.floor(Math.random() * 60); // 2-3 seconds
+           }
+           if (_sandstormActive && animFrame >= _sandstormEnd) {
+               _sandstormActive = false;
+               _sandstormNextTrigger = animFrame + 600 + Math.floor(Math.random() * 600);
+           }
+           if (!_sandstormActive) return;
+           ctx.save();
+           ctx.globalAlpha = 0.6;
+           for (var i = 0; i < 20; i++) {
+               var sx = ((i * 97.3 + animFrame * (3 + (i % 5) * 0.5)) % (w + 100)) - 50;
+               var sy = (i * 47.1 + animFrame * 0.3) % h;
+               var sLen = 20 + (i % 4) * 15;
+               var sAlpha = 0.1 + 0.15 * Math.sin(animFrame * 0.04 + i);
+               ctx.strokeStyle = 'rgba(212,165,116,' + sAlpha.toFixed(3) + ')';
+               ctx.lineWidth = 1 + (i % 3);
+               ctx.beginPath();
+               ctx.moveTo(sx, sy);
+               ctx.lineTo(sx + sLen, sy + 1);
+               ctx.stroke();
+           }
+           ctx.restore();
+       }
+
+       // ==================== TERRAIN ICONS & COMBAT TOOLTIP ====================
+       function drawTerrainIcons(w, h) {
+           if (!_territoryPaths.length || !gameState.territories) return;
+           buildTerritoryLookup();
+           const iconSize = Math.max(12, w * 0.016);
+           const terrainIcons = { mountain: '⛰️', forest: '🌲', city: '🏛️', plains: '🌾' };
+           for (const tp of _territoryPaths) {
+               if (tp.terrain === 'water') continue;
+               const icon = terrainIcons[tp.terrain];
+               if (!icon) continue;
+               ctx.font = iconSize + 'px Arial';
+               ctx.textAlign = 'center';
+               ctx.textBaseline = 'middle';
+               ctx.globalAlpha = 0.6;
+               const offsetX = iconSize * 0.8;
+               const offsetY = -iconSize * 0.6;
+               ctx.fillText(icon, tp.cx + offsetX, tp.cy + offsetY);
+               ctx.globalAlpha = 1;
+           }
+       }
+
+       function drawCombatTooltip(attacker, defender, w, h) {
+           const pred = getCombatPrediction(attacker, defender);
+           const defTerr = getFactionTerritory(defender.id);
+           const terrainBonus = defTerr ? getTerrainDefenseBonus(defTerr.terrain) : 1.0;
+           const terrainName = defTerr ? defTerr.terrain : 'plains';
+           const tooltipW = Math.max(160, w * 0.18);
+           const lineH = Math.max(14, w * 0.016);
+           const padding = 10;
+           const lines = 4;
+           const tooltipH = padding * 2 + lineH * lines + lineH * 0.5;
+           let tx = defender.x + (gameState.armyScale || 80) * 0.8;
+           let ty = defender.y - tooltipH - 10;
+           if (tx + tooltipW > w - 10) tx = defender.x - tooltipW - 10;
+           if (ty < 10) ty = defender.y + (gameState.armyScale || 80) * 0.8;
+           ctx.save();
+           ctx.fillStyle = 'rgba(0,0,0,0.88)';
+           ctx.strokeStyle = pred.attackerWins ? '#22d3ee' : '#f87171';
+           ctx.lineWidth = 2;
+           ctx.beginPath();
+           const r = 8;
+           ctx.moveTo(tx + r, ty);
+           ctx.lineTo(tx + tooltipW - r, ty);
+           ctx.quadraticCurveTo(tx + tooltipW, ty, tx + tooltipW, ty + r);
+           ctx.lineTo(tx + tooltipW, ty + tooltipH - r);
+           ctx.quadraticCurveTo(tx + tooltipW, ty + tooltipH, tx + tooltipW - r, ty + tooltipH);
+           ctx.lineTo(tx + r, ty + tooltipH);
+           ctx.quadraticCurveTo(tx, ty + tooltipH, tx, ty + tooltipH - r);
+           ctx.lineTo(tx, ty + r);
+           ctx.quadraticCurveTo(tx, ty, tx + r, ty);
+           ctx.closePath();
+           ctx.fill(); ctx.stroke();
+           ctx.textAlign = 'left';
+           ctx.textBaseline = 'top';
+           const fs = Math.max(11, w * 0.014);
+           ctx.font = 'bold ' + fs + 'px Arial';
+           const winColor = pred.attackerWins ? '#22d3ee' : '#f87171';
+           ctx.fillStyle = winColor;
+           ctx.fillText(pred.attackerWins ? '✓ Likely Victory' : '✗ Risky Attack', tx + padding, ty + padding);
+           ctx.font = fs + 'px Arial';
+           ctx.fillStyle = '#ccc';
+           const y2 = ty + padding + lineH;
+           ctx.fillText('Win chance: ' + pred.chance + '%', tx + padding, y2);
+           ctx.fillStyle = terrainBonus > 1.0 ? '#fbbf24' : '#999';
+           const bonusText = terrainBonus > 1.0 ? terrainName + ' +' + Math.round((terrainBonus - 1) * 100) + '% def' : 'No terrain bonus';
+           ctx.fillText(bonusText, tx + padding, y2 + lineH);
+           ctx.fillStyle = '#aaa';
+           ctx.fillText('You: ~' + pred.attackerSurvivors + ' left', tx + padding, y2 + lineH * 2);
+           ctx.fillStyle = '#aaa';
+           ctx.fillText('Enemy: ~' + pred.defenderSurvivors + ' left', tx + padding, y2 + lineH * 3);
+           ctx.restore();
+       }
+
        // ==================== ARMY RENDERING ====================
        function getAllFactions() {
            return [gameState.player, ...gameState.opponents].filter(f => !f.eliminated);
@@ -6207,19 +6562,50 @@
            ctx.drawImage(_mapCache, 0, 0);
            // Animated era-specific textures drawn per-frame (on top of cached hexes)
            drawTerritoryTextures(eraId, w, h);
+           // Phase 3.3: Nile River for Egypt era
+           if (eraId === 'egypt') drawNileRiver(w, h);
+           // Phase 3.5: Sandstorm overlay for Egypt era
+           if (eraId === 'egypt') { drawEgyptSandstorm(w, h); _renderDirty = true; }
            for (const f of getAllFactions()) drawArmyLand(f);
            for (const f of getAllFactions()) drawArmy(f);
+           // Draw terrain icons on territories
+           drawTerrainIcons(w, h);
            if (gameState.selectedArmy) {
                const pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.1);
                ctx.globalAlpha = 0.4 + pulse * 0.4;
                drawArmyHighlight(gameState.selectedArmy, '#ffffff', 2 + pulse * 2);
                ctx.globalAlpha = 1;
+               // Highlight adjacent territories
+               const adjIds = getAdjacentTerritoryIds('player');
+               if (adjIds.length > 0 && _territoryPaths.length > 0) {
+                   ctx.globalAlpha = 0.15 + pulse * 0.15;
+                   ctx.strokeStyle = '#22d3ee';
+                   ctx.lineWidth = 3;
+                   for (const adjId of adjIds) {
+                       const adjTp = _territoryPaths.find(p => p.id === adjId);
+                       if (adjTp) { ctx.stroke(adjTp.path); }
+                   }
+                   ctx.globalAlpha = 1;
+               }
                const mp = 0.3 + 0.3 * Math.sin(animFrame * 0.08 + 1);
                ctx.globalAlpha = mp;
                for (const f of getAllFactions()) {
-                   if (f.id !== 'player') drawArmyHighlight(f, '#f87171', 2);
+                   if (f.id !== 'player') {
+                       const fTerr = getFactionTerritory(f.id);
+                       const isAdj = !fTerr || adjIds.includes(fTerr.id);
+                       drawArmyHighlight(f, isAdj ? '#22d3ee' : '#f8717140', isAdj ? 3 : 1);
+                   }
                }
                ctx.globalAlpha = 1;
+               // Combat prediction tooltip on hover
+               if (_hoverX > 0 && _hoverY > 0) {
+                   const hoverFaction = getArmyAtPosition(_hoverX, _hoverY);
+                   if (hoverFaction && hoverFaction.id !== 'player') {
+                       const fTerr = getFactionTerritory(hoverFaction.id);
+                       const isAdj = !fTerr || adjIds.length === 0 || adjIds.includes(fTerr.id);
+                       if (isAdj) drawCombatTooltip(gameState.selectedArmy, hoverFaction, w, h);
+                   }
+               }
            }
            drawParticles(); drawTroopMovements(); drawBattleAnimations();
            if (typeof drawAllEnhancedEffects === 'function') drawAllEnhancedEffects(ctx);
@@ -6236,7 +6622,6 @@
                const tp = _territoryPaths[ti];
                const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
                if (!tDef) continue;
-               ctx.beginPath(tp.path);
                const rt = _territoryById.get(tp.id);
                const ownerEraId = rt && rt.owner ? getFactionEra(rt.owner) : null;
                const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
@@ -6252,18 +6637,18 @@
                } else {
                    ctx.fillStyle = baseColor;
                }
-               ctx.fill();
+               ctx.fill(tp.path);
                if (rt && rt.owner) {
                    const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
                    if (faction) {
                        ctx.strokeStyle = faction.color + '60';
                        ctx.lineWidth = 2;
-                       ctx.stroke();
+                       ctx.stroke(tp.path);
                    }
                }
                ctx.strokeStyle = tDef.terrain === 'water' ? '#3b82f660' : '#ffffff20';
                ctx.lineWidth = 1;
-               ctx.stroke();
+               ctx.stroke(tp.path);
            }
 
            for (let ti = 0; ti < _territoryPaths.length; ti++) {
@@ -6528,7 +6913,7 @@
                const ownerEraId = getFactionEra(rt.owner);
                const land = ERA_LANDS[ownerEraId] || defaultLand;
                ctx.save();
-               ctx.beginPath(tp.path); ctx.clip();
+               ctx.clip(tp.path);
                drawTerritoryTexture(ownerEraId, tp.cx, tp.cy, w, h, land, animFrame);
                ctx.restore();
            }
@@ -6627,6 +7012,17 @@
                    const rs = 2 + rng(i+220) * 4;
                    ctx.fillStyle = blendColors(land.ground, '#8B7355', 0.3) + '40';
                    ctx.beginPath(); ctx.ellipse(rx, ry, rs, rs * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+               }
+               // Phase 3.6: Hieroglyphic territory borders for Egypt
+               if (eraId === 'egypt') {
+                   var hieroglyphs = ['𓂀', '𓋹', '𓆣', '𓁹'];
+                   ctx.font = '9px serif';
+                   ctx.fillStyle = 'rgba(240,217,160,0.15)';
+                   for (var hi = 0; hi < 4; hi++) {
+                       var hx = fx + (rng(hi + 300) - 0.5) * lw * 1.0;
+                       var hy = fy + (rng(hi + 310) - 0.5) * lh * 0.8;
+                       ctx.fillText(hieroglyphs[hi % hieroglyphs.length], hx, hy);
+                   }
                }
            } else if (green) {
                // Grass tufts
@@ -6951,12 +7347,413 @@
            if (gameState.powerTargetMode) { handlePowerTarget(x, y); return; }
            if (gameState.weaponTargetMode) { handleWeaponTarget(x, y); return; }
            const faction = getArmyAtPosition(x, y);
-           if (!faction) { gameState.selectedArmy = null; renderGame(); return; }
            if (gameState.selectedArmy) {
-               if (faction.id === gameState.selectedArmy.id) { gameState.selectedArmy = null; renderGame(); return; }
-               if (faction.id !== 'player') { attackArmy(gameState.selectedArmy, faction); gameState.selectedArmy = null; return; }
+               if (faction && faction.id === gameState.selectedArmy.id) { gameState.selectedArmy = null; renderGame(); return; }
+               if (faction && faction.id !== 'player') {
+                   const adjIds = getAdjacentTerritoryIds('player');
+                   const defenderTerr = getFactionTerritory(faction.id);
+                   if (defenderTerr && adjIds.length > 0 && !adjIds.includes(defenderTerr.id)) {
+                       showPowerIndicator('Too far! Attack adjacent territory.');
+                       gameState.selectedArmy = null; renderGame(); return;
+                   }
+                   attackArmy(gameState.selectedArmy, faction); gameState.selectedArmy = null; return;
+               }
+               // Phase 5.2: No army clicked - check if clicking an adjacent friendly territory to move
+               if (!faction) {
+                   const clickedTerr = getTerritoryAt(x, y);
+                   if (clickedTerr && clickedTerr.owner === 'player') {
+                       const playerTerr = getFactionTerritory('player');
+                       if (playerTerr && playerTerr.id !== clickedTerr.id) {
+                           const playerAdj = getAdjacentTerritoryIds('player');
+                           if (playerAdj.includes(clickedTerr.id)) {
+                               // Move player army to clicked territory center
+                               if (clickedTerr._center) {
+                                   gameState.player.x = clickedTerr._center.x;
+                                   gameState.player.y = clickedTerr._center.y;
+                               }
+                               gameState.selectedArmy = null;
+                               showPowerIndicator('Moved!');
+                               invalidateMapCache(); renderGame(); saveGame();
+                               return;
+                           } else {
+                               showPowerIndicator('Not adjacent! Move to a neighboring territory.');
+                           }
+                       }
+                   }
+                   gameState.selectedArmy = null; renderGame(); return;
+               }
            }
-           if (faction.id === 'player') { gameState.selectedArmy = faction; renderGame(); }
+           if (faction && faction.id === 'player') { gameState.selectedArmy = faction; renderGame(); return; }
+           gameState.selectedArmy = null; renderGame();
+       }
+
+       // ==================== TUTORIAL ====================
+       const _tutorialSteps = [
+           { arrow: '👆', title: 'Select Your Army', text: 'Tap your army (blue circle) on the map to select it. You\'ll see it highlighted with a glow.' },
+           { arrow: '⚔️', title: 'Attack an Enemy', text: 'Tap any enemy on an adjacent territory to attack them. Mountains give defenders +40% defense!' },
+           { arrow: '⏭️', title: 'End Your Turn', text: 'After attacking or recruiting, tap END TURN. AI opponents take their turn, then you earn gold from territories.' }
+       ];
+       let _tutorialStep = 0;
+
+       function showTutorial() {
+           if (localStorage.getItem('hadooney_tutorial_done')) return;
+           _tutorialStep = 0;
+           updateTutorialUI();
+           document.getElementById('tutorial-overlay').classList.add('active');
+       }
+
+       function updateTutorialUI() {
+           const step = _tutorialSteps[_tutorialStep];
+           document.getElementById('tutorial-arrow').textContent = step.arrow;
+           document.getElementById('tutorial-title').textContent = step.title;
+           document.getElementById('tutorial-text').textContent = step.text;
+           const dotsEl = document.getElementById('tutorial-dots');
+           dotsEl.innerHTML = '';
+           for (let i = 0; i < _tutorialSteps.length; i++) {
+               const dot = document.createElement('span');
+               if (i === _tutorialStep) dot.className = 'active';
+               dotsEl.appendChild(dot);
+           }
+           const nextBtn = document.getElementById('tutorial-next-btn');
+           nextBtn.textContent = _tutorialStep === _tutorialSteps.length - 1 ? 'Got it!' : 'Next';
+       }
+
+       function nextTutorialStep() {
+           _tutorialStep++;
+           if (_tutorialStep >= _tutorialSteps.length) { closeTutorial(); return; }
+           updateTutorialUI();
+       }
+
+       function closeTutorial() {
+           document.getElementById('tutorial-overlay').classList.remove('active');
+           localStorage.setItem('hadooney_tutorial_done', '1');
+       }
+
+       // ==================== HOVER TRACKING ====================
+       let _hoverX = -1, _hoverY = -1;
+
+       function handleMouseMove(e) {
+           const rect = canvas.getBoundingClientRect();
+           const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+           const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+           _hoverX = x; _hoverY = y;
+           const f = getArmyAtPosition(x, y);
+           canvas.style.cursor = f ? 'pointer' : 'default';
+           if (gameState.selectedArmy && f && f.id !== 'player') markDirty();
+       }
+
+       function handleCanvasClick(e) {
+           const rect = canvas.getBoundingClientRect();
+           handleCanvasInteraction((e.clientX - rect.left) * (canvas.width / rect.width), (e.clientY - rect.top) * (canvas.height / rect.height));
+       }
+
+       // ==================== TERRITORY LOOKUP ====================
+       function getTerritoryAt(x, y) {
+           if (!_territoryPaths.length || !gameState.territories) return null;
+           const w = canvas.width, h = canvas.height;
+           const nx = x / w, ny = y / h;
+           for (const tp of _territoryPaths) {
+               const poly = tp._normPoly || normalizePoly(tp);
+               if (pointInPoly(nx, ny, poly)) {
+                   return _territoryById.get(tp.id) || null;
+               }
+           }
+           return null;
+       }
+
+       function normalizePoly(tp) {
+           const w = canvas.width, h = canvas.height;
+           tp._normPoly = tp._rawPoly.map(p => [p[0] / w, p[1] / h]);
+           return tp._normPoly;
+       }
+
+       function pointInPoly(x, y, poly) {
+           let inside = false;
+           for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+               const xi = poly[i][0], yi = poly[i][1];
+               const xj = poly[j][0], yj = poly[j][1];
+               if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) {
+                   inside = !inside;
+               }
+           }
+           return inside;
+       }
+
+       function getFactionTerritory(factionId) {
+           if (!gameState.territories) return null;
+           const fx = factionId === 'player' ? gameState.player.x : (() => { const o = gameState.opponents.find(o => o.id === factionId); return o ? o.x : -1; })();
+           const fy = factionId === 'player' ? gameState.player.y : (() => { const o = gameState.opponents.find(o => o.id === factionId); return o ? o.y : -1; })();
+           if (fx < 0) return null;
+           return getTerritoryAt(fx, fy);
+       }
+
+       function isAdjacentTerritory(terrId1, terrId2) {
+           if (!gameState._dynamicMap) return false;
+           const t1 = gameState._dynamicMap.find(t => t.id === terrId1);
+           if (!t1) return false;
+           return (t1.adj || []).includes(terrId2);
+       }
+
+       function getAdjacentTerritoryIds(factionId) {
+           const terr = getFactionTerritory(factionId);
+           if (!terr) return [];
+           if (!gameState._dynamicMap) return [];
+           const def = gameState._dynamicMap.find(t => t.id === terr.id);
+           return def ? (def.adj || []) : [];
+       }
+
+       // ==================== TERRAIN DEFENSE BONUS ====================
+       const TERRAIN_DEFENSE = { mountain: 1.4, forest: 1.25, city: 1.2, plains: 1.0 };
+
+       function getTerrainDefenseBonus(terrain) {
+           return TERRAIN_DEFENSE[terrain] || 1.0;
+       }
+
+       // ==================== TERRAIN INCOME BONUS ====================
+       const TERRAIN_INCOME = { mountain: 2, forest: 1, city: 3, plains: 1 };
+
+       // ==================== ERA COMBAT MODIFIERS ====================
+       const ERA_COMBAT_MODS = {
+           egypt: { atk: 1.0, def: 1.15 },
+           rome: { atk: 1.0, def: 1.1 },
+           viking: { atk: 1.15, def: 1.0 },
+           medieval: { atk: 1.0, def: 1.15 },
+           ottoman: { atk: 1.1, def: 1.0 },
+           aztec: { atk: 1.1, def: 0.9 },
+           ming: { atk: 1.0, def: 1.1 },
+           edo: { atk: 1.05, def: 1.05 },
+           british: { atk: 1.05, def: 1.1 },
+           industrial: { atk: 1.05, def: 1.0 },
+           cyber: { atk: 1.1, def: 1.0 },
+           quantum: { atk: 1.0, def: 1.15 },
+           star: { atk: 1.15, def: 1.0 },
+           dragon: { atk: 1.2, def: 0.85 },
+           crystal: { atk: 0.9, def: 1.2 },
+           shadow: { atk: 1.1, def: 1.0 },
+           thunder: { atk: 1.15, def: 0.9 },
+           void: { atk: 1.0, def: 1.1 },
+           ember: { atk: 1.15, def: 0.9 },
+           frost: { atk: 0.9, def: 1.2 }
+       };
+
+       // ==================== ERA INCOME MODIFIERS ====================
+       const ERA_INCOME_MODS = {
+           egypt: 1.0, rome: 1.0, viking: 0.8, medieval: 1.0, ottoman: 1.0,
+           aztec: 1.3, ming: 1.0, edo: 1.0, british: 1.2, industrial: 1.2,
+           cyber: 1.0, quantum: 1.0, star: 1.0, dragon: 1.0, crystal: 1.0,
+           shadow: 1.0, thunder: 1.0, void: 1.0, ember: 0.9, frost: 1.0
+       };
+
+       // ==================== PHASE 4: EGYPT STORYLINE ====================
+       // 4.1 Era Intro Narrative
+       const ERA_INTRO_TEXT = {
+           egypt: {
+               title: 'The Fractured Kingdom',
+               text: 'The great kingdoms of the Nile have fractured. You are the last Pharaoh\'s general, tasked with reunifying Egypt before foreign conquerors seize the land. The Nile floods bring prosperity — but only to those who hold its banks.'
+           }
+       };
+
+       // 4.2 Turn Event Flavor Text
+       const EGYPT_TURN_EVENTS = [
+           { text: 'A sandstorm sweeps the desert... scouts report unusual movement.', effect: null },
+           { text: 'Merchants from Nubia arrive bearing gifts of gold.', effect: function() { gameState.player.gold += 5; } },
+           { text: 'Workers discover a hidden tomb, recovering ancient treasures (+5g).', effect: function() { gameState.player.gold += 5; } },
+           { text: 'The Nile runs low this season. Morale drops. (-2 troops)', effect: function() { gameState.player.troops = Math.max(1, gameState.player.troops - 2); } },
+           { text: 'A solar eclipse darkens the sky. The priests interpret it as a sign of war.', effect: null },
+           { text: 'The Pharaoh\'s bakeries produce extra bread for the troops. (+1 troop)', effect: function() { gameState.player.troops += 1; } },
+           { text: 'An oracle at the Temple of Karnak foretells victory.', effect: null },
+           { text: 'Scarab beetles swarm the battlefield — a sign of good fortune!', effect: null },
+           { text: 'A drought strikes the outer provinces. (-3g)', effect: function() { gameState.player.gold = Math.max(0, gameState.player.gold - 3); } },
+           { text: 'Merchants from the east bring news of Rome\'s growing power.', effect: null },
+           { text: 'A tomb robber is caught — his gold is added to the treasury. (+8g)', effect: function() { gameState.player.gold += 8; } },
+           { text: 'Workmen at the pyramid site mutiny briefly. (-2g)', effect: function() { gameState.player.gold = Math.max(0, gameState.player.gold - 2); } }
+       ];
+
+       // 4.3 Victory/Defeat Narratives
+       const VICTORY_NARRATIVES = {
+           egypt: { title: 'The Nile Flows United', subtitle: 'You have restored the glory of Egypt. The gods smile upon you, Pharaoh.' }
+       };
+       const DEFEAT_NARRATIVES = {
+           egypt: { title: 'The Sands Reclaim Your Empire', subtitle: 'Egypt falls to foreign conquerors. But the memory of your dynasty endures...' }
+       };
+
+       // 4.1: showEraIntro — full-screen narrative overlay
+       function showEraIntro(era) {
+           var intro = ERA_INTRO_TEXT[era.id];
+           if (!intro) return;
+           var overlay = document.createElement('div');
+           overlay.id = 'era-intro-overlay';
+           overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);opacity:0;transition:opacity 0.6s ease;pointer-events:auto;';
+           var box = document.createElement('div');
+           box.style.cssText = 'max-width:520px;padding:40px 36px;text-align:center;color:#fff;font-family:Cinzel,serif;';
+           box.innerHTML =
+               '<h2 style="font-size:2rem;margin-bottom:16px;color:#feca57;text-shadow:0 0 20px rgba(254,202,87,0.4);">' + intro.title + '</h2>' +
+               '<p style="font-size:1rem;line-height:1.7;opacity:0.9;margin-bottom:28px;font-family:Segoe UI,sans-serif;">' + intro.text + '</p>' +
+               '<button id="era-intro-btn" style="padding:12px 32px;font-size:1rem;font-family:Cinzel,serif;font-weight:700;color:#000;background:#feca57;border:none;border-radius:8px;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;box-shadow:0 0 20px rgba(254,202,87,0.3);">Begin Conquest</button>';
+           overlay.appendChild(box);
+           document.body.appendChild(overlay);
+           requestAnimationFrame(function() { overlay.style.opacity = '1'; });
+           var dismiss = function() {
+               overlay.style.opacity = '0';
+               setTimeout(function() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 600);
+           };
+           box.querySelector('#era-intro-btn').addEventListener('click', dismiss);
+           setTimeout(dismiss, 8000);
+       }
+
+       // ==================== AI CHAT BUBBLES ====================
+       const AI_CHAT_MSGS = {
+           AGGRESSIVE: { attack: ['CHARGE!', 'Fear me!', 'Crush them!', 'No mercy!'], recruit: ['More troops...', 'Growing stronger!'] },
+           DEFENSIVE: { attack: ['Stay back...', 'For defense!', 'Carefully now...'], recruit: ['Reinforcing...', 'Building walls...'] },
+           BALANCED: { attack: ['Advance!', 'Good odds.', 'Let\'s go!'], recruit: ['Steady growth.', 'Stocking up.'] },
+           CUNNING: { attack: ['All going to plan...', 'As expected.', 'How predictable.'], recruit: ['Investing...', 'Patience...'] }
+       };
+
+       // Phase 6.1: Egypt-specific AI chat messages
+       const AI_EGYPT_MSGS = {
+           attack: [
+               'Ra commands your destruction!',
+               'Isis shields us from your feeble attacks!',
+               'The scarab swarm approaches!',
+               'By the gods of the Nile, you shall fall!',
+               'Anubis awaits your soul!',
+               'The Pharaoh\'s wrath is upon you!'
+           ],
+           recruit: [
+               'More servants for the Pharaoh...',
+               'The Nile provides for her children.',
+               'From the sands, warriors rise.'
+           ],
+           defend: [
+               'Our walls are as the pyramids — eternal!',
+               'The gods protect us.',
+               'You dare attack the chosen land?'
+           ],
+           taunt: [
+               'Your army is dust beneath our chariots.',
+               'Even the Sphinx laughs at your forces.',
+               'The Nile will wash away your dead.'
+           ]
+       };
+
+       // Phase 6.1: Get appropriate AI chat messages (Egypt-themed or personality-based)
+       function getAIMsgs(type) {
+           if (gameState.selectedEra && gameState.selectedEra.id === 'egypt' && AI_EGYPT_MSGS[type]) {
+               return AI_EGYPT_MSGS;
+           }
+           return null;
+       }
+
+       function showAIBubble(ai, text) {
+           const container = document.getElementById('game-screen');
+           const canvasEl = document.getElementById('game-canvas');
+           if (!container || !canvasEl) return;
+           const rect = canvasEl.getBoundingClientRect();
+           const contRect = container.getBoundingClientRect();
+           const bubble = document.createElement('div');
+           bubble.className = 'ai-bubble';
+           bubble.textContent = text;
+           const bx = rect.left - contRect.left + (ai.x / canvasEl.width) * rect.width;
+           const by = rect.top - contRect.top + (ai.y / canvasEl.height) * rect.height - 40;
+           bubble.style.left = bx + 'px';
+           bubble.style.top = by + 'px';
+           bubble.style.transform = 'translateX(-50%)';
+           container.style.position = 'relative';
+           container.appendChild(bubble);
+           setTimeout(() => { bubble.style.opacity = '0'; }, 1500);
+           setTimeout(() => { bubble.remove(); }, 2000);
+       }
+
+       // ==================== ERA MOD INDICATOR ====================
+       function updateEraModIndicator() {
+           const el = document.getElementById('era-mod-indicator');
+           if (!el || !gameState.selectedEra) return;
+           const mod = ERA_COMBAT_MODS[gameState.selectedEra.id];
+           if (!mod || (mod.atk === 1.0 && mod.def === 1.0)) { el.style.display = 'none'; return; }
+           const parts = [];
+           if (mod.atk !== 1.0) parts.push('ATK ' + (mod.atk > 1 ? '+' : '') + Math.round((mod.atk - 1) * 100) + '%');
+           if (mod.def !== 1.0) parts.push('DEF ' + (mod.def > 1 ? '+' : '') + Math.round((mod.def - 1) * 100) + '%');
+           el.textContent = gameState.selectedEra.emoji + ' ' + parts.join(' / ');
+           el.style.display = 'block';
+       }
+
+       function countPlayerTerritoryIncome() {
+           if (!gameState.territories) return { base: 0, terrain: 0, total: 0, breakdown: '' };
+           let terrainBonus = 0;
+           let base = 5;
+           const breakdowns = [];
+           breakdowns.push({ label: 'Base income', value: base });
+           for (const t of gameState.territories) {
+               if (t.owner === 'player') {
+                   const inc = TERRAIN_INCOME[t.terrain] || 1;
+                   terrainBonus += inc;
+               }
+           }
+           if (terrainBonus > 0) breakdowns.push({ label: 'Territory bonus', value: terrainBonus });
+           // Phase 2.2: Monument income bonus (+2g per monument)
+           const monumentBonus = (gameState.player.monuments || []).length * 2;
+           if (monumentBonus > 0) breakdowns.push({ label: 'Monument bonus', value: monumentBonus });
+           const victoryBonus = (gameState.player.defeated || 0) * 2;
+           if (victoryBonus > 0) breakdowns.push({ label: 'Victory bonus', value: victoryBonus });
+           const total = base + terrainBonus + monumentBonus + victoryBonus;
+           return { base, terrain: terrainBonus, victory: victoryBonus, total, breakdowns };
+       }
+
+       // Phase 2.2: Monument Building System (Egypt)
+       function buildMonument(territoryId) {
+           if (!gameState.selectedEra || gameState.selectedEra.id !== 'egypt') return;
+           if (gameState.player.gold < 30) { showHUDToast('Not enough gold! Need 30g'); return; }
+           const terr = (gameState.territories || []).find(t => t.id === territoryId);
+           if (!terr || terr.owner !== 'player') { showHUDToast('You must own this territory!'); return; }
+           if ((gameState.player.monuments || []).includes(territoryId)) { showHUDToast('Monument already built here!'); return; }
+           gameState.player.gold -= 30;
+           if (!gameState.player.monuments) gameState.player.monuments = [];
+           gameState.player.monuments.push(territoryId);
+           showHUDToast('🏛️ Monument built! +2g/turn from ' + (terr.name || 'territory'));
+           if (typeof spawnParticles === 'function') spawnParticles(
+               terr.cx !== undefined ? terr.cx * gameState.bfW : gameState.player.x,
+               terr.cy !== undefined ? terr.cy * gameState.bfH : gameState.player.y,
+               '#feca57', 10, 3);
+           updateGameUI(); updateScoreboard(); saveGame();
+       }
+
+       // Phase 2.2: Build monument on player's current territory
+       function buildMonumentForPlayer() {
+           const playerTerr = getFactionTerritory('player');
+           if (playerTerr) {
+               buildMonument(playerTerr.id);
+           } else {
+               showHUDToast('No territory to build on!');
+           }
+       }
+
+       // ==================== COMBAT PREDICTION ====================
+       function calculateCombatPower(faction, isAttacker) {
+           const troops = faction.troops;
+           const basePower = isAttacker ? troops * 0.8 : troops * 0.7;
+           let power = basePower;
+           if (isAttacker) {
+               if (faction.id === 'player' && gameState.player.berserkerActive) power *= 2;
+               if (faction.isAI && faction._berserkerActive) power *= 2;
+               if (faction.isAI) power *= (1 + DIFFICULTY_PARAMS[gameState.difficulty.id].aiAttackBonus);
+           } else {
+               if (faction.id === 'player' && gameState.player.defenseBonus > 1) power *= gameState.player.defenseBonus;
+               const terr = getFactionTerritory(faction.id);
+               if (terr) power *= getTerrainDefenseBonus(terr.terrain);
+           }
+           return power;
+       }
+
+       function getCombatPrediction(attacker, defender) {
+           const atkPower = calculateCombatPower(attacker, true);
+           const defPower = calculateCombatPower(defender, false);
+           const attackerWins = atkPower > defPower;
+           const attackerLoss = attackerWins ? Math.floor(defender.troops * 0.7) : Math.floor(attacker.troops * 0.5);
+           const defenderLoss = attackerWins ? defender.troops : Math.floor(attacker.troops * 0.3);
+           const attackerSurvivors = Math.max(1, attacker.troops - attackerLoss);
+           const defenderSurvivors = attackerWins ? 0 : Math.max(1, defender.troops - defenderLoss);
+           const chance = Math.round(Math.min(95, Math.max(5, (atkPower / (atkPower + defPower)) * 100)));
+           return { atkPower, defPower, attackerWins, attackerLoss, defenderLoss, attackerSurvivors, defenderSurvivors, chance };
        }
 
        // ==================== COMBAT ====================
@@ -6972,9 +7769,23 @@
                atkPower *= 2; attacker._berserkerActive = false;
            }
            if (attacker.isAI) atkPower *= (1 + DIFFICULTY_PARAMS[gameState.difficulty.id].aiAttackBonus);
+           // Phase 5.3: Cavalry bonus (+5% attack per cavalry unit)
+           const cavalryBonus = 1 + (attacker.cavalry || 0) * 0.05;
+           atkPower *= cavalryBonus;
            let defPower = defender.troops * (0.5 + Math.random() * 0.4);
            if (defender.id === 'player' && gameState.player.defenseBonus > 1) defPower *= gameState.player.defenseBonus;
            if (defender._invincible) { showPowerIndicator('Attack blocked!'); attacker.troops = Math.max(1, attacker.troops - 1); playSFX('attack'); renderGame(); return; }
+           const defTerr = getFactionTerritory(defender.id);
+           if (defTerr) defPower *= getTerrainDefenseBonus(defTerr.terrain);
+           // Phase 4.1: Era combat modifiers
+           const attackerEraId = attacker.id === 'player' ? (gameState.selectedEra ? gameState.selectedEra.id : null) : (attacker.era ? attacker.era.id : null);
+           const defenderEraId = defender.id === 'player' ? (gameState.selectedEra ? gameState.selectedEra.id : null) : (defender.era ? defender.era.id : null);
+           if (attackerEraId && ERA_COMBAT_MODS[attackerEraId]) atkPower *= ERA_COMBAT_MODS[attackerEraId].atk;
+           if (defenderEraId && ERA_COMBAT_MODS[defenderEraId]) defPower *= ERA_COMBAT_MODS[defenderEraId].def;
+           // Phase 1.1: Egypt desert terrain defense bonus (+15% on plains/desert)
+           if (defenderEraId === 'egypt' && defTerr && (defTerr.terrain === 'plains' || defTerr.terrain === 'desert')) defPower *= 1.15;
+           // Phase 3.2: Track threat level
+           attacker._threatLevel = (attacker._threatLevel || 0) + defender.troops;
            playSFX('attack');
            addBattleAnimation(attacker.x, attacker.y, defender.x, defender.y, attacker.color, defender.color, attacker.id, defender.id, 700);
            if (typeof combatClashEffect === 'function') combatClashEffect(defender.x, defender.y, 4);
@@ -6987,11 +7798,21 @@
                playSFX('capture'); playSFX('eliminate');
                spawnParticles(defender.x, defender.y, attacker.color, 12, 4);
                showPowerIndicator(defender.name + ' defeated!');
+               if (defTerr) { defTerr.owner = attacker.id === 'player' ? 'player' : attacker.id; }
            } else {
                const loss = Math.floor(attacker.troops * 0.5);
                attacker.troops = Math.max(1, attacker.troops - loss);
                defender.troops = Math.max(1, defender.troops - Math.floor(attacker.troops * 0.3));
                showPowerIndicator('Attack failed!');
+               // Phase 5.1: Counter-attack (defender deals 15% of their troops as damage)
+               const counterDmg = Math.floor(defender.troops * 0.15);
+               if (counterDmg > 0 && !attacker.eliminated) {
+                   attacker.troops = Math.max(1, attacker.troops - counterDmg);
+                   setTimeout(() => showPowerIndicator('Counter-attack! -' + counterDmg + ' troops'), 300);
+                   if (typeof floatingDamageNumber === 'function') {
+                       floatingDamageNumber(attacker.x, attacker.y - 20, '-' + counterDmg, '#FF6B6B', 12);
+                   }
+               }
            }
            const gameScreen = document.getElementById('game-screen');
            gameScreen.classList.add('screen-shake');
@@ -7009,6 +7830,16 @@
            gameState.player.gold -= params.recruitCost;
            gameState.player.troops += params.troopsPerRecruit;
            playSFX('recruit'); showPowerIndicator('+' + params.troopsPerRecruit + ' troops!');
+           updateGameUI(); renderGame();
+       }
+
+       // Phase 5.3: Recruit Cavalry
+       function recruitCavalry() {
+           if (gameState.player.gold < 15) { showPowerIndicator('Need 15 gold!'); return; }
+           gameState.player.gold -= 15;
+           gameState.player.cavalry = (gameState.player.cavalry || 0) + 3;
+           gameState.player.troops += 3;
+           playSFX('recruit'); showPowerIndicator('+3 cavalry (+15% atk)!');
            updateGameUI(); renderGame();
        }
 
@@ -7039,7 +7870,19 @@
            const era = gameState.selectedEra;
            let ok = true;
            switch (era.id) {
-               case 'egypt': faction.troops = Math.ceil(faction.troops * 0.5); break;
+               case 'egypt': {
+                   faction.troops = Math.ceil(faction.troops * 0.5);
+                   // Phase 1.2: Sandstorm spread - damage adjacent enemies 15%
+                   const adjTerrIds = getAdjacentTerritoryIds(faction.id);
+                   for (const adjId of adjTerrIds) {
+                       const adjFaction = getAllFactions().find(f => f.id === adjId && f.id !== 'player' && f.id !== faction.id);
+                       if (adjFaction && adjFaction.troops > 0) {
+                           adjFaction.troops = Math.max(0, adjFaction.troops - Math.ceil(adjFaction.troops * 0.15));
+                           if (adjFaction.troops <= 0) adjFaction.eliminated = true;
+                       }
+                   }
+                   break;
+               }
                case 'rome': { const stolen = Math.floor(faction.troops * 0.5); faction.troops -= stolen; gameState.player.troops += stolen; } break;
                case 'medieval': gameState.player.defenseBonus = 2; addTimedEffect(15000, () => { gameState.player.defenseBonus = 1; }); break;
                case 'ottoman': gameState.player.troops += 15; break;
@@ -7118,11 +7961,14 @@
            if (typeof updateScoreboardEnhanced === 'function') { updateScoreboardEnhanced(); return; }
            const sb = document.getElementById('scoreboard');
            if (!sb || gameState.screen !== 'game') return;
+           const personalityIcons = { AGGRESSIVE: '🔥', DEFENSIVE: '🛡️', BALANCED: '⚖️', CUNNING: '🦊' };
            const all = [gameState.player, ...gameState.opponents].sort((a, b) => b.troops - a.troops);
            sb.innerHTML = all.map((f, i) => {
                const dead = f.eliminated;
                const you = f.id === 'player' ? 'font-weight:bold;background:rgba(255,255,255,0.1);' : '';
-               return '<div class="score-entry" style="' + you + ' ' + (dead ? 'opacity:0.4;text-decoration:line-through;' : '') + '"><span>' + (i + 1) + '.</span><span style="color:' + f.color + '">' + (dead ? '💀' : '⚔️') + '</span><span>' + f.name + '</span><span>' + (dead ? '0' : f.troops) + ' troops</span><span>' + (f.gold || 0) + 'g</span></div>';
+               const pIcon = f.personality ? (personalityIcons[f.personality.name] || '') : '';
+               const cavText = (f.cavalry || 0) > 0 ? ' 🐎' : '';
+               return '<div class="score-entry" style="' + you + ' ' + (dead ? 'opacity:0.4;text-decoration:line-through;' : '') + '"><span>' + (i + 1) + '.</span><span style="color:' + f.color + '">' + (dead ? '💀' : '⚔️') + '</span><span>' + pIcon + f.name + '</span><span>' + (dead ? '0' : f.troops) + cavText + '</span><span>' + (f.gold || 0) + 'g</span></div>';
            }).join('');
        }
 
@@ -7137,19 +7983,68 @@
 
        async function processSingleAITurn(ai) {
            const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
-           ai.gold += Math.max(1, Math.floor(params.aiIncomePerTile * 5));
+           let aiIncome = Math.max(1, Math.floor(params.aiIncomePerTile * 5));
+           if (gameState.territories) {
+               for (const t of gameState.territories) {
+                   if (t.owner === ai.id) aiIncome += (TERRAIN_INCOME[t.terrain] || 1);
+               }
+           }
+           // Phase 4.2: Era income modifier
+           const aiEraMod = ai.era ? (ERA_INCOME_MODS[ai.era.id] || 1.0) : 1.0;
+           aiIncome = Math.floor(aiIncome * aiEraMod);
+           ai.gold += aiIncome;
            if (ai._factoryBonus) ai.gold += ai._factoryBonus;
            if (ai._onFire > 0) { ai.troops = Math.max(0, ai.troops - 3); ai._onFire--; if (ai.troops <= 0) { ai.eliminated = true; playSFX('eliminate'); } }
            if (ai._frozen > 0) { ai._frozen--; updateScoreboard(); return; }
-           if (!ai.eliminated && !ai.specialUsed && ai.gold >= 20 && Math.random() < 0.3) aiUseSuperpower(ai);
+           // Phase 3.2: Cunning AI uses powers 50% of time instead of 30%
+           const powerChance = ai.personality === AI_PERSONALITIES.CUNNING ? 0.5 : 0.3;
+           if (!ai.eliminated && !ai.specialUsed && ai.gold >= 20 && Math.random() < powerChance) {
+               aiUseSuperpower(ai);
+               const chatKey = ai.personality.name;
+               const egyptMsgs = getAIMsgs('attack');
+               const msgs = egyptMsgs || AI_CHAT_MSGS[chatKey] || AI_CHAT_MSGS.BALANCED;
+               showAIBubble(ai, msgs.attack[Math.floor(Math.random() * msgs.attack.length)]);
+           }
            const minA = params.aiActions[0], maxA = params.aiActions[1];
            const actions = minA + Math.floor(Math.random() * (maxA - minA + 1));
-           const alive = getAllFactions().filter(f => f.id !== ai.id);
+           const adjIds = getAdjacentTerritoryIds(ai.id);
+           const alive = getAllFactions().filter(f => {
+               if (f.id === ai.id) return false;
+               if (f.eliminated) return false;
+               if (adjIds.length === 0) return true;
+               const fTerr = getFactionTerritory(f.id);
+               if (!fTerr) return true;
+               return adjIds.includes(fTerr.id);
+           });
+           // Phase 5.3: AI recruits cavalry 30% of time
+           if (ai.gold >= 15 && Math.random() < 0.3) {
+               ai.gold -= 15;
+               ai.cavalry = (ai.cavalry || 0) + 3;
+               ai.troops += 3;
+               const chatKey = ai.personality.name;
+               const egyptMsgs = getAIMsgs('recruit');
+               const msgs = egyptMsgs || AI_CHAT_MSGS[chatKey] || AI_CHAT_MSGS.BALANCED;
+               showAIBubble(ai, msgs.recruit[Math.floor(Math.random() * msgs.recruit.length)]);
+           }
            for (let i = 0; i < actions; i++) {
                if (ai.eliminated || alive.length === 0) break;
                const roll = Math.random();
                if (roll < ai.personality.attackChance && alive.length > 0) {
-                   alive.sort((a, b) => a.troops - b.troops);
+                   // Phase 3.2: Personality-specific targeting
+                   if (ai.personality === AI_PERSONALITIES.CUNNING) {
+                       // Cunning: attacks strongest (high risk, high reward)
+                       alive.sort((a, b) => b.troops - a.troops);
+                   } else if (ai.personality === AI_PERSONALITIES.DEFENSIVE) {
+                       // Defensive: attacks highest threat level
+                       alive.sort((a, b) => (b._threatLevel || 0) - (a._threatLevel || 0));
+                   } else {
+                       // Aggressive/Balanced: attacks weakest
+                       alive.sort((a, b) => a.troops - b.troops);
+                   }
+                   const chatKey = ai.personality.name;
+                   const egyptMsgs = getAIMsgs('attack');
+                   const msgs = egyptMsgs || AI_CHAT_MSGS[chatKey] || AI_CHAT_MSGS.BALANCED;
+                   showAIBubble(ai, msgs.attack[Math.floor(Math.random() * msgs.attack.length)]);
                    attackArmy(ai, alive[0]);
                } else if (ai.gold >= 10) {
                    ai.gold -= 10; ai.troops += 5;
@@ -7167,7 +8062,19 @@
            const powers = ['egypt', 'viking', 'aztec', 'crystal', 'thunder', 'dragon', 'cyber'];
            const power = powers[Math.floor(Math.random() * powers.length)];
            switch (power) {
-               case 'egypt': target.troops = Math.ceil(target.troops * 0.5); break;
+               case 'egypt': {
+                   target.troops = Math.ceil(target.troops * 0.5);
+                   // Phase 1.2: Sandstorm spread - damage adjacent enemies 15%
+                   const adjTerrIds = getAdjacentTerritoryIds(target.id);
+                   for (const adjId of adjTerrIds) {
+                       const adjFaction = getAllFactions().find(f => f.id === adjId && f.id !== ai.id && f.id !== target.id);
+                       if (adjFaction && adjFaction.troops > 0) {
+                           adjFaction.troops = Math.max(0, adjFaction.troops - Math.ceil(adjFaction.troops * 0.15));
+                           if (adjFaction.troops <= 0) adjFaction.eliminated = true;
+                       }
+                   }
+                   break;
+               }
                case 'viking': ai._berserkerActive = true; break;
                case 'aztec': ai.gold += 20; break;
                case 'crystal': ai.defenseBonus = 1.5; ai.defenseBonusTurns = 2; break;
@@ -7180,7 +8087,7 @@
        }
 
        // ==================== TURNS ====================
-       function showTurnSummary(income) {
+       function showTurnSummary(income, incomeInfo) {
            if (income > 0) {
                const goldEl = document.getElementById('stat-gold');
                if (goldEl) {
@@ -7195,7 +8102,15 @@
                }
            }
            const el = document.getElementById('turn-summary');
-           el.innerHTML = '<h3>Turn ' + (gameState.turn - 1) + '</h3><div>+' + income + ' gold</div>';
+           let html = '<h3>Turn ' + (gameState.turn - 1) + '</h3><div>+' + income + ' gold</div>';
+           if (incomeInfo && incomeInfo.breakdowns && incomeInfo.breakdowns.length > 1) {
+               html += '<div class="income-breakdown">';
+               for (const b of incomeInfo.breakdowns) {
+                   html += '<div>' + b.label + '<span>+' + b.value + '</span></div>';
+               }
+               html += '</div>';
+           }
+           el.innerHTML = html;
            el.classList.add('active');
            setTimeout(() => el.classList.remove('active'), 2000);
        }
@@ -7210,12 +8125,31 @@
            }
            if (gameState.player._onFire > 0) { gameState.player.troops = Math.max(0, gameState.player.troops - 3); gameState.player._onFire--; }
            const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
-           let income = 5 + (gameState.player.defeated || 0) * 2;
+           const incomeInfo = countPlayerTerritoryIncome();
+           let income = incomeInfo.total;
            if (gameState.player._factoryBonus) income += gameState.player._factoryBonus;
-           income = Math.floor(income * params.playerIncomeMult);
+           // Phase 4.2: Era income modifier
+           const eraIncMod = gameState.selectedEra ? (ERA_INCOME_MODS[gameState.selectedEra.id] || 1.0) : 1.0;
+           income = Math.floor(income * eraIncMod * params.playerIncomeMult);
            gameState.player.gold += income;
            if (typeof floatingDamageNumber === 'function' && gameState.player.x) floatingDamageNumber(gameState.player.x, gameState.player.y - 20, '+' + income + 'g', '#44FF44', 14);
-           showTurnSummary(income);
+           showTurnSummary(income, incomeInfo);
+           // Phase 2.1: Nile Flood - every 5 turns, +50% income bonus for Egypt
+           if (gameState.turn % 5 === 0 && gameState.selectedEra && gameState.selectedEra.id === 'egypt') {
+               const floodBonus = Math.floor(income * 0.5);
+               gameState.player.gold += floodBonus;
+               showHUDToast('🌊 Nile Flood! +' + floodBonus + 'g bonus!');
+               playSFX('capture');
+           }
+           // Phase 4.2: Egypt turn event flavor text (20% chance)
+           if (Math.random() < 0.2 && gameState.selectedEra && gameState.selectedEra.id === 'egypt') {
+               var evt = EGYPT_TURN_EVENTS[Math.floor(Math.random() * EGYPT_TURN_EVENTS.length)];
+               if (evt.effect) evt.effect();
+               showHUDToast('📜 ' + evt.text);
+           }
+           document.getElementById('stat-territories').textContent = (gameState.territories ? gameState.territories.filter(t => t.owner === 'player').length : 0) + ' territories';
+           // Phase 4.1: Show era combat modifier on HUD
+           updateEraModIndicator();
            updateGameUI(); updateScoreboard(); invalidateMapCache(); renderGame(); saveGame();
        }
 
@@ -7230,7 +8164,20 @@
 
        // ==================== WIN/LOSE ====================
        function checkGameEnd() {
-           if (gameState.player.eliminated || gameState.player.troops <= 0) { endGame(false); return; }
+           if (gameState.player.eliminated || gameState.player.troops <= 0) {
+               // Phase 1.3: Pharaoh's Divine Shield - once-per-game save
+               if (gameState.player._pharaohShield && gameState.selectedEra && gameState.selectedEra.id === 'egypt') {
+                   gameState.player.troops = 3;
+                   gameState.player.gold += 10;
+                   gameState.player.eliminated = false;
+                   gameState.player._pharaohShield = false;
+                   showHUDToast('🛡️ The Pharaoh\'s divine shield protects you!');
+                   playSFX('capture');
+                   invalidateMapCache(); renderGame(); updateGameUI(); updateScoreboard();
+                   return;
+               }
+               endGame(false); return;
+           }
            if (gameState.opponents.filter(o => !o.eliminated).length === 0) { endGame(true); return; }
        }
 
@@ -7252,9 +8199,23 @@
            let stars = 0;
            if (score >= 0.9) stars = 5; else if (score >= 0.75) stars = 4; else if (score >= 0.5) stars = 3; else if (score >= 0.25) stars = 2; else if (ratio > 0) stars = 1;
            if (victory) saveStars(gameState.selectedEra.id, stars);
-           const resultMsg = message || (victory ? 'VICTORY!' : 'DEFEAT');
+           var resultMsg = message || (victory ? 'VICTORY!' : 'DEFEAT');
+           var resultSubtitle = '';
+           if (!message && gameState.selectedEra) {
+               if (victory && VICTORY_NARRATIVES[gameState.selectedEra.id]) {
+                   var vn = VICTORY_NARRATIVES[gameState.selectedEra.id];
+                   resultMsg = vn.title;
+                   resultSubtitle = vn.subtitle;
+               } else if (!victory && DEFEAT_NARRATIVES[gameState.selectedEra.id]) {
+                   var dn = DEFEAT_NARRATIVES[gameState.selectedEra.id];
+                   resultMsg = dn.title;
+                   resultSubtitle = dn.subtitle;
+               }
+           }
            document.getElementById('result-title').textContent = resultMsg;
            document.getElementById('result-title').className = 'result-title ' + (victory ? 'victory' : 'defeat');
+           var subEl = document.getElementById('result-subtitle');
+           if (subEl) subEl.textContent = resultSubtitle;
            document.getElementById('result-stars').innerHTML = Array(stars).fill('⭐').join('');
            const timeUsedSec = gameState.gameElapsed || 0;
            const timeStr = String(Math.floor(timeUsedSec / 60)).padStart(2, '0') + ':' + String(timeUsedSec % 60).padStart(2, '0');
@@ -7288,7 +8249,12 @@
            const params = getDifficultyParams();
            document.getElementById('stat-troops').textContent = gameState.player.troops;
            document.getElementById('stat-gold').textContent = gameState.player.gold;
-           document.getElementById('stat-territories').textContent = gameState.opponents.filter(o => !o.eliminated).length + ' enemies';
+           // Phase 1.3: Show Pharaoh's shield indicator
+           const goldEl = document.getElementById('stat-gold');
+           if (gameState.player._pharaohShield && gameState.selectedEra && gameState.selectedEra.id === 'egypt') {
+               goldEl.textContent = gameState.player.gold + ' 🛡️';
+           }
+           document.getElementById('stat-territories').textContent = (gameState.territories ? gameState.territories.filter(t => t.owner === 'player').length : 0) + ' territories';
            document.getElementById('turn-number').textContent = gameState.turn;
            const btnR = document.getElementById('btn-recruit');
            btnR.textContent = 'Recruit (' + params.recruitCost + 'g)';
@@ -7296,6 +8262,22 @@
            const btnS = document.getElementById('btn-special');
            if (gameState.player.specialUsed) { btnS.textContent = 'Used'; btnS.disabled = true; }
            else { btnS.innerHTML = 'Power (' + params.powerCost + 'g)'; btnS.disabled = gameState.player.gold < params.powerCost; }
+           // Phase 5.3: Cavalry button state
+           const btnC = document.getElementById('btn-cavalry');
+           if (btnC) {
+               btnC.textContent = '🐎 Cavalry (15g)' + (gameState.player.cavalry ? ' [' + gameState.player.cavalry + ']' : '');
+               btnC.disabled = gameState.player.gold < 15;
+           }
+           // Phase 2.2: Build Monument button state (Egypt only)
+           const btnM = document.getElementById('btn-monument');
+           if (btnM) {
+               if (gameState.selectedEra && gameState.selectedEra.id === 'egypt') {
+                   btnM.style.display = 'inline-block';
+                   btnM.disabled = gameState.player.gold < 30;
+               } else {
+                   btnM.style.display = 'none';
+               }
+           }
        }
 
        // ==================== SAVE/LOAD ====================
@@ -7305,8 +8287,9 @@
                difficulty: gameState.difficulty.id, opponentCount: gameState.opponentCount,
                turn: gameState.turn, timerRemaining: gameState.timerRemaining,
                gameElapsed: gameState.gameElapsed, pausedAt: gameState.pausedAt,
-               player: { gold: gameState.player.gold, troops: gameState.player.troops, x: gameState.player.x, y: gameState.player.y, specialUsed: gameState.player.specialUsed, berserkerActive: gameState.player.berserkerActive, defenseBonus: gameState.player.defenseBonus, defenseBonusTurns: gameState.player.defenseBonusTurns, defeated: gameState.player.defeated, _factoryBonus: gameState.player._factoryBonus, _onFire: gameState.player._onFire, _invincible: gameState.player._invincible },
-               opponents: gameState.opponents.map(o => ({ id: o.id, name: o.name, color: o.color, eraId: o.era ? o.era.id : null, gold: o.gold, troops: o.troops, x: o.x, y: o.y, eliminated: o.eliminated, defeated: o.defeated, personality: o.personality, specialUsed: o.specialUsed, _factoryBonus: o._factoryBonus, _onFire: o._onFire, _frozen: o._frozen, _berserkerActive: o._berserkerActive }))
+               territories: gameState.territories ? gameState.territories.map(t => ({ id: t.id, owner: t.owner, terrain: t.terrain, troops: t.troops })) : null,
+               player: { gold: gameState.player.gold, troops: gameState.player.troops, x: gameState.player.x, y: gameState.player.y, specialUsed: gameState.player.specialUsed, berserkerActive: gameState.player.berserkerActive, defenseBonus: gameState.player.defenseBonus, defenseBonusTurns: gameState.player.defenseBonusTurns, defeated: gameState.player.defeated, _factoryBonus: gameState.player._factoryBonus, _onFire: gameState.player._onFire, _invincible: gameState.player._invincible, cavalry: gameState.player.cavalry, _pharaohShield: gameState.player._pharaohShield, monuments: gameState.player.monuments },
+               opponents: gameState.opponents.map(o => ({ id: o.id, name: o.name, color: o.color, eraId: o.era ? o.era.id : null, gold: o.gold, troops: o.troops, x: o.x, y: o.y, eliminated: o.eliminated, defeated: o.defeated, personality: o.personality, specialUsed: o.specialUsed, _factoryBonus: o._factoryBonus, _onFire: o._onFire, _frozen: o._frozen, _berserkerActive: o._berserkerActive, cavalry: o.cavalry, _threatLevel: o._threatLevel }))
            };
            localStorage.setItem('hadooney_save', JSON.stringify(data));
        }
@@ -7320,10 +8303,10 @@
                gameState.difficulty = DIFFICULTY_LEVELS.find(d => d.id === data.difficulty) || DIFFICULTY_LEVELS[1];
                gameState.opponentCount = data.opponentCount || 5;
                const p = data.player;
-               gameState.player = { id: 'player', name: 'You', color: gameState.selectedEra.color, gold: p.gold, troops: p.troops, x: p.x, y: p.y, eliminated: false, specialUsed: p.specialUsed, berserkerActive: p.berserkerActive || false, defenseBonus: p.defenseBonus || 1, defenseBonusTurns: p.defenseBonusTurns || 0, defeated: p.defeated || 0, weapons: [], _factoryBonus: p._factoryBonus || 0, _onFire: p._onFire || 0, _invincible: p._invincible || false };
+               gameState.player = { id: 'player', name: 'You', color: gameState.selectedEra.color, gold: p.gold, troops: p.troops, x: p.x, y: p.y, eliminated: false, specialUsed: p.specialUsed, berserkerActive: p.berserkerActive || false, defenseBonus: p.defenseBonus || 1, defenseBonusTurns: p.defenseBonusTurns || 0, defeated: p.defeated || 0, weapons: [], _factoryBonus: p._factoryBonus || 0, _onFire: p._onFire || 0, _invincible: p._invincible || false, cavalry: p.cavalry || 0, _pharaohShield: p._pharaohShield || false, monuments: p.monuments || [] };
                gameState.opponents = data.opponents.map(o => {
                    const era = o.eraId ? ERAS.find(e => e.id === o.eraId) || null : null;
-                   return { ...o, era, isAI: true, weapons: o.weapons || [] };
+                   return { ...o, era, isAI: true, weapons: o.weapons || [], cavalry: o.cavalry || 0, _threatLevel: o._threatLevel || 0 };
                });
                gameState.turn = data.turn; gameState.timerRemaining = data.timerRemaining;
                gameState.gameElapsed = data.gameElapsed || 0; gameState.pausedAt = data.pausedAt;
@@ -7335,6 +8318,12 @@
                    initGameCanvas(); initBattlefield();
                    gameState.player.x = p.x; gameState.player.y = p.y;
                    gameState.opponents.forEach((o, i) => { if (data.opponents[i]) { o.x = data.opponents[i].x; o.y = data.opponents[i].y; } });
+                   if (data.territories && gameState.territories) {
+                       for (const savedT of data.territories) {
+                           const t = gameState.territories.find(rt => rt.id === savedT.id);
+                           if (t) { t.owner = savedT.owner; t.troops = savedT.troops; }
+                       }
+                   }
                    updateGameUI(); updateScoreboard(); startTimer();
                }, 150);
            } catch (e) { console.error('Load failed:', e); localStorage.removeItem('hadooney_save'); }
@@ -7662,6 +8651,15 @@
 
                if (eraId === 'egypt') {
                    titleCtx.fillStyle = `rgba(210,180,120,${alpha})`;
+                   // Phase 3.4: scarab-shaped particles (oval body + dark dot)
+                   var sx = px, sy = py;
+                   titleCtx.beginPath();
+                   titleCtx.ellipse(sx, sy, size * 1.5, size, 0, 0, Math.PI * 2);
+                   titleCtx.fill();
+                   titleCtx.fillStyle = `rgba(160,120,40,${alpha * 0.8})`;
+                   titleCtx.beginPath();
+                   titleCtx.arc(sx + size * 0.4, sy - size * 0.2, size * 0.4, 0, Math.PI * 2);
+                   titleCtx.fill();
                } else if (eraId === 'frost') {
                    titleCtx.fillStyle = `rgba(255,255,255,${alpha + 0.2})`;
                } else if (eraId === 'ember' || eraId === 'dragon') {
@@ -9791,6 +10789,15 @@ function startAmbientLayer(eraId) {
   switch (ambType) {
     case 'desert':
       _createWindNoise(ac, _ambientMasterGain, 0.06, 800);  // filtered wind
+      // Phase 5.1: LFO gusting modulation on the ambient master gain
+      var desertLfo = ac.createOscillator();
+      desertLfo.frequency.setValueAtTime(0.2, ac.currentTime);
+      var desertLfoG = ac.createGain();
+      desertLfoG.gain.setValueAtTime(0.02, ac.currentTime);
+      desertLfo.connect(desertLfoG);
+      desertLfoG.connect(_ambientMasterGain.gain);
+      desertLfo.start();
+      _ambientNodes.push({ osc: desertLfo, gain: desertLfoG });
       break;
 
     case 'crowd':
@@ -10583,6 +11590,10 @@ function updateScoreboardEnhanced() {
     var color = factionColors[idx % factionColors.length];
     var eraEmoji = eraEmojis[eraId % eraEmojis.length] || '🎮';
     var eraName = eraNames[eraId % eraNames.length] || 'Unknown';
+    // Phase 7.2: Cartouche scoreboard prefix for Egypt
+    if (eraId === 1 || eraId === 'egypt' || (gameState.selectedEra && gameState.selectedEra.id === 'egypt')) {
+        eraName = '\u{13039} ' + eraName;
+    }
 
     html += '<div class="sb-row' + (p.isHuman ? ' highlight' : '') + '">';
     html += '  <div class="sb-dot" style="background:' + color + '"></div>';
