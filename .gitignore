@@ -11,7 +11,9 @@ test-results/
 .DS_Store
 Thumbs.db
 
-# Editor junk
+# Backup files
+*.backup.*
+
 .vscode/
 .idea/
 *.swp
