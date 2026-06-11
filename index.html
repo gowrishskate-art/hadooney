@@ -5482,12 +5482,15 @@
            if (!animRunning) return;
            animFrame++;
            updateParticles();
+           if (typeof updateAllEnhancedEffects === 'function') updateAllEnhancedEffects();
            tickTimedEffects();
            // Only render when something changed or animations active
            const hasParticles = particles.length > 0;
            const hasBattleAnims = battleAnimations.length > 0;
            const hasTroopMovements = troopMovements.length > 0;
-           const isActive = hasParticles || hasBattleAnims || hasTroopMovements || _renderDirty;
+           const hasAdvanced = typeof _advancedParticles !== 'undefined' && _advancedParticles.length > 0;
+           const hasFloating = typeof _floatingTexts !== 'undefined' && _floatingTexts.length > 0;
+           const isActive = hasParticles || hasBattleAnims || hasTroopMovements || hasAdvanced || hasFloating || _renderDirty;
            if (gameState.screen === 'game' && isActive) {
                renderGame();
                _renderDirty = false;
@@ -6219,6 +6222,7 @@
                ctx.globalAlpha = 1;
            }
            drawParticles(); drawTroopMovements(); drawBattleAnimations();
+           if (typeof drawAllEnhancedEffects === 'function') drawAllEnhancedEffects(ctx);
        }
 
        function drawTerritoryMap(eraId, w, h) {
@@ -6992,6 +6996,9 @@
            const gameScreen = document.getElementById('game-screen');
            gameScreen.classList.add('screen-shake');
            setTimeout(() => gameScreen.classList.remove('screen-shake'), 300);
+           if (typeof floatingDamageNumber === 'function') {
+               floatingDamageNumber(defender.x, defender.y - 20, atkPower > defPower ? 'ELIMINATED!' : 'MISS', atkPower > defPower ? '#FFD700' : '#FF4444', 16);
+           }
            invalidateMapCache(); renderGame(); updateGameUI(); updateScoreboard(); checkGameEnd();
        }
 
@@ -7207,6 +7214,7 @@
            if (gameState.player._factoryBonus) income += gameState.player._factoryBonus;
            income = Math.floor(income * params.playerIncomeMult);
            gameState.player.gold += income;
+           if (typeof floatingDamageNumber === 'function' && gameState.player.x) floatingDamageNumber(gameState.player.x, gameState.player.y - 20, '+' + income + 'g', '#44FF44', 14);
            showTurnSummary(income);
            updateGameUI(); updateScoreboard(); invalidateMapCache(); renderGame(); saveGame();
        }
@@ -7996,8 +8004,13 @@ const _activePowerVFX = [];
  * @param {number} targetY - Target Y position on canvas
  */
 function triggerPowerVFX(eraId, targetX, targetY) {
-    const eraIdx = typeof eraId === 'string' ? parseInt(eraId, 10) : eraId;
-    if (isNaN(eraIdx)) return;
+    let eraIdx = -1;
+    if (typeof eraId === 'number') { eraIdx = eraId; }
+    else if (typeof eraId === 'string') {
+        const found = ERAS.findIndex(e => e.id === eraId);
+        eraIdx = found >= 0 ? found : parseInt(eraId, 10);
+    }
+    if (isNaN(eraIdx) || eraIdx < 0) return;
 
     // Common: emit some energy sparks at target
     emitParticles(targetX, targetY, { type: 'energy', count: 8, speed: 2, size: 10, life: 30 });
