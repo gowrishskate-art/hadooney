@@ -1685,7 +1685,9 @@
 
    </style>
 </head>
-<body>
+<body style="background:#0a0a1a;color:#e0e0e0;margin:0">
+    <noscript><div style="color:#fff;text-align:center;padding:60px;font-size:1.2rem">Hadooney requires JavaScript. Please enable it and reload.</div></noscript>
+    <div id="loading-indicator" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0a0a1a;z-index:99999;font-family:sans-serif;color:#feca57;font-size:1.2rem">Loading Hadooney...</div>
    <!-- Title Screen -->
    <div id="title-screen" class="screen active">
        <canvas id="title-canvas"></canvas>
@@ -3134,6 +3136,7 @@
        }
        // ==================== INITIALIZATION ====================
        function init() {
+           document.getElementById('loading-indicator')?.remove();
            initTitleCanvas();
            loadPlayTime();
            renderEraGrid();
@@ -5722,21 +5725,21 @@
            egypt:     { ground: '#c2956b', ground2: '#a67c52', sky: '#87CEEB', accent: '#f0d9a0', hills: true, sand: true },
            rome:      { ground: '#5a8a3c', ground2: '#4a7a2c', sky: '#7ec8e3', accent: '#8B7355', hills: true },
            viking:    { ground: '#6b7b3a', ground2: '#5a6a2a', sky: '#9bb5c9', accent: '#8899aa', hills: true },
-           medieval:  { ground: '#4a7a2c', ground2: '#3a6a1c', sky: '#8fbc8f', accent: '#888', hills: true },
-           ottoman:   { ground: '#b8956a', ground2: '#a08050', sky: '#add8e6', accent: '#ddd', hills: false },
+           medieval:  { ground: '#4a7a2c', ground2: '#3a6a1c', sky: '#8fbc8f', accent: '#888888', hills: true },
+           ottoman:   { ground: '#b8956a', ground2: '#a08050', sky: '#add8e6', accent: '#dddddd', hills: false },
            aztec:     { ground: '#2d8a4e', ground2: '#1d7a3e', sky: '#70c0a0', accent: '#c0a030', hills: true },
            ming:      { ground: '#6aaa5a', ground2: '#5a9a4a', sky: '#c0d8e8', accent: '#cc3333', hills: true },
            edo:       { ground: '#5a9a5a', ground2: '#4a8a4a', sky: '#ffb7c5', accent: '#ff69b4', hills: true },
            british:   { ground: '#4a8a3c', ground2: '#3a7a2c', sky: '#a0c4e8', accent: '#556b2f', hills: true },
-           industrial:{ ground: '#6a6a6a', ground2: '#5a5a5a', sky: '#b0b0b0', accent: '#888', hills: false },
+           industrial:{ ground: '#6a6a6a', ground2: '#5a5a5a', sky: '#b0b0b0', accent: '#888888', hills: false },
            cyber:     { ground: '#0a2a3a', ground2: '#051a2a', sky: '#001020', accent: '#00ffff', hills: false },
            quantum:   { ground: '#1a0a3a', ground2: '#10052a', sky: '#0a0020', accent: '#a29bfe', hills: false },
            star:      { ground: '#0a0a2a', ground2: '#050520', sky: '#000010', accent: '#ffd700', hills: false },
            dragon:   { ground: '#3a1a0a', ground2: '#2a0a00', sky: '#2a0a00', accent: '#ff4500', hills: true },
            crystal:   { ground: '#2a4a5a', ground2: '#1a3a4a', sky: '#4a6a7a', accent: '#81ecec', hills: true },
-           shadow:   { ground: '#1a1a1a', ground2: '#0a0a0a', sky: '#1a1a2a', accent: '#444', hills: false },
+           shadow:   { ground: '#1a1a1a', ground2: '#0a0a0a', sky: '#1a1a2a', accent: '#444444', hills: false },
            thunder:   { ground: '#2a2a1a', ground2: '#1a1a0a', sky: '#2a2a3a', accent: '#fdcb6e', hills: true },
-           void:      { ground: '#0a0a0a', ground2: '#050505', sky: '#000005', accent: '#333', hills: false },
+           void:      { ground: '#0a0a0a', ground2: '#050505', sky: '#000005', accent: '#333333', hills: false },
            ember:     { ground: '#3a1a0a', ground2: '#2a0a00', sky: '#1a0500', accent: '#ff6347', hills: true },
            frost:     { ground: '#c0d8e8', ground2: '#a0c0d8', sky: '#e0f0ff', accent: '#0984e3', hills: true }
        };
@@ -5805,7 +5808,7 @@
            const hot = ['dragon','ember','egypt','frost'].includes(eraId);
            const cx = w * 0.82, cy = horizonY * 0.35, cr = Math.min(w, h) * 0.05;
            if (dark) {
-               ctx.fillStyle = '#dde' + '40';
+               ctx.fillStyle = '#dddedd' + '40';
                ctx.beginPath(); ctx.arc(cx, cy, cr, 0, Math.PI * 2); ctx.fill();
                ctx.fillStyle = land.sky;
                ctx.beginPath(); ctx.arc(cx + cr * 0.25, cy - cr * 0.1, cr * 0.8, 0, Math.PI * 2); ctx.fill();
@@ -6031,7 +6034,7 @@
            }
        }
        function drawPillar(x, base, s) {
-           ctx.fillStyle = '#aaa' + '30';
+           ctx.fillStyle = '#aaaaaa' + '30';
            ctx.fillRect(x - s * 0.12, base - s, s * 0.24, s);
            ctx.fillRect(x - s * 0.2, base - s, s * 0.4, s * 0.1);
            ctx.fillRect(x - s * 0.2, base - s * 0.05, s * 0.4, s * 0.08);
@@ -6084,7 +6087,7 @@
            ctx.beginPath(); ctx.arc(x, base - s * 1.3, s * 0.15, 0, Math.PI * 2); ctx.fill();
        }
        function drawMinaret(x, base, s) {
-           ctx.fillStyle = '#ccc' + '30';
+           ctx.fillStyle = '#cccccc' + '30';
            ctx.fillRect(x - s * 0.08, base - s, s * 0.16, s);
            ctx.beginPath(); ctx.arc(x, base - s, s * 0.12, Math.PI, 0); ctx.fill();
            ctx.fillRect(x - s * 0.04, base - s * 1.2, s * 0.08, s * 0.2);
@@ -6096,7 +6099,7 @@
            }
        }
        function drawGreatWall(w, base, s, horizonY) {
-           ctx.fillStyle = '#8B7355' + '25';
+           ctx.fillStyle = '#8B735525';
            ctx.fillRect(0, base - s * 0.5, w, s * 0.5);
            for (let i = 0; i < 8; i++) {
                const tx = (i + 0.5) / 8 * w;
@@ -6143,9 +6146,9 @@
            ctx.lineTo(x + s * 0.4, base - s * 0.9); ctx.stroke();
        }
        function drawChimney(x, base, s) {
-           ctx.fillStyle = '#666' + '30';
+           ctx.fillStyle = '#666666' + '30';
            ctx.fillRect(x - s * 0.12, base - s * 1.2, s * 0.24, s * 1.2);
-           ctx.fillStyle = '#555' + '20';
+           ctx.fillStyle = '#555555' + '20';
            for (let i = 0; i < 3; i++) {
                const sy = base - s * 1.2 - i * s * 0.3 - s * 0.2;
                ctx.beginPath(); ctx.arc(x, sy, s * 0.15 + i * s * 0.1, 0, Math.PI * 2); ctx.fill();
@@ -6215,7 +6218,7 @@
            ctx.stroke();
        }
        function drawVolcano(x, base, s, color) {
-           ctx.fillStyle = '#4a2020' + '40';
+           ctx.fillStyle = '#4a202040';
            ctx.beginPath();
            ctx.moveTo(x - s * 0.6, base); ctx.lineTo(x - s * 0.15, base - s);
            ctx.lineTo(x + s * 0.15, base - s); ctx.lineTo(x + s * 0.6, base);
@@ -6250,7 +6253,7 @@
        }
        function drawFloatingDebris(x, base, s) {
            const bob = Math.sin(animFrame * 0.02 + x) * s * 0.1;
-           ctx.fillStyle = '#333' + '30';
+           ctx.fillStyle = '#333333' + '30';
            ctx.fillRect(x - s * 0.2, base - s * 0.8 + bob, s * 0.4, s * 0.25);
            ctx.fillRect(x + s * 0.1, base - s * 1.1 + bob, s * 0.2, s * 0.15);
        }
@@ -6273,7 +6276,7 @@
            ctx.moveTo(x - s * 0.15, base); ctx.lineTo(x - s * 0.05, base - s * 1.3);
            ctx.lineTo(x + s * 0.05, base - s * 1.3); ctx.lineTo(x + s * 0.15, base);
            ctx.closePath(); ctx.fill();
-           ctx.strokeStyle = '#ff6347' + '20'; ctx.lineWidth = 1;
+           ctx.strokeStyle = '#ff634720'; ctx.lineWidth = 1;
            ctx.beginPath(); ctx.moveTo(x, base - s * 1.3); ctx.lineTo(x, base - s * 1.5); ctx.stroke();
        }
        function drawIceCastle(x, base, s, color) {
@@ -6288,7 +6291,7 @@
            ctx.lineTo(x + s * 0.4, base - s * 0.7); ctx.closePath(); ctx.fill();
        }
        function drawFrozenTree(x, base, s) {
-           ctx.fillStyle = '#a0c0d8' + '30';
+           ctx.fillStyle = '#a0c0d830';
            ctx.fillRect(x - s * 0.04, base - s * 0.6, s * 0.08, s * 0.6);
            ctx.beginPath();
            ctx.moveTo(x, base - s * 0.6); ctx.lineTo(x - s * 0.25, base - s * 0.3);
@@ -6310,7 +6313,7 @@
            ctx.moveTo(x - s * 0.2, base - s * 0.9); ctx.lineTo(x, base - s * 1.3);
            ctx.lineTo(x + s * 0.2, base - s * 0.9); ctx.closePath(); ctx.fill();
            if (Math.sin(animFrame * 0.15) > 0.9) {
-               ctx.strokeStyle = '#fdcb6e' + '60'; ctx.lineWidth = 1.5;
+               ctx.strokeStyle = '#fdcb6e60'; ctx.lineWidth = 1.5;
                ctx.beginPath();
                ctx.moveTo(x, base - s * 1.3); ctx.lineTo(x + s * 0.3, base - s * 1.8);
                ctx.stroke();
@@ -6329,7 +6332,7 @@
                        break;
                    case 'cyber':
                        if (i % 5 === 0) {
-                           ctx.strokeStyle = '#00ffff' + '12'; ctx.lineWidth = 0.5;
+                           ctx.strokeStyle = '#00ffff12'; ctx.lineWidth = 0.5;
                            ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + 8, gy); ctx.stroke();
                            ctx.beginPath(); ctx.moveTo(gx + 4, gy - 4); ctx.lineTo(gx + 4, gy + 4); ctx.stroke();
                        }
@@ -6350,7 +6353,7 @@
                        }
                        break;
                    case 'star':
-                       ctx.fillStyle = '#ffd700' + '08';
+                       ctx.fillStyle = '#ffd70008';
                        ctx.beginPath(); ctx.arc(gx, gy, 1, 0, Math.PI * 2); ctx.fill();
                        break;
                    default:
@@ -6378,7 +6381,7 @@
                        ctx.beginPath(); ctx.arc(dx + Math.sin(animFrame * 0.02 + i) * 2, dy + animFrame * 0.1 % (h - horizonY), ds, 0, Math.PI * 2); ctx.fill();
                        break;
                    case 'star':
-                       ctx.fillStyle = '#ffd700' + '20';
+                       ctx.fillStyle = '#ffd70020';
                        ctx.beginPath(); ctx.arc(dx, dy < horizonY ? dy : horizonY - 5 - (i * 13 % (horizonY * 0.8)), ds * 0.5, 0, Math.PI * 2); ctx.fill();
                        break;
                    case 'ember': case 'dragon':
@@ -6387,7 +6390,7 @@
                        ctx.beginPath(); ctx.arc(dx, fy, ds * 0.7, 0, Math.PI * 2); ctx.fill();
                        break;
                    case 'cyber':
-                       ctx.fillStyle = '#00ffff' + '18';
+                       ctx.fillStyle = '#00ffff18';
                        ctx.fillRect(dx, dy, ds * 2, ds * 2);
                        break;
                    default:
@@ -6772,7 +6775,7 @@
                for (let i = 0; i < 6; i++) {
                    const sx = cx + ((i * 113 + 30) % (rw * 2) - rw);
                    const sy = cy + ((i * 59 + 50) % (rh * 2) - rh);
-                   ctx.strokeStyle = '#0984e3' + '55';
+                   ctx.strokeStyle = '#0984e355';
                    ctx.lineWidth = 1;
                    ctx.beginPath(); ctx.moveTo(sx, sy);
                    ctx.lineTo(sx + ((i % 3) - 1) * 8, sy + (i % 2) * 5);
@@ -6847,21 +6850,21 @@
                for (let i = 0; i < 4; i++) {
                    const bx = cx + ((i * 83 + 50) % (rw * 2) - rw);
                    const by = cy + ((i * 37 + 75) % (rh * 2) - rh);
-                   ctx.fillStyle = '#c0a030' + '50';
+                   ctx.fillStyle = '#c0a03050';
                    ctx.beginPath(); ctx.arc(bx, by, 2, 0, Math.PI * 2); ctx.fill();
                }
            } else if (grime) {
                for (let i = 0; i < 5; i++) {
                    const px = cx + ((i * 111 + 25) % (rw * 2) - rw);
                    const py = cy + ((i * 63 + 55) % (rh * 2) - rh);
-                   ctx.strokeStyle = '#555' + '40';
+                   ctx.strokeStyle = '#555555' + '40';
                    ctx.lineWidth = 2;
                    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + 8, py); ctx.stroke();
                }
                for (let i = 0; i < 5; i++) {
                    const sx = cx + ((i * 91 + 40) % (rw * 2) - rw);
                    const sy = cy + ((i * 47 + 70) % (rh * 2) - rh);
-                   ctx.fillStyle = '#3a3a3a' + '30';
+                   ctx.fillStyle = '#3a3a3a30';
                    ctx.beginPath(); ctx.ellipse(sx, sy, 3 + (i % 3) * 2, 2, 0, 0, Math.PI * 2); ctx.fill();
                }
            } else if (electric) {
@@ -7058,7 +7061,7 @@
                for (let i = 0; i < 6; i++) {
                    const sx = fx + (rng(i) - 0.5) * lw * 1.0;
                    const sy = fy + (rng(i+10) - 0.5) * lh * 0.8;
-                   ctx.strokeStyle = '#0984e3' + '40';
+                   ctx.strokeStyle = '#0984e340';
                    ctx.lineWidth = 1;
                    ctx.beginPath(); ctx.moveTo(sx, sy);
                    for (let j = 0; j < 3; j++) {
@@ -7078,7 +7081,7 @@
                for (let i = 0; i < 4; i++) {
                    const dx = fx + (rng(i+80) - 0.5) * lw * 0.8;
                    const dy = fy + (rng(i+90) - 0.5) * lh * 0.6;
-                   ctx.fillStyle = '#b8d4e8' + '25';
+                   ctx.fillStyle = '#b8d4e825';
                    ctx.beginPath(); ctx.ellipse(dx, dy, 6+rng(i+100)*8, 3+rng(i+110)*4, 0, 0, Math.PI*2); ctx.fill();
                }
            } else if (fiery) {
@@ -7110,7 +7113,7 @@
                for (let i = 0; i < 5; i++) {
                    const rx = fx + (rng(i+80) - 0.5) * lw * 0.8;
                    const ry = fy + (rng(i+90) - 0.5) * lh * 0.6;
-                   ctx.fillStyle = '#2a0a00' + '50';
+                   ctx.fillStyle = '#2a0a0050';
                    ctx.beginPath(); ctx.ellipse(rx, ry, 2+rng(i+100)*3, 1.5+rng(i+110)*2, 0, 0, Math.PI*2); ctx.fill();
                }
            } else if (dark) {
@@ -7161,7 +7164,7 @@
                for (let i = 0; i < 4; i++) {
                    const vx = fx + (rng(i+100) - 0.5) * lw * 0.8;
                    const vy = fy + (rng(i+110) - 0.5) * lh * 0.6;
-                   ctx.strokeStyle = '#1d7a3e' + '30';
+                   ctx.strokeStyle = '#1d7a3e30';
                    ctx.lineWidth = 1;
                    ctx.beginPath(); ctx.moveTo(vx, vy);
                    ctx.bezierCurveTo(vx+5, vy-8, vx-5, vy-12, vx+3, vy-18);
@@ -7171,7 +7174,7 @@
                for (let i = 0; i < 5; i++) {
                    const bx = fx + (rng(i+130) - 0.5) * lw * 0.9;
                    const by = fy + (rng(i+140) - 0.5) * lh * 0.7;
-                   ctx.fillStyle = '#c0a030' + '40';
+                   ctx.fillStyle = '#c0a03040';
                    ctx.beginPath(); ctx.arc(bx, by, 2, 0, Math.PI*2); ctx.fill();
                }
            } else if (grime) {
@@ -7180,7 +7183,7 @@
                    const px = fx + (rng(i) - 0.5) * lw * 0.9;
                    const py = fy + (rng(i+10) - 0.5) * lh * 0.7;
                    const pw = 8 + rng(i+20) * 12;
-                   ctx.strokeStyle = '#555' + '35';
+                   ctx.strokeStyle = '#555555' + '35';
                    ctx.lineWidth = 2 + rng(i+30) * 2;
                    ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + pw, py); ctx.stroke();
                }
@@ -7188,14 +7191,14 @@
                for (let i = 0; i < 8; i++) {
                    const sx = fx + (rng(i+40) - 0.5) * lw * 1.0;
                    const sy = fy + (rng(i+50) - 0.5) * lh * 0.8;
-                   ctx.fillStyle = '#3a3a3a' + '25';
+                   ctx.fillStyle = '#3a3a3a25';
                    ctx.beginPath(); ctx.ellipse(sx, sy, 4+rng(i+60)*6, 2+rng(i+70)*3, 0, 0, Math.PI*2); ctx.fill();
                }
                // Gear marks
                for (let i = 0; i < 3; i++) {
                    const gx = fx + (rng(i+80) - 0.5) * lw * 0.7;
                    const gy = fy + (rng(i+90) - 0.5) * lh * 0.5;
-                   ctx.strokeStyle = '#888' + '25';
+                   ctx.strokeStyle = '#888888' + '25';
                    ctx.lineWidth = 1;
                    ctx.beginPath(); ctx.arc(gx, gy, 3+rng(i+100)*4, 0, Math.PI*2); ctx.stroke();
                }
@@ -7220,7 +7223,7 @@
                for (let i = 0; i < 6; i++) {
                    const dx = fx + (rng(i+50) - 0.5) * lw * 0.8;
                    const dy = fy + (rng(i+60) - 0.5) * lh * 0.6;
-                   ctx.fillStyle = '#1a1a0a' + '30';
+                   ctx.fillStyle = '#1a1a0a30';
                    ctx.beginPath(); ctx.ellipse(dx, dy, 3+rng(i+70)*5, 2+rng(i+80)*3, 0, 0, Math.PI*2); ctx.fill();
                }
            } else if (crystalline) {
@@ -7243,7 +7246,7 @@
                for (let i = 0; i < 5; i++) {
                    const mx = fx + (rng(i+40) - 0.5) * lw * 0.8;
                    const my = fy + (rng(i+50) - 0.5) * lh * 0.6;
-                   ctx.fillStyle = '#81ecec' + '15';
+                   ctx.fillStyle = '#81ecec15';
                    ctx.beginPath(); ctx.ellipse(mx, my, 6+rng(i+60)*8, 3+rng(i+70)*4, 0, 0, Math.PI*2); ctx.fill();
                }
            } else {
@@ -8397,7 +8400,7 @@
            const hot = ['dragon','ember','egypt'].includes(eraId);
            const cx = w * 0.82, cy = h * 0.15, cr = Math.min(w, h) * 0.04;
            if (dark) {
-               titleCtx.fillStyle = '#dde' + '30';
+               titleCtx.fillStyle = '#dddedd' + '30';
                titleCtx.beginPath(); titleCtx.arc(cx, cy, cr, 0, Math.PI * 2); titleCtx.fill();
            } else {
                const sunColor = hot ? '#ff6b35' : '#ffd700';
@@ -11977,7 +11980,12 @@ if (typeof window !== 'undefined') {
 
 
        // ==================== START ====================
-       init();
+       try { init(); } catch(e) {
+           document.getElementById('loading-indicator')?.remove();
+           document.body.style.background = '#1a1a2e';
+           document.body.innerHTML = '<div style="color:#fff;text-align:center;padding:40px;font-family:sans-serif"><h2>Error Loading Game</h2><p style="color:#feca57;font-size:1.2rem">' + e.message + '</p><p style="color:#888;font-size:0.9rem">Line: ' + (e.lineNumber||'?') + '</p><button onclick="location.reload()" style="margin-top:20px;padding:12px 30px;border:none;border-radius:8px;background:#667eea;color:#fff;font-size:1rem;cursor:pointer">Reload</button></div>';
+           console.error('Init error:', e);
+       }
    </script>
 </body>
 </html>
