@@ -974,68 +974,103 @@
 /* Floating header bar — pill shape, centered at top */
 .game-header {
   position: fixed;
-  top: 10px;
+  top: 6px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  border-radius: 9999px;
-  max-width: 90vw;
-  background: rgba(10, 10, 26, 0.82);
+  border-radius: 12px;
+  max-width: 85vw;
+  background: rgba(10, 10, 26, 0.85);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  padding: 8px 24px;
+  padding: 4px 12px;
   display: flex;
   align-items: center;
-  gap: 20px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  gap: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: all 0.3s ease;
+  font-size: 0.75rem;
 }
 
 .game-header:hover {
   background: rgba(10, 10, 26, 0.92);
-  box-shadow: 0 6px 32px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-/* Floating bottom controls — pill shape, centered */
+.game-header .stat {
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+}
+
+.game-header .turn-indicator {
+  padding: 3px 8px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+}
+
+.game-header .game-btn {
+  padding: 3px 6px;
+  font-size: 0.7rem;
+}
+
+/* Floating bottom controls — compact pill */
 .game-controls {
   position: fixed;
-  bottom: 15px;
+  bottom: 8px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  border-radius: 9999px;
+  border-radius: 12px;
   max-width: 95vw;
   background: rgba(10, 10, 26, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 10px 28px;
+  padding: 6px 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  gap: 6px;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition: all 0.3s ease;
+  overflow-x: auto;
 }
 
 .game-controls:hover {
   background: rgba(10, 10, 26, 0.93);
 }
 
-/* Collapsible scoreboard — fixed right side */
+.game-controls .game-btn {
+  padding: 5px 8px;
+  border-radius: 8px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.1s;
+}
+
+.game-controls .game-btn:active {
+  transform: scale(0.95);
+}
+
+/* Collapsible scoreboard — fixed right side, compact */
 .scoreboard {
   position: fixed;
-  top: 70px;
-  right: 10px;
+  top: 40px;
+  right: 6px;
   z-index: 10;
-  max-width: 220px;
+  max-width: 160px;
   background: rgba(10, 10, 26, 0.8);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-radius: 12px;
-  padding: 12px;
-  opacity: 0.9;
+  border-radius: 10px;
+  padding: 6px 8px;
+  opacity: 0.85;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  font-size: 0.7rem;
 }
 
 .scoreboard:hover {
@@ -1046,12 +1081,14 @@
 
 /* Collapsed state — shows only "X alive" summary */
 .scoreboard.collapsed {
-  max-height: 35px;
+  max-height: 28px;
   overflow: hidden;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 4px 8px;
+  font-size: 0.65rem;
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.6);
   letter-spacing: 0.5px;
@@ -1963,48 +2000,47 @@
            egypt: {
                name: 'Nile Valley',
                territories: [
-                   {id:0,name:'Nubia',poly:[[0.114,0.07],[0.09,0.102],[0.04,0.102],[0.016,0.07],[0.04,0.038],[0.09,0.038]],terrain:'plains',adj:[1,8]},
-                   {id:1,name:'Thebes',poly:[[0.219,0.07],[0.195,0.102],[0.145,0.102],[0.121,0.07],[0.145,0.038],[0.195,0.038]],terrain:'forest',adj:[0,2,8,9]},
-                   {id:2,name:'Abydos',poly:[[0.324,0.07],[0.3,0.102],[0.25,0.102],[0.226,0.07],[0.25,0.038],[0.3,0.038]],terrain:'forest',adj:[1,3,9,10]},
-                   {id:3,name:'Memphis',poly:[[0.429,0.07],[0.405,0.102],[0.355,0.102],[0.331,0.07],[0.355,0.038],[0.405,0.038]],terrain:'mountain',adj:[2,4,10,11]},
-                   {id:4,name:'Delta',poly:[[0.534,0.07],[0.51,0.102],[0.46,0.102],[0.436,0.07],[0.46,0.038],[0.51,0.038]],terrain:'forest',adj:[3,5,11,12]},
-                   {id:5,name:'Faiyum',poly:[[0.639,0.07],[0.615,0.102],[0.565,0.102],[0.541,0.07],[0.565,0.038],[0.615,0.038]],terrain:'plains',adj:[4,6,12,13]},
-                   {id:6,name:'Sinai',poly:[[0.744,0.07],[0.72,0.102],[0.67,0.102],[0.646,0.07],[0.67,0.038],[0.72,0.038]],terrain:'forest',adj:[5,7,13,14]},
-                   {id:7,name:'Giza',poly:[[0.849,0.07],[0.825,0.102],[0.775,0.102],[0.751,0.07],[0.775,0.038],[0.825,0.038]],terrain:'plains',adj:[6,14,15]},
-                   {id:8,name:'Karnak',poly:[[0.167,0.15],[0.142,0.181],[0.093,0.181],[0.068,0.15],[0.093,0.118],[0.142,0.118]],terrain:'plains',adj:[0,1,9,16,17]},
-                   {id:9,name:'Luxor',poly:[[0.272,0.15],[0.247,0.181],[0.198,0.181],[0.173,0.15],[0.198,0.118],[0.247,0.118]],terrain:'plains',adj:[1,2,8,10,17,18]},
-                   {id:10,name:'Aswan',poly:[[0.377,0.15],[0.352,0.181],[0.303,0.181],[0.278,0.15],[0.303,0.118],[0.352,0.118]],terrain:'plains',adj:[2,3,9,11,18,19]},
-                   {id:11,name:'Alexandria',poly:[[0.482,0.15],[0.457,0.181],[0.408,0.181],[0.383,0.15],[0.408,0.118],[0.457,0.118]],terrain:'forest',adj:[3,4,10,12,19,20]},
-                   {id:12,name:'Edfu',poly:[[0.587,0.15],[0.562,0.181],[0.513,0.181],[0.488,0.15],[0.513,0.118],[0.562,0.118]],terrain:'plains',adj:[4,5,11,13,20,21]},
-                   {id:13,name:'Siwa',poly:[[0.692,0.15],[0.667,0.181],[0.618,0.181],[0.593,0.15],[0.618,0.118],[0.667,0.118]],terrain:'plains',adj:[5,6,12,14,21,22]},
-                   {id:14,name:'Safaga',poly:[[0.797,0.15],[0.772,0.181],[0.723,0.181],[0.698,0.15],[0.723,0.118],[0.772,0.118]],terrain:'city',adj:[6,7,13,15,22,23]},
-                   {id:15,name:'Amarna',poly:[[0.902,0.15],[0.877,0.181],[0.828,0.181],[0.803,0.15],[0.828,0.118],[0.877,0.118]],terrain:'city',adj:[7,14,23]},
-                   {id:16,name:'Hermopolis',poly:[[0.114,0.229],[0.09,0.261],[0.04,0.261],[0.016,0.229],[0.04,0.197],[0.09,0.197]],terrain:'mountain',adj:[8,17,24]},
-                   {id:17,name:'Valley Kings',poly:[[0.219,0.229],[0.195,0.261],[0.145,0.261],[0.121,0.229],[0.145,0.197],[0.195,0.197]],terrain:'plains',adj:[8,9,16,18,24,25]},
-                   {id:18,name:'Philae',poly:[[0.324,0.229],[0.3,0.261],[0.25,0.261],[0.226,0.229],[0.25,0.197],[0.3,0.197]],terrain:'forest',adj:[9,10,17,19,25,26]},
-                   {id:19,name:'Dakhla',poly:[[0.429,0.229],[0.405,0.261],[0.355,0.261],[0.331,0.229],[0.355,0.197],[0.405,0.197]],terrain:'plains',adj:[10,11,18,20,26,27]},
-                   {id:20,name:'Kom Ombo',poly:[[0.534,0.229],[0.51,0.261],[0.46,0.261],[0.436,0.229],[0.46,0.197],[0.51,0.197]],terrain:'plains',adj:[11,12,19,21,27,28]},
-                   {id:21,name:'Hurghada',poly:[[0.639,0.229],[0.615,0.261],[0.565,0.261],[0.541,0.229],[0.565,0.197],[0.615,0.197]],terrain:'forest',adj:[12,13,20,22,28,29]},
-                   {id:22,name:'Taba',poly:[[0.744,0.229],[0.72,0.261],[0.67,0.261],[0.646,0.229],[0.67,0.197],[0.72,0.197]],terrain:'forest',adj:[13,14,21,23,29,30]},
-                   {id:23,name:'Abu Simbel',poly:[[0.849,0.229],[0.825,0.261],[0.775,0.261],[0.751,0.229],[0.775,0.197],[0.825,0.197]],terrain:'forest',adj:[14,15,22,30,31]},
-                   {id:24,name:'Elephantine',poly:[[0.167,0.309],[0.142,0.34],[0.093,0.34],[0.068,0.309],[0.093,0.277],[0.142,0.277]],terrain:'mountain',adj:[16,17,25,32,33]},
-                   {id:25,name:'Krokodil',poly:[[0.272,0.309],[0.247,0.34],[0.198,0.34],[0.173,0.309],[0.198,0.277],[0.247,0.277]],terrain:'forest',adj:[17,18,24,26,33,34]},
-                   {id:26,name:'Deir el',poly:[[0.377,0.309],[0.352,0.34],[0.303,0.34],[0.278,0.309],[0.303,0.277],[0.352,0.277]],terrain:'plains',adj:[18,19,25,27,34,35]},
-                   {id:27,name:'Nile South',poly:[[0.482,0.309],[0.457,0.34],[0.408,0.34],[0.383,0.309],[0.408,0.277],[0.457,0.277]],terrain:'plains',adj:[19,20,26,28,35,36]},
-                   {id:28,name:'Nile North',poly:[[0.587,0.309],[0.562,0.34],[0.513,0.34],[0.488,0.309],[0.513,0.277],[0.562,0.277]],terrain:'plains',adj:[20,21,27,29,36,37]},
-                   {id:29,name:'Oasis East',poly:[[0.692,0.309],[0.667,0.34],[0.618,0.34],[0.593,0.309],[0.618,0.277],[0.667,0.277]],terrain:'city',adj:[21,22,28,30,37,38]},
-                   {id:30,name:'Oasis West',poly:[[0.797,0.309],[0.772,0.34],[0.723,0.34],[0.698,0.309],[0.723,0.277],[0.772,0.277]],terrain:'forest',adj:[22,23,29,31,38,39]},
-                   {id:31,name:'Red Sea',poly:[[0.902,0.309],[0.877,0.34],[0.828,0.34],[0.803,0.309],[0.828,0.277],[0.877,0.277]],terrain:'plains',adj:[23,30,39]},
-                   {id:32,name:'Desert Heart',poly:[[0.114,0.388],[0.09,0.42],[0.04,0.42],[0.016,0.388],[0.04,0.356],[0.09,0.356]],terrain:'forest',adj:[24,33]},
-                   {id:33,name:'Pyramid',poly:[[0.219,0.388],[0.195,0.42],[0.145,0.42],[0.121,0.388],[0.145,0.356],[0.195,0.356]],terrain:'plains',adj:[24,25,32,34]},
-                   {id:34,name:'Sphinx',poly:[[0.324,0.388],[0.3,0.42],[0.25,0.42],[0.226,0.388],[0.25,0.356],[0.3,0.356]],terrain:'plains',adj:[25,26,33,35]},
-                   {id:35,name:'Temple',poly:[[0.429,0.388],[0.405,0.42],[0.355,0.42],[0.331,0.388],[0.355,0.356],[0.405,0.356]],terrain:'city',adj:[26,27,34,36]},
-                   {id:36,name:'Palace',poly:[[0.534,0.388],[0.51,0.42],[0.46,0.42],[0.436,0.388],[0.46,0.356],[0.51,0.356]],terrain:'mountain',adj:[27,28,35,37]},
-                   {id:37,name:'Obelisk',poly:[[0.639,0.388],[0.615,0.42],[0.565,0.42],[0.541,0.388],[0.565,0.356],[0.615,0.356]],terrain:'forest',adj:[28,29,36,38]},
-                   {id:38,name:'Bazaar',poly:[[0.744,0.388],[0.72,0.42],[0.67,0.42],[0.646,0.388],[0.67,0.356],[0.72,0.356]],terrain:'forest',adj:[29,30,37,39]},
-                   {id:39,name:'Docks',poly:[[0.849,0.388],[0.825,0.42],[0.775,0.42],[0.751,0.388],[0.775,0.356],[0.825,0.356]],terrain:'forest',adj:[30,31,38]},
-               ],
-               features: []
+                   {id:0,name:'Alexandria',poly:[[0.06,0.03],[0.2,0.03],[0.22,0.07],[0.18,0.13],[0.04,0.13]],terrain:'coast',adj:[1,8,9]},
+                   {id:1,name:'Rosetta',poly:[[0.22,0.03],[0.36,0.03],[0.38,0.07],[0.36,0.13],[0.2,0.13]],terrain:'river',adj:[0,2,9,10]},
+                   {id:2,name:'Damietta',poly:[[0.38,0.03],[0.52,0.03],[0.54,0.07],[0.52,0.13],[0.38,0.13]],terrain:'river',adj:[1,3,10,11]},
+                   {id:3,name:'Tanis',poly:[[0.54,0.03],[0.68,0.03],[0.7,0.07],[0.68,0.13],[0.54,0.13]],terrain:'plains',adj:[2,4,11,12]},
+                   {id:4,name:'Pelusium',poly:[[0.7,0.03],[0.84,0.03],[0.86,0.07],[0.82,0.13],[0.68,0.13]],terrain:'desert',adj:[3,5,12,13]},
+                   {id:5,name:'Suez',poly:[[0.86,0.03],[0.96,0.03],[0.96,0.13],[0.82,0.13]],terrain:'desert',adj:[4,6,13]},
+                   {id:6,name:'Red Sea Coast',poly:[[0.82,0.15],[0.96,0.15],[0.96,0.25],[0.8,0.25]],terrain:'coast',adj:[5,7,22]},
+                   {id:7,name:'Heliopolis',poly:[[0.66,0.15],[0.8,0.15],[0.8,0.25],[0.64,0.25]],terrain:'plains',adj:[6,12,13,22]},
+                   {id:8,name:'Lake Mareotis',poly:[[0.02,0.15],[0.16,0.15],[0.18,0.19],[0.16,0.25],[0.0,0.25]],terrain:'water',adj:[0,9,14]},
+                   {id:9,name:'Delta West',poly:[[0.18,0.15],[0.36,0.15],[0.38,0.19],[0.36,0.25],[0.18,0.25]],terrain:'river',adj:[0,1,8,10,14,15]},
+                   {id:10,name:'Delta Central',poly:[[0.38,0.15],[0.54,0.15],[0.54,0.25],[0.38,0.25]],terrain:'river',adj:[1,2,9,11,15,16]},
+                   {id:11,name:'Bubastis',poly:[[0.54,0.15],[0.68,0.15],[0.68,0.25],[0.54,0.25]],terrain:'plains',adj:[2,3,10,12,16,13]},
+                   {id:12,name:'Wadi Tumilat',poly:[[0.68,0.15],[0.8,0.15],[0.8,0.25],[0.68,0.25]],terrain:'desert',adj:[3,4,7,11,13]},
+                   {id:13,name:'Sinai North',poly:[[0.82,0.15],[0.96,0.15],[0.96,0.25],[0.82,0.25]],terrain:'mountain',adj:[4,5,6,7,12]},
+                   {id:14,name:'Memphis',poly:[[0.02,0.27],[0.18,0.27],[0.18,0.37],[0.0,0.37]],terrain:'plains',adj:[8,9,15,19,23]},
+                   {id:15,name:'Giza Plateau',poly:[[0.2,0.27],[0.38,0.27],[0.38,0.37],[0.2,0.37]],terrain:'mountain',adj:[9,10,14,16,20,26]},
+                   {id:16,name:'Nile South',poly:[[0.4,0.27],[0.56,0.27],[0.56,0.37],[0.4,0.37]],terrain:'river',adj:[10,11,15,17,21,26]},
+                   {id:17,name:'Faiyum',poly:[[0.58,0.27],[0.72,0.27],[0.7,0.37],[0.56,0.37]],terrain:'oasis',adj:[11,16,18,22]},
+                   {id:18,name:'Sinai South',poly:[[0.82,0.27],[0.96,0.27],[0.96,0.37],[0.82,0.37]],terrain:'mountain',adj:[6,7,22]},
+                   {id:19,name:'Beni Hasan',poly:[[0.02,0.39],[0.18,0.39],[0.18,0.49],[0.0,0.49]],terrain:'mountain',adj:[14,20,24]},
+                   {id:20,name:'Amarna',poly:[[0.2,0.39],[0.38,0.39],[0.38,0.49],[0.2,0.49]],terrain:'plains',adj:[15,21,24,25,26]},
+                   {id:21,name:'Minya',poly:[[0.4,0.39],[0.56,0.39],[0.56,0.49],[0.4,0.49]],terrain:'river',adj:[16,20,22,26,27]},
+                   {id:22,name:'Akhmim',poly:[[0.58,0.39],[0.74,0.39],[0.72,0.49],[0.56,0.49]],terrain:'plains',adj:[6,17,18,21,23,27]},
+                   {id:23,name:'Nile Valley',poly:[[0.76,0.39],[0.94,0.39],[0.96,0.49],[0.76,0.49]],terrain:'plains',adj:[7,18,22,28,32]},
+                   {id:24,name:'Abydos',poly:[[0.02,0.51],[0.18,0.51],[0.18,0.61],[0.0,0.61]],terrain:'mountain',adj:[19,25,29,33]},
+                   {id:25,name:'Dendera',poly:[[0.2,0.51],[0.38,0.51],[0.38,0.61],[0.2,0.61]],terrain:'plains',adj:[20,24,26,29,34]},
+                   {id:26,name:'Luxor',poly:[[0.4,0.51],[0.56,0.51],[0.56,0.61],[0.4,0.61]],terrain:'river',adj:[15,20,21,25,27,30,34]},
+                   {id:27,name:'Karnak',poly:[[0.58,0.51],[0.74,0.51],[0.72,0.61],[0.56,0.61]],terrain:'plains',adj:[16,21,22,26,30,31]},
+                   {id:28,name:'Qift',poly:[[0.76,0.51],[0.94,0.51],[0.96,0.61],[0.76,0.61]],terrain:'mountain',adj:[23,27,31,32,36]},
+                   {id:29,name:'Valley of Kings',poly:[[0.2,0.63],[0.38,0.63],[0.38,0.73],[0.2,0.73]],terrain:'mountain',adj:[24,25,30,34,37]},
+                   {id:30,name:'Edfu',poly:[[0.4,0.63],[0.56,0.63],[0.56,0.73],[0.4,0.73]],terrain:'plains',adj:[26,27,29,31,34,38]},
+                   {id:31,name:'Kom Ombo',poly:[[0.58,0.63],[0.74,0.63],[0.72,0.73],[0.56,0.73]],terrain:'river',adj:[27,28,30,32,35,36]},
+                   {id:32,name:'Red Sea Hills',poly:[[0.76,0.63],[0.94,0.63],[0.96,0.73],[0.76,0.73]],terrain:'mountain',adj:[23,28,31,36,39]},
+                   {id:33,name:'Kharga Oasis',poly:[[0.02,0.63],[0.18,0.63],[0.18,0.73],[0.0,0.73]],terrain:'oasis',adj:[24,29,37,38]},
+                   {id:34,name:'Aswan',poly:[[0.2,0.75],[0.4,0.75],[0.4,0.87],[0.18,0.87]],terrain:'river',adj:[25,26,29,35,37,38]},
+                   {id:35,name:'Philae',poly:[[0.42,0.75],[0.6,0.75],[0.6,0.87],[0.4,0.87]],terrain:'plains',adj:[26,30,31,34,36,39]},
+                   {id:36,name:'Desert East',poly:[[0.62,0.75],[0.8,0.75],[0.8,0.87],[0.6,0.87]],terrain:'desert',adj:[28,31,32,35,39]},
+                   {id:37,name:'Abu Simbel',poly:[[0.2,0.87],[0.4,0.87],[0.4,0.97],[0.18,0.97]],terrain:'mountain',adj:[33,34,38,39]},
+                   {id:38,name:'Nubian Frontier',poly:[[0.42,0.87],[0.6,0.87],[0.6,0.97],[0.4,0.97]],terrain:'desert',adj:[29,33,34,37,39]},
+                   {id:39,name:'Dakhla Oasis',poly:[[0.62,0.87],[0.8,0.87],[0.8,0.97],[0.6,0.97]],terrain:'oasis',adj:[32,35,36,37,38]}
+               ]
            },
            rome: {
                name: 'Mediterranean',
@@ -5744,7 +5780,173 @@
            frost:     { ground: '#c0d8e8', ground2: '#a0c0d8', sky: '#e0f0ff', accent: '#0984e3', hills: true }
        };
 
+       // Egypt top-down strategic map background
+       function drawEgyptMapBackground(w, h) {
+           // 1. Base desert sand fill
+           var sandGrad = ctx.createLinearGradient(0, 0, w, h);
+           sandGrad.addColorStop(0, '#d4a76a');
+           sandGrad.addColorStop(0.3, '#c49660');
+           sandGrad.addColorStop(0.6, '#b8864f');
+           sandGrad.addColorStop(1, '#a67542');
+           ctx.fillStyle = sandGrad;
+           ctx.fillRect(0, 0, w, h);
+
+           // 2. Desert texture — subtle dune ripples
+           ctx.save();
+           ctx.globalAlpha = 0.08;
+           for (var dy = 0; dy < h; dy += 12) {
+               ctx.strokeStyle = '#8B6914';
+               ctx.lineWidth = 1;
+               ctx.beginPath();
+               ctx.moveTo(0, dy);
+               for (var dx = 0; dx < w; dx += 20) {
+                   ctx.lineTo(dx, dy + Math.sin(dx * 0.01 + dy * 0.05) * 3);
+               }
+               ctx.stroke();
+           }
+           ctx.restore();
+
+           // 3. Nile River — flowing south to north (bottom to top) with natural curves
+           ctx.save();
+           // Wide river band
+           var nileWidth = w * 0.06;
+           var nileX = w * 0.48; // River center line
+
+           // Draw river as a series of bezier curves
+           ctx.fillStyle = '#1a6eb5';
+           ctx.beginPath();
+           // Left bank (going north = up)
+           ctx.moveTo(nileX - nileWidth * 1.5, h); // South end (wide)
+           ctx.bezierCurveTo(nileX - nileWidth * 1.2, h * 0.8, nileX - nileWidth * 0.8, h * 0.6, nileX - nileWidth * 0.5, h * 0.35);
+           ctx.bezierCurveTo(nileX - nileWidth * 0.4, h * 0.25, nileX - nileWidth * 0.6, h * 0.15, nileX - nileWidth * 2.5, 0); // Delta (very wide)
+           // Top of delta
+           ctx.lineTo(nileX + nileWidth * 2.5, 0);
+           // Right bank (going south = down)
+           ctx.bezierCurveTo(nileX + nileWidth * 0.6, h * 0.15, nileX + nileWidth * 0.4, h * 0.25, nileX + nileWidth * 0.5, h * 0.35);
+           ctx.bezierCurveTo(nileX + nileWidth * 0.8, h * 0.6, nileX + nileWidth * 1.2, h * 0.8, nileX + nileWidth * 1.5, h);
+           ctx.closePath();
+           ctx.fill();
+
+           // River shimmer/highlight
+           ctx.globalAlpha = 0.3;
+           ctx.fillStyle = '#4a9fd4';
+           ctx.beginPath();
+           ctx.moveTo(nileX - nileWidth * 0.8, h);
+           ctx.bezierCurveTo(nileX - nileWidth * 0.6, h * 0.8, nileX - nileWidth * 0.4, h * 0.6, nileX - nileWidth * 0.2, h * 0.35);
+           ctx.bezierCurveTo(nileX - nileWidth * 0.1, h * 0.25, nileX - nileWidth * 0.3, h * 0.15, nileX - nileWidth * 1.5, 0);
+           ctx.lineTo(nileX + nileWidth * 1.5, 0);
+           ctx.bezierCurveTo(nileX + nileWidth * 0.3, h * 0.15, nileX + nileWidth * 0.1, h * 0.25, nileX + nileWidth * 0.2, h * 0.35);
+           ctx.bezierCurveTo(nileX + nileWidth * 0.4, h * 0.6, nileX + nileWidth * 0.6, h * 0.8, nileX + nileWidth * 0.8, h);
+           ctx.closePath();
+           ctx.fill();
+           ctx.restore();
+
+           // 4. Fertile green strips along Nile banks
+           ctx.save();
+           var fertileGrad = ctx.createLinearGradient(nileX - nileWidth * 3, 0, nileX + nileWidth * 3, 0);
+           fertileGrad.addColorStop(0, 'rgba(76,120,40,0)');
+           fertileGrad.addColorStop(0.3, 'rgba(76,120,40,0.15)');
+           fertileGrad.addColorStop(0.5, 'rgba(90,140,50,0.2)');
+           fertileGrad.addColorStop(0.7, 'rgba(76,120,40,0.15)');
+           fertileGrad.addColorStop(1, 'rgba(76,120,40,0)');
+           ctx.fillStyle = fertileGrad;
+           ctx.fillRect(nileX - nileWidth * 3, 0, nileWidth * 6, h);
+
+           // Patches of darker green near the river
+           ctx.globalAlpha = 0.12;
+           ctx.fillStyle = '#3d7a2a';
+           for (var gi = 0; gi < 15; gi++) {
+               var gx = nileX + ((gi * 67 - 200) % (nileWidth * 4));
+               var gy = h * 0.1 + (gi * 73 % 90) / 100 * h * 0.8;
+               var gr = nileWidth * 0.3 + (gi % 4) * nileWidth * 0.15;
+               ctx.beginPath();
+               ctx.ellipse(gx, gy, gr * 1.5, gr, 0.3, 0, Math.PI * 2);
+               ctx.fill();
+           }
+           ctx.restore();
+
+           // 5. Mediterranean Sea at top
+           ctx.save();
+           var seaGrad = ctx.createLinearGradient(0, 0, 0, h * 0.06);
+           seaGrad.addColorStop(0, '#1565a0');
+           seaGrad.addColorStop(0.6, '#1a7ab8');
+           seaGrad.addColorStop(1, '#2196c8');
+           ctx.fillStyle = seaGrad;
+           ctx.fillRect(0, 0, w, h * 0.06);
+           // Wave shimmer
+           ctx.globalAlpha = 0.15;
+           ctx.strokeStyle = '#5bc0eb';
+           ctx.lineWidth = 1;
+           for (var wi = 0; wi < 8; wi++) {
+               var wy = h * 0.01 + wi * h * 0.006;
+               ctx.beginPath();
+               ctx.moveTo(0, wy);
+               for (var wx = 0; wx < w; wx += 15) {
+                   ctx.lineTo(wx, wy + Math.sin(wx * 0.03 + animFrame * 0.02 + wi) * 2);
+               }
+               ctx.stroke();
+           }
+           ctx.restore();
+
+           // 6. Red Sea hint on the right
+           ctx.save();
+           ctx.globalAlpha = 0.25;
+           var redSeaGrad = ctx.createLinearGradient(w * 0.92, 0, w, 0);
+           redSeaGrad.addColorStop(0, '#0f4c75');
+           redSeaGrad.addColorStop(1, '#1b6ca0');
+           ctx.fillStyle = redSeaGrad;
+           ctx.fillRect(w * 0.92, 0, w * 0.08, h);
+           ctx.restore();
+
+           // 7. Pyramid silhouettes near Giza area (top-center)
+           ctx.save();
+           ctx.globalAlpha = 0.08;
+           ctx.fillStyle = '#8B6914';
+           var pyrY = h * 0.30;
+           var pyrX = w * 0.30;
+           // Large pyramid
+           ctx.beginPath();
+           ctx.moveTo(pyrX, pyrY - h * 0.04);
+           ctx.lineTo(pyrX + w * 0.03, pyrY + h * 0.01);
+           ctx.lineTo(pyrX - w * 0.03, pyrY + h * 0.01);
+           ctx.closePath();
+           ctx.fill();
+           // Medium pyramid
+           ctx.beginPath();
+           ctx.moveTo(pyrX + w * 0.04, pyrY - h * 0.025);
+           ctx.lineTo(pyrX + w * 0.06, pyrY + h * 0.01);
+           ctx.lineTo(pyrX + w * 0.02, pyrY + h * 0.01);
+           ctx.closePath();
+           ctx.fill();
+           // Small pyramid
+           ctx.beginPath();
+           ctx.moveTo(pyrX - w * 0.05, pyrY - h * 0.015);
+           ctx.lineTo(pyrX - w * 0.03, pyrY + h * 0.01);
+           ctx.lineTo(pyrX - w * 0.07, pyrY + h * 0.01);
+           ctx.closePath();
+           ctx.fill();
+           ctx.restore();
+
+           // 8. Desert scatter — small sand dots
+           ctx.save();
+           ctx.globalAlpha = 0.06;
+           ctx.fillStyle = '#8B6914';
+           for (var si = 0; si < 40; si++) {
+               var sx = (si * 137 + 50) % w;
+               var sy = (si * 97 + 30) % h;
+               ctx.beginPath();
+               ctx.arc(sx, sy, 1 + si % 2, 0, Math.PI * 2);
+               ctx.fill();
+           }
+           ctx.restore();
+       }
+
        function drawEraBackground(eraId, w, h) {
+           // Egypt gets a top-down strategic map instead of perspective horizon
+           if (eraId === 'egypt') {
+               drawEgyptMapBackground(w, h);
+               return;
+           }
            const land = ERA_LANDS[eraId] || ERA_LANDS.rome;
            const horizonY = h * 0.42;
            // Sky with gradient
@@ -6565,8 +6767,7 @@
            ctx.drawImage(_mapCache, 0, 0);
            // Animated era-specific textures drawn per-frame (on top of cached hexes)
            drawTerritoryTextures(eraId, w, h);
-           // Phase 3.3: Nile River for Egypt era
-           if (eraId === 'egypt') drawNileRiver(w, h);
+           // Nile is now drawn in drawEgyptMapBackground for Egypt era
            // Phase 3.5: Sandstorm overlay for Egypt era
            if (eraId === 'egypt') { drawEgyptSandstorm(w, h); _renderDirty = true; }
            for (const f of getAllFactions()) drawArmyLand(f);
@@ -6628,7 +6829,7 @@
                const rt = _territoryById.get(tp.id);
                const ownerEraId = rt && rt.owner ? getFactionEra(rt.owner) : null;
                const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
-               const terrColors = { plains: land.ground, forest: land.ground2 || '#3a6a1c', mountain: '#6b7280', city: getCachedColor(land.ground, 20), water: '#3b82f6' };
+               const terrColors = { plains: land.ground, forest: land.ground2 || '#3a6a1c', mountain: '#6b7280', city: getCachedColor(land.ground, 20), water: '#3b82f6', coast: '#4a90d9', oasis: '#6ba368', river: '#4a90d9', desert: '#c49660' };
                const baseColor = terrColors[tDef.terrain] || land.ground;
                if (rt && rt.owner) {
                    const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
