@@ -6816,8 +6816,7 @@
            // Nile is now drawn in drawEgyptMapBackground for Egypt era
            // Phase 3.5: Sandstorm overlay for Egypt era
            if (eraId === 'egypt') { drawEgyptSandstorm(w, h); _renderDirty = true; }
-           for (const f of getAllFactions()) drawArmyLand(f);
-           // Army/warrior rendering disabled — plain land only
+           // All army/warrior/land-base rendering disabled — plain land only
            // Draw terrain icons on territories
            drawTerrainIcons(w, h);
            if (gameState.selectedArmy) {
