@@ -6846,37 +6846,7 @@
        }
 
        function drawTerritoryMap(eraId, w, h) {
-           const map = ERA_MAPS[eraId];
-           if (!map || !gameState.territories) return;
-           if (_territoryPaths.length === 0 || _territoryPaths[0].id === undefined) buildTerritoryPaths(eraId, w, h);
-           buildTerritoryLookup();
-           const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
-           const terrDefs = map._dynamic || map.territories;
-           // Draw all territories as plain terrain — no owner colors
-           for (let ti = 0; ti < _territoryPaths.length; ti++) {
-               const tp = _territoryPaths[ti];
-               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
-               if (!tDef) continue;
-               const terrColors = { plains: defaultLand.ground, forest: defaultLand.ground2 || '#3a6a1c', mountain: '#6b7280', city: getCachedColor(defaultLand.ground, 20), water: '#3b82f6', coast: '#4a90d9', oasis: '#6ba368', river: '#4a90d9', desert: '#c49660' };
-               ctx.fillStyle = terrColors[tDef.terrain] || defaultLand.ground;
-               ctx.fill(tp.path);
-               // Simple subtle border — same for all
-               ctx.strokeStyle = '#ffffff18';
-               ctx.lineWidth = 1;
-               ctx.stroke(tp.path);
-           }
-           // Territory names only — centered in each territory
-           for (let ti = 0; ti < _territoryPaths.length; ti++) {
-               const tp = _territoryPaths[ti];
-               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
-               if (!tDef || tDef.terrain === 'water') continue;
-               const cx = tp.cx, cy = tp.cy;
-               const fontSize = Math.max(9, w * 0.014);
-               ctx.font = fontSize + 'px Arial';
-               ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-               ctx.fillStyle = '#ffffff80';
-               ctx.fillText(tDef.name, cx, cy);
-           }
+           // Territories disabled — plain land only, no polygons drawn
        }
 
 
