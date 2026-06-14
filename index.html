@@ -6817,7 +6817,7 @@
            // Phase 3.5: Sandstorm overlay for Egypt era
            if (eraId === 'egypt') { drawEgyptSandstorm(w, h); _renderDirty = true; }
            for (const f of getAllFactions()) drawArmyLand(f);
-           for (const f of getAllFactions()) drawArmy(f);
+           // Army/warrior rendering disabled — plain land only
            // Draw terrain icons on territories
            drawTerrainIcons(w, h);
            if (gameState.selectedArmy) {
@@ -6946,27 +6946,10 @@
                ctx.font = 'bold ' + fontSize + 'px Arial';
                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                ctx.fillStyle = '#000000aa';
-               ctx.fillText(tDef.name, cx + 1, cy + 1 - fontSize * 0.8);
+               ctx.fillText(tDef.name, cx + 1, cy + 1);
                ctx.fillStyle = '#ffffffdd';
-               ctx.fillText(tDef.name, cx, cy - fontSize * 0.8);
-               const troopText = '' + rt.troops;
-               const ts2 = Math.max(12, w * 0.022);
-               ctx.font = 'bold ' + ts2 + 'px Arial';
-               const bgR = ts2 * 0.8;
-               ctx.fillStyle = faction.color;
-               ctx.beginPath(); ctx.arc(cx, cy + fontSize * 0.3, bgR, 0, Math.PI * 2); ctx.fill();
-               ctx.strokeStyle = '#00000040';
-               ctx.lineWidth = 1;
-               ctx.stroke();
-               ctx.fillStyle = '#fff';
-               ctx.fillText(troopText, cx, cy + fontSize * 0.35);
-               const flagY = cy - fontSize * 1.6;
-               const flagWave = Math.sin(animFrame * 0.08 + tp.id * 2) * 2;
-               ctx.strokeStyle = '#65432180'; ctx.lineWidth = 1.5;
-               ctx.beginPath(); ctx.moveTo(cx, flagY + 8); ctx.lineTo(cx, flagY); ctx.stroke();
-               ctx.fillStyle = faction.color + 'cc';
-               ctx.beginPath(); ctx.moveTo(cx, flagY); ctx.lineTo(cx + 8, flagY + 3 + flagWave); ctx.lineTo(cx, flagY + 6); ctx.fill();
-               drawTerritoryWarriors(faction, rt, cx, cy, w, h);
+               ctx.fillText(tDef.name, cx, cy);
+               // No troop circles, flags, or warriors — plain land only
            }
        }
 
