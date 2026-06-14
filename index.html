@@ -6843,91 +6843,150 @@
        // Draw an Egyptian village on a territory — mudbrick houses, temple, palm trees
        function drawEgyptVillage(cx, cy, tDef, w, h, rt) {
            const faction = rt && rt.owner ? (rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner)) : null;
-           const factionColor = faction ? faction.color : '#c4956a'; // neutral sandy color for unowned
+           const factionColor = faction ? faction.color : '#c4956a';
            const scale = Math.min(w, h) * 0.012;
            const wallColor = '#c4956a';
            const roofColor = '#8B6914';
            const doorColor = '#654321';
-
-           // Use territory ID as seed for deterministic building placement
            const seed = tDef.id * 137 + 42;
            const terrain = tDef.terrain;
 
-           // Draw 2-4 mudbrick houses arranged in a cluster
+           // Enclosed courtyard wall (mudbrick compound)
+           const compoundR = scale * 2.5;
+           ctx.strokeStyle = '#b08555';
+           ctx.lineWidth = Math.max(1, scale * 0.06);
+           ctx.globalAlpha = 0.4;
+           ctx.beginPath();
+           ctx.arc(cx, cy, compoundR, 0, Math.PI * 2);
+           ctx.stroke();
+           ctx.globalAlpha = 1;
+
+           // Draw 2-4 mudbrick houses arranged in a cluster inside courtyard
            const houseCount = 2 + (seed % 3);
            for (let i = 0; i < houseCount; i++) {
                const angle = (i / houseCount) * Math.PI * 2 + seed * 0.1;
-               const dist = scale * (1.5 + (seed + i * 31) % 3) * 0.8;
+               const dist = scale * (0.8 + (seed + i * 31) % 2) * 0.6;
                const hx = cx + Math.cos(angle) * dist;
-               const hy = cy + Math.sin(angle) * dist - scale * 0.5;
-               const houseW = scale * (0.8 + (seed + i * 17) % 3 * 0.15);
-               const houseH = scale * (0.6 + (seed + i * 13) % 3 * 0.1);
+               const hy = cy + Math.sin(angle) * dist - scale * 0.4;
+               const houseW = scale * (0.9 + (seed + i * 17) % 3 * 0.12);
+               const houseH = scale * (0.7 + (seed + i * 13) % 3 * 0.1);
 
                // Shadow under house
-               ctx.fillStyle = 'rgba(0,0,0,0.15)';
+               ctx.fillStyle = 'rgba(0,0,0,0.2)';
                ctx.fillRect(hx - houseW / 2 + 1, hy + 1, houseW, houseH);
 
-               // Mudbrick walls (warm sandy color)
+               // Mudbrick walls
                ctx.fillStyle = wallColor;
                ctx.fillRect(hx - houseW / 2, hy, houseW, houseH);
 
-               // Wall texture — horizontal lines for mudbrick courses
+               // Mudbrick course lines (horizontal)
                ctx.strokeStyle = '#a07850';
                ctx.lineWidth = 0.5;
-               for (let brick = 0; brick < 3; brick++) {
-                   const by = hy + houseH * (brick + 1) / 4;
-                   ctx.beginPath();
-                   ctx.moveTo(hx - houseW / 2, by);
-                   ctx.lineTo(hx + houseW / 2, by);
-                   ctx.stroke();
+               for (let brick = 1; brick <= 4; brick++) {
+                   const by = hy + houseH * brick / 5;
+                   ctx.beginPath(); ctx.moveTo(hx - houseW / 2, by); ctx.lineTo(hx + houseW / 2, by); ctx.stroke();
                }
 
-               // Flat roof (slightly wider than walls, darker)
+               // Flat roof with parapet (slightly wider, darker)
                ctx.fillStyle = roofColor;
-               ctx.fillRect(hx - houseW / 2 - scale * 0.05, hy - scale * 0.06, houseW + scale * 0.1, scale * 0.08);
+               ctx.fillRect(hx - houseW / 2 - scale * 0.05, hy - scale * 0.07, houseW + scale * 0.1, scale * 0.09);
+               // Roof edge detail
+               ctx.fillStyle = '#7a5810';
+               ctx.fillRect(hx - houseW / 2 - scale * 0.05, hy - scale * 0.07, houseW + scale * 0.1, scale * 0.02);
 
-               // Door (dark rectangle in center)
-               const doorW = houseW * 0.2;
-               const doorH = houseH * 0.5;
+               // Door (dark archway)
+               const doorW = houseW * 0.22;
+               const doorH = houseH * 0.55;
                ctx.fillStyle = doorColor;
-               ctx.fillRect(hx - doorW / 2, hy + houseH - doorH, doorW, doorH);
+               ctx.beginPath();
+               ctx.moveTo(hx - doorW / 2, hy + houseH);
+               ctx.lineTo(hx - doorW / 2, hy + houseH - doorH + doorW / 2);
+               ctx.arc(hx, hy + houseH - doorH + doorW / 2, doorW / 2, Math.PI, 0);
+               ctx.lineTo(hx + doorW / 2, hy + houseH);
+               ctx.fill();
 
-               // Window (small square)
+               // Window (small rectangular with grille)
                if (i % 2 === 0) {
                    ctx.fillStyle = '#1a1a2e';
-                   ctx.fillRect(hx + houseW * 0.2, hy + houseH * 0.25, houseW * 0.12, houseH * 0.2);
+                   ctx.fillRect(hx + houseW * 0.15, hy + houseH * 0.2, houseW * 0.15, houseH * 0.18);
+                   // Window grille lines
+                   ctx.strokeStyle = '#654321';
+                   ctx.lineWidth = 0.5;
+                   ctx.beginPath(); ctx.moveTo(hx + houseW * 0.15, hy + houseH * 0.29); ctx.lineTo(hx + houseW * 0.30, hy + houseH * 0.29); ctx.stroke();
+                   ctx.beginPath(); ctx.moveTo(hx + houseW * 0.225, hy + houseH * 0.2); ctx.lineTo(hx + houseW * 0.225, hy + houseH * 0.38); ctx.stroke();
                }
            }
 
-           // Draw a temple for special territories (mountain = temple complexes, oasis = shrines)
+           // Central water well / courtyard feature
+           if (terrain !== 'mountain') {
+               const wellX = cx + scale * 0.3;
+               const wellY = cy + scale * 0.5;
+               // Stone well ring
+               ctx.fillStyle = '#8a8a7a';
+               ctx.beginPath(); ctx.arc(wellX, wellY, scale * 0.2, 0, Math.PI * 2); ctx.fill();
+               // Dark water inside
+               ctx.fillStyle = '#1a5276';
+               ctx.beginPath(); ctx.arc(wellX, wellY, scale * 0.12, 0, Math.PI * 2); ctx.fill();
+           }
+
+           // Draw a temple for special territories (mountain, city, Giza, Luxor, Aswan)
            if (terrain === 'mountain' || terrain === 'city' || tDef.id === 18 || tDef.id === 30 || tDef.id === 37) {
-               drawEgyptTemple(cx, cy + scale * 0.8, scale, factionColor);
+               drawEgyptTemple(cx, cy + scale * 1.0, scale, factionColor);
            }
 
-           // Draw palm trees near river/oasis territories
+           // Draw palm trees near river/oasis/coast territories
            if (terrain === 'river' || terrain === 'oasis' || terrain === 'coast') {
-               const palmCount = 1 + (seed % 2);
+               const palmCount = 2 + (seed % 2);
                for (let p = 0; p < palmCount; p++) {
-                   const px = cx + scale * (1.2 + p * 1.2) * (p % 2 === 0 ? 1 : -1);
-                   const py = cy - scale * 0.3;
-                   drawPalmTree(px, py, scale * 0.8);
+                   const px = cx + scale * (1.5 + p * 1.0) * (p % 2 === 0 ? 1 : -1);
+                   const py = cy - scale * 0.2;
+                   drawPalmTree(px, py, scale * 1.0);
                }
            }
 
-           // Draw granary silos near plains (food storage)
+           // Draw granary silos near plains
            if (terrain === 'plains') {
-               const gx = cx - scale * 1.5;
-               const gy = cy + scale * 0.2;
+               const gx = cx - scale * 1.8;
+               const gy = cy + scale * 0.3;
+               // Dome-shaped granary
                ctx.fillStyle = '#d4a76a';
-               ctx.beginPath();
-               ctx.ellipse(gx, gy, scale * 0.25, scale * 0.4, 0, 0, Math.PI * 2);
-               ctx.fill();
+               ctx.beginPath(); ctx.ellipse(gx, gy, scale * 0.3, scale * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+               // Conical roof
                ctx.fillStyle = '#a07850';
                ctx.beginPath();
-               ctx.moveTo(gx - scale * 0.25, gy);
-               ctx.lineTo(gx, gy - scale * 0.55);
-               ctx.lineTo(gx + scale * 0.25, gy);
+               ctx.moveTo(gx - scale * 0.3, gy);
+               ctx.lineTo(gx, gy - scale * 0.6);
+               ctx.lineTo(gx + scale * 0.3, gy);
                ctx.fill();
+               // Second smaller granary
+               ctx.fillStyle = '#c4956a';
+               ctx.beginPath(); ctx.ellipse(gx + scale * 0.8, gy + scale * 0.1, scale * 0.2, scale * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+               ctx.fillStyle = '#a07850';
+               ctx.beginPath();
+               ctx.moveTo(gx + scale * 0.6, gy + scale * 0.1);
+               ctx.lineTo(gx + scale * 0.8, gy - scale * 0.4);
+               ctx.lineTo(gx + scale * 1.0, gy + scale * 0.1);
+               ctx.fill();
+           }
+
+           // Market stall for river/plains territories
+           if ((terrain === 'river' || terrain === 'plains') && seed % 3 === 0) {
+               const sx = cx + scale * 1.5;
+               const sy = cy + scale * 0.6;
+               // Stall canopy (colorful cloth)
+               ctx.fillStyle = '#e74c3c';
+               ctx.globalAlpha = 0.5;
+               ctx.fillRect(sx - scale * 0.4, sy - scale * 0.3, scale * 0.8, scale * 0.05);
+               // Stall poles
+               ctx.fillStyle = '#654321';
+               ctx.globalAlpha = 1;
+               ctx.fillRect(sx - scale * 0.4, sy - scale * 0.3, scale * 0.04, scale * 0.5);
+               ctx.fillRect(sx + scale * 0.36, sy - scale * 0.3, scale * 0.04, scale * 0.5);
+               // Goods on table
+               ctx.fillStyle = '#feca57';
+               ctx.globalAlpha = 0.6;
+               ctx.fillRect(sx - scale * 0.3, sy, scale * 0.6, scale * 0.06);
+               ctx.globalAlpha = 1;
            }
        }
 
