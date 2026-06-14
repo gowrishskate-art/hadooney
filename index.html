@@ -387,7 +387,7 @@
 
        /* Game Screen */
        #game-screen {
-           padding: 10px;
+           padding: 0;
        }
 
        .game-header {
@@ -953,15 +953,17 @@
   inset: 0;
   overflow: hidden;
   z-index: 100;
+  padding: 0 !important;
 }
 
 /* Canvas container fills the entire viewport with no constraints */
 .game-canvas-container {
   position: absolute;
-  inset: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   max-width: none !important;
   aspect-ratio: none !important;
   margin: 0 !important;
+  overflow: hidden;
 }
 
 /* Canvas stretches edge-to-edge, no rounded corners on viewport */
@@ -969,6 +971,7 @@
   width: 100%;
   height: 100%;
   border-radius: 0;
+  display: block;
 }
 
 /* Floating header bar — pill shape, centered at top */
@@ -2000,46 +2003,52 @@
            egypt: {
                name: 'Nile Valley',
                territories: [
-                   {id:0,name:'Alexandria',poly:[[0.06,0.03],[0.2,0.03],[0.22,0.07],[0.18,0.13],[0.04,0.13]],terrain:'coast',adj:[1,8,9]},
-                   {id:1,name:'Rosetta',poly:[[0.22,0.03],[0.36,0.03],[0.38,0.07],[0.36,0.13],[0.2,0.13]],terrain:'river',adj:[0,2,9,10]},
-                   {id:2,name:'Damietta',poly:[[0.38,0.03],[0.52,0.03],[0.54,0.07],[0.52,0.13],[0.38,0.13]],terrain:'river',adj:[1,3,10,11]},
-                   {id:3,name:'Tanis',poly:[[0.54,0.03],[0.68,0.03],[0.7,0.07],[0.68,0.13],[0.54,0.13]],terrain:'plains',adj:[2,4,11,12]},
-                   {id:4,name:'Pelusium',poly:[[0.7,0.03],[0.84,0.03],[0.86,0.07],[0.82,0.13],[0.68,0.13]],terrain:'desert',adj:[3,5,12,13]},
-                   {id:5,name:'Suez',poly:[[0.86,0.03],[0.96,0.03],[0.96,0.13],[0.82,0.13]],terrain:'desert',adj:[4,6,13]},
-                   {id:6,name:'Red Sea Coast',poly:[[0.82,0.15],[0.96,0.15],[0.96,0.25],[0.8,0.25]],terrain:'coast',adj:[5,7,22]},
-                   {id:7,name:'Heliopolis',poly:[[0.66,0.15],[0.8,0.15],[0.8,0.25],[0.64,0.25]],terrain:'plains',adj:[6,12,13,22]},
-                   {id:8,name:'Lake Mareotis',poly:[[0.02,0.15],[0.16,0.15],[0.18,0.19],[0.16,0.25],[0.0,0.25]],terrain:'water',adj:[0,9,14]},
-                   {id:9,name:'Delta West',poly:[[0.18,0.15],[0.36,0.15],[0.38,0.19],[0.36,0.25],[0.18,0.25]],terrain:'river',adj:[0,1,8,10,14,15]},
-                   {id:10,name:'Delta Central',poly:[[0.38,0.15],[0.54,0.15],[0.54,0.25],[0.38,0.25]],terrain:'river',adj:[1,2,9,11,15,16]},
-                   {id:11,name:'Bubastis',poly:[[0.54,0.15],[0.68,0.15],[0.68,0.25],[0.54,0.25]],terrain:'plains',adj:[2,3,10,12,16,13]},
-                   {id:12,name:'Wadi Tumilat',poly:[[0.68,0.15],[0.8,0.15],[0.8,0.25],[0.68,0.25]],terrain:'desert',adj:[3,4,7,11,13]},
-                   {id:13,name:'Sinai North',poly:[[0.82,0.15],[0.96,0.15],[0.96,0.25],[0.82,0.25]],terrain:'mountain',adj:[4,5,6,7,12]},
-                   {id:14,name:'Memphis',poly:[[0.02,0.27],[0.18,0.27],[0.18,0.37],[0.0,0.37]],terrain:'plains',adj:[8,9,15,19,23]},
-                   {id:15,name:'Giza Plateau',poly:[[0.2,0.27],[0.38,0.27],[0.38,0.37],[0.2,0.37]],terrain:'mountain',adj:[9,10,14,16,20,26]},
-                   {id:16,name:'Nile South',poly:[[0.4,0.27],[0.56,0.27],[0.56,0.37],[0.4,0.37]],terrain:'river',adj:[10,11,15,17,21,26]},
-                   {id:17,name:'Faiyum',poly:[[0.58,0.27],[0.72,0.27],[0.7,0.37],[0.56,0.37]],terrain:'oasis',adj:[11,16,18,22]},
-                   {id:18,name:'Sinai South',poly:[[0.82,0.27],[0.96,0.27],[0.96,0.37],[0.82,0.37]],terrain:'mountain',adj:[6,7,22]},
-                   {id:19,name:'Beni Hasan',poly:[[0.02,0.39],[0.18,0.39],[0.18,0.49],[0.0,0.49]],terrain:'mountain',adj:[14,20,24]},
-                   {id:20,name:'Amarna',poly:[[0.2,0.39],[0.38,0.39],[0.38,0.49],[0.2,0.49]],terrain:'plains',adj:[15,21,24,25,26]},
-                   {id:21,name:'Minya',poly:[[0.4,0.39],[0.56,0.39],[0.56,0.49],[0.4,0.49]],terrain:'river',adj:[16,20,22,26,27]},
-                   {id:22,name:'Akhmim',poly:[[0.58,0.39],[0.74,0.39],[0.72,0.49],[0.56,0.49]],terrain:'plains',adj:[6,17,18,21,23,27]},
-                   {id:23,name:'Nile Valley',poly:[[0.76,0.39],[0.94,0.39],[0.96,0.49],[0.76,0.49]],terrain:'plains',adj:[7,18,22,28,32]},
-                   {id:24,name:'Abydos',poly:[[0.02,0.51],[0.18,0.51],[0.18,0.61],[0.0,0.61]],terrain:'mountain',adj:[19,25,29,33]},
-                   {id:25,name:'Dendera',poly:[[0.2,0.51],[0.38,0.51],[0.38,0.61],[0.2,0.61]],terrain:'plains',adj:[20,24,26,29,34]},
-                   {id:26,name:'Luxor',poly:[[0.4,0.51],[0.56,0.51],[0.56,0.61],[0.4,0.61]],terrain:'river',adj:[15,20,21,25,27,30,34]},
-                   {id:27,name:'Karnak',poly:[[0.58,0.51],[0.74,0.51],[0.72,0.61],[0.56,0.61]],terrain:'plains',adj:[16,21,22,26,30,31]},
-                   {id:28,name:'Qift',poly:[[0.76,0.51],[0.94,0.51],[0.96,0.61],[0.76,0.61]],terrain:'mountain',adj:[23,27,31,32,36]},
-                   {id:29,name:'Valley of Kings',poly:[[0.2,0.63],[0.38,0.63],[0.38,0.73],[0.2,0.73]],terrain:'mountain',adj:[24,25,30,34,37]},
-                   {id:30,name:'Edfu',poly:[[0.4,0.63],[0.56,0.63],[0.56,0.73],[0.4,0.73]],terrain:'plains',adj:[26,27,29,31,34,38]},
-                   {id:31,name:'Kom Ombo',poly:[[0.58,0.63],[0.74,0.63],[0.72,0.73],[0.56,0.73]],terrain:'river',adj:[27,28,30,32,35,36]},
-                   {id:32,name:'Red Sea Hills',poly:[[0.76,0.63],[0.94,0.63],[0.96,0.73],[0.76,0.73]],terrain:'mountain',adj:[23,28,31,36,39]},
-                   {id:33,name:'Kharga Oasis',poly:[[0.02,0.63],[0.18,0.63],[0.18,0.73],[0.0,0.73]],terrain:'oasis',adj:[24,29,37,38]},
-                   {id:34,name:'Aswan',poly:[[0.2,0.75],[0.4,0.75],[0.4,0.87],[0.18,0.87]],terrain:'river',adj:[25,26,29,35,37,38]},
-                   {id:35,name:'Philae',poly:[[0.42,0.75],[0.6,0.75],[0.6,0.87],[0.4,0.87]],terrain:'plains',adj:[26,30,31,34,36,39]},
-                   {id:36,name:'Desert East',poly:[[0.62,0.75],[0.8,0.75],[0.8,0.87],[0.6,0.87]],terrain:'desert',adj:[28,31,32,35,39]},
-                   {id:37,name:'Abu Simbel',poly:[[0.2,0.87],[0.4,0.87],[0.4,0.97],[0.18,0.97]],terrain:'mountain',adj:[33,34,38,39]},
-                   {id:38,name:'Nubian Frontier',poly:[[0.42,0.87],[0.6,0.87],[0.6,0.97],[0.4,0.97]],terrain:'desert',adj:[29,33,34,37,39]},
-                   {id:39,name:'Dakhla Oasis',poly:[[0.62,0.87],[0.8,0.87],[0.8,0.97],[0.6,0.97]],terrain:'oasis',adj:[32,35,36,37,38]}
+                   // Row 0: Mediterranean Coast (y: 0.02–0.12)
+                   {id:0,name:'Alexandria',poly:[[0.02,0.02],[0.14,0.02],[0.18,0.04],[0.20,0.08],[0.16,0.12],[0.06,0.13],[0.02,0.10]],terrain:'coast',adj:[1,9,10]},
+                   {id:1,name:'Rosetta',poly:[[0.14,0.02],[0.26,0.02],[0.30,0.05],[0.28,0.09],[0.22,0.12],[0.18,0.12],[0.16,0.08]],terrain:'river',adj:[0,2,10,11]},
+                   {id:2,name:'Damietta',poly:[[0.30,0.02],[0.42,0.02],[0.46,0.06],[0.44,0.11],[0.36,0.12],[0.28,0.12],[0.28,0.09]],terrain:'river',adj:[1,3,11,12]},
+                   {id:3,name:'Tanis',poly:[[0.46,0.02],[0.56,0.02],[0.58,0.07],[0.54,0.12],[0.46,0.12],[0.44,0.11]],terrain:'plains',adj:[2,4,12,13]},
+                   {id:4,name:'Pelusium',poly:[[0.56,0.02],[0.66,0.02],[0.68,0.08],[0.64,0.12],[0.56,0.12],[0.58,0.07]],terrain:'desert',adj:[3,5,13]},
+                   {id:5,name:'Port Said',poly:[[0.66,0.02],[0.76,0.02],[0.78,0.06],[0.76,0.12],[0.66,0.12],[0.68,0.08]],terrain:'coast',adj:[4,6,7]},
+                   {id:6,name:'Suez',poly:[[0.78,0.02],[0.90,0.02],[0.92,0.06],[0.90,0.12],[0.78,0.12],[0.76,0.12],[0.76,0.06]],terrain:'desert',adj:[5,7,8]},
+                   {id:7,name:'Sinai',poly:[[0.90,0.02],[0.98,0.02],[0.98,0.12],[0.90,0.12],[0.92,0.06]],terrain:'mountain',adj:[6,8,15]},
+                   {id:8,name:'Red Sea Coast',poly:[[0.90,0.12],[0.98,0.12],[0.98,0.22],[0.90,0.22],[0.88,0.16]],terrain:'coast',adj:[6,7,14,15]},
+                   // Row 1: Nile Delta (y: 0.12–0.24)
+                   {id:9,name:'Lake Mareotis',poly:[[0.02,0.10],[0.06,0.13],[0.16,0.12],[0.18,0.16],[0.14,0.22],[0.04,0.24],[0.02,0.20]],terrain:'water',adj:[0,1,10,18]},
+                   {id:10,name:'Delta West',poly:[[0.16,0.12],[0.22,0.12],[0.26,0.16],[0.24,0.22],[0.18,0.24],[0.14,0.22],[0.18,0.16]],terrain:'river',adj:[0,1,9,11,18,19]},
+                   {id:11,name:'Delta Central',poly:[[0.24,0.12],[0.36,0.12],[0.40,0.16],[0.38,0.22],[0.30,0.24],[0.24,0.22],[0.26,0.16]],terrain:'river',adj:[1,2,10,12,19,20]},
+                   {id:12,name:'Bubastis',poly:[[0.38,0.12],[0.50,0.12],[0.52,0.16],[0.50,0.22],[0.42,0.24],[0.36,0.22],[0.40,0.16]],terrain:'plains',adj:[2,3,11,13,20,21]},
+                   {id:13,name:'Wadi Tumilat',poly:[[0.52,0.12],[0.64,0.12],[0.64,0.22],[0.56,0.24],[0.50,0.22],[0.52,0.16]],terrain:'desert',adj:[3,4,12,14,21]},
+                   {id:14,name:'Heliopolis',poly:[[0.64,0.12],[0.76,0.12],[0.78,0.16],[0.76,0.22],[0.68,0.24],[0.64,0.22],[0.64,0.16]],terrain:'plains',adj:[8,13,15,21,22]},
+                   {id:15,name:'Sinai South',poly:[[0.78,0.12],[0.90,0.12],[0.90,0.22],[0.82,0.24],[0.76,0.22],[0.78,0.16]],terrain:'mountain',adj:[7,8,14,22]},
+                   // Row 2: Lower Egypt (y: 0.24–0.38)
+                   {id:16,name:'Memphis',poly:[[0.02,0.20],[0.04,0.24],[0.14,0.22],[0.16,0.28],[0.14,0.34],[0.04,0.38],[0.02,0.34]],terrain:'plains',adj:[9,10,18,19,26]},
+                   {id:17,name:'Nile South',poly:[[0.16,0.22],[0.24,0.22],[0.28,0.28],[0.26,0.34],[0.18,0.38],[0.14,0.34],[0.14,0.28]],terrain:'river',adj:[10,11,19,20,27,26]},
+                   {id:18,name:'Giza Plateau',poly:[[0.28,0.22],[0.38,0.22],[0.42,0.28],[0.40,0.34],[0.32,0.38],[0.26,0.34],[0.28,0.28]],terrain:'mountain',adj:[11,12,20,27,28,26]},
+                   {id:19,name:'Faiyum',poly:[[0.42,0.22],[0.54,0.22],[0.56,0.28],[0.52,0.34],[0.44,0.38],[0.40,0.34],[0.42,0.28]],terrain:'oasis',adj:[12,13,20,21,28,27]},
+                   {id:20,name:'Akhmim',poly:[[0.56,0.22],[0.68,0.24],[0.70,0.30],[0.66,0.36],[0.58,0.38],[0.54,0.34],[0.56,0.28]],terrain:'plains',adj:[13,14,19,21,29]},
+                   {id:21,name:'Red Sea Hills',poly:[[0.68,0.24],[0.82,0.22],[0.86,0.28],[0.84,0.36],[0.76,0.38],[0.70,0.36],[0.70,0.30]],terrain:'mountain',adj:[14,15,20,22,29,30]},
+                   {id:22,name:'Nile Valley',poly:[[0.84,0.22],[0.98,0.22],[0.98,0.36],[0.88,0.38],[0.82,0.36],[0.86,0.28]],terrain:'plains',adj:[15,21,23,30]},
+                   // Row 3: Middle Egypt (y: 0.38–0.52)
+                   {id:23,name:'Beni Hasan',poly:[[0.02,0.34],[0.04,0.38],[0.14,0.34],[0.16,0.40],[0.14,0.48],[0.04,0.52],[0.02,0.46]],terrain:'mountain',adj:[16,17,26,31]},
+                   {id:24,name:'Amarna',poly:[[0.16,0.34],[0.26,0.34],[0.28,0.40],[0.26,0.48],[0.18,0.52],[0.14,0.48],[0.14,0.40]],terrain:'plains',adj:[17,18,26,27,31,32]},
+                   {id:25,name:'Minya',poly:[[0.28,0.34],[0.40,0.34],[0.42,0.40],[0.40,0.48],[0.32,0.52],[0.26,0.48],[0.28,0.40]],terrain:'river',adj:[18,19,27,28,32,33]},
+                   {id:26,name:'Qift',poly:[[0.42,0.34],[0.54,0.34],[0.56,0.40],[0.52,0.48],[0.44,0.52],[0.40,0.48],[0.42,0.40]],terrain:'plains',adj:[19,20,28,29,33,34]},
+                   {id:27,name:'Abydos',poly:[[0.56,0.34],[0.68,0.36],[0.70,0.42],[0.66,0.48],[0.58,0.52],[0.54,0.48],[0.56,0.40]],terrain:'river',adj:[20,21,26,29,34,35]},
+                   {id:28,name:'Dendera',poly:[[0.70,0.36],[0.84,0.36],[0.86,0.42],[0.82,0.48],[0.74,0.52],[0.68,0.48],[0.70,0.42]],terrain:'plains',adj:[21,22,27,29,35,36]},
+                   {id:29,name:'Eastern Desert',poly:[[0.86,0.36],[0.98,0.36],[0.98,0.48],[0.88,0.52],[0.84,0.48],[0.86,0.42]],terrain:'desert',adj:[22,28,30,36]},
+                   // Row 4: Upper Egypt (y: 0.52–0.66)
+                   {id:30,name:'Luxor',poly:[[0.02,0.46],[0.04,0.52],[0.14,0.48],[0.16,0.54],[0.14,0.62],[0.04,0.66],[0.02,0.60]],terrain:'river',adj:[23,24,31,37]},
+                   {id:31,name:'Karnak',poly:[[0.16,0.48],[0.26,0.48],[0.28,0.54],[0.26,0.62],[0.18,0.66],[0.14,0.62],[0.16,0.54]],terrain:'plains',adj:[24,25,32,37,38]},
+                   {id:32,name:'Valley of Kings',poly:[[0.28,0.48],[0.40,0.48],[0.42,0.54],[0.40,0.62],[0.32,0.66],[0.26,0.62],[0.28,0.54]],terrain:'mountain',adj:[25,26,33,38,39]},
+                   {id:33,name:'Edfu',poly:[[0.42,0.48],[0.54,0.48],[0.56,0.54],[0.52,0.62],[0.44,0.66],[0.40,0.62],[0.42,0.54]],terrain:'plains',adj:[26,27,34,39]},
+                   {id:34,name:'Kom Ombo',poly:[[0.56,0.48],[0.68,0.48],[0.70,0.54],[0.66,0.62],[0.58,0.66],[0.54,0.62],[0.56,0.54]],terrain:'river',adj:[27,28,35,39]},
+                   {id:35,name:'Red Sea Hills',poly:[[0.70,0.48],[0.84,0.48],[0.86,0.54],[0.82,0.62],[0.74,0.66],[0.68,0.62],[0.70,0.54]],terrain:'mountain',adj:[28,29,34,36]},
+                   {id:36,name:'Desert East',poly:[[0.86,0.48],[0.98,0.48],[0.98,0.62],[0.88,0.66],[0.84,0.62],[0.86,0.54]],terrain:'desert',adj:[29,35]},
+                   // Row 5: Southern Egypt / Nubia (y: 0.66–0.98)
+                   {id:37,name:'Aswan',poly:[[0.02,0.60],[0.04,0.66],[0.14,0.62],[0.16,0.72],[0.14,0.92],[0.04,0.98],[0.02,0.90]],terrain:'river',adj:[30,31,38]},
+                   {id:38,name:'Philae',poly:[[0.16,0.62],[0.30,0.62],[0.32,0.72],[0.30,0.92],[0.18,0.98],[0.14,0.92],[0.14,0.72]],terrain:'plains',adj:[31,32,37,39]},
+                   {id:39,name:'Abu Simbel',poly:[[0.30,0.62],[0.50,0.62],[0.52,0.72],[0.50,0.92],[0.34,0.98],[0.30,0.92],[0.32,0.72]],terrain:'mountain',adj:[32,33,34,35,36,38]}
                ]
            },
            rome: {
@@ -3383,8 +3392,8 @@
                    const canvas = document.getElementById('game-canvas');
                    const container = document.querySelector('.game-canvas-container');
                    const rect = container.getBoundingClientRect();
-                   canvas.width = rect.width * window.devicePixelRatio;
-                   canvas.height = rect.height * window.devicePixelRatio;
+                   canvas.width = Math.max(1, rect.width);
+                   canvas.height = Math.max(1, rect.height);
                    gameState.bfW = data.bfW || canvas.width;
                    gameState.bfH = data.bfH || canvas.height;
                    gameState.armyScale = data.armyScale || Math.min(canvas.width, canvas.height) / 5;
@@ -3581,8 +3590,8 @@
            const canvas = document.getElementById('game-canvas');
            const container = document.querySelector('.game-canvas-container');
            const rect = container.getBoundingClientRect();
-           canvas.width = Math.max(1, rect.width || window.innerWidth) * window.devicePixelRatio;
-           canvas.height = Math.max(1, rect.height || window.innerHeight) * window.devicePixelRatio;
+           canvas.width = Math.max(1, rect.width || window.innerWidth);
+           canvas.height = Math.max(1, rect.height || window.innerHeight);
            const w = canvas.width;
            const h = canvas.height;
            const params = DIFFICULTY_PARAMS[gameState.difficulty.id];
@@ -3938,8 +3947,8 @@
            if (!container) return;
            const rect = container.getBoundingClientRect();
            if (rect.width > 0 && rect.height > 0 && canvas.width > 0 && canvas.height > 0) return;
-           canvas.width = Math.max(1, rect.width || window.innerWidth) * window.devicePixelRatio;
-           canvas.height = Math.max(1, rect.height || window.innerHeight) * window.devicePixelRatio;
+           canvas.width = Math.max(1, rect.width || window.innerWidth);
+           canvas.height = Math.max(1, rect.height || window.innerHeight);
        }
 
        function handleWindowResize() {
@@ -3947,8 +3956,8 @@
            const container = document.querySelector('.game-canvas-container');
            const rect = container.getBoundingClientRect();
            const oldW = canvas.width, oldH = canvas.height;
-           canvas.width = Math.max(1, rect.width || window.innerWidth) * window.devicePixelRatio;
-           canvas.height = Math.max(1, rect.height || window.innerHeight) * window.devicePixelRatio;
+           canvas.width = Math.max(1, rect.width || window.innerWidth);
+           canvas.height = Math.max(1, rect.height || window.innerHeight);
            const scaleX = canvas.width / Math.max(1, oldW), scaleY = canvas.height / Math.max(1, oldH);
            gameState.player.x *= scaleX; gameState.player.y *= scaleY;
            gameState.opponents.forEach(o => { o.x *= scaleX; o.y *= scaleY; });
@@ -5898,46 +5907,83 @@
            ctx.fillRect(w * 0.92, 0, w * 0.08, h);
            ctx.restore();
 
-           // 7. Pyramid silhouettes near Giza area (top-center)
+           // 7. Pyramid groups — Giza (near Memphis/Giza Plateau territories)
            ctx.save();
-           ctx.globalAlpha = 0.08;
+           ctx.globalAlpha = 0.12;
            ctx.fillStyle = '#8B6914';
-           var pyrY = h * 0.30;
+           var pyrY = h * 0.28;
            var pyrX = w * 0.30;
-           // Large pyramid
-           ctx.beginPath();
-           ctx.moveTo(pyrX, pyrY - h * 0.04);
-           ctx.lineTo(pyrX + w * 0.03, pyrY + h * 0.01);
-           ctx.lineTo(pyrX - w * 0.03, pyrY + h * 0.01);
-           ctx.closePath();
-           ctx.fill();
-           // Medium pyramid
-           ctx.beginPath();
-           ctx.moveTo(pyrX + w * 0.04, pyrY - h * 0.025);
-           ctx.lineTo(pyrX + w * 0.06, pyrY + h * 0.01);
-           ctx.lineTo(pyrX + w * 0.02, pyrY + h * 0.01);
-           ctx.closePath();
-           ctx.fill();
-           // Small pyramid
-           ctx.beginPath();
-           ctx.moveTo(pyrX - w * 0.05, pyrY - h * 0.015);
-           ctx.lineTo(pyrX - w * 0.03, pyrY + h * 0.01);
+           var pyrH = h * 0.05;
+           // Great Pyramid (Khufu)
+           ctx.beginPath(); ctx.moveTo(pyrX, pyrY - pyrH);
+           ctx.lineTo(pyrX + pyrH * 0.9, pyrY); ctx.lineTo(pyrX - pyrH * 0.9, pyrY); ctx.closePath(); ctx.fill();
+           // Khafre (slightly smaller, looks taller due to higher ground)
+           ctx.beginPath(); ctx.moveTo(pyrX + w * 0.045, pyrY - pyrH * 1.1);
+           ctx.lineTo(pyrX + w * 0.045 + pyrH * 0.8, pyrY); ctx.lineTo(pyrX + w * 0.045 - pyrH * 0.8, pyrY); ctx.closePath(); ctx.fill();
+           // Menkaure (smallest)
+           ctx.beginPath(); ctx.moveTo(pyrX - w * 0.055, pyrY - pyrH * 0.7);
+           ctx.lineTo(pyrX - w * 0.055 + pyrH * 0.5, pyrY); ctx.lineTo(pyrX - w * 0.055 - pyrH * 0.5, pyrY); ctx.closePath(); ctx.fill();
+           // Three small queens' pyramids
+           for (var q = 0; q < 3; q++) {
+               var qx = pyrX - w * 0.02 + q * w * 0.02;
+               var qy = pyrY + h * 0.01;
+               ctx.beginPath(); ctx.moveTo(qx, qy - pyrH * 0.3);
+               ctx.lineTo(qx + pyrH * 0.2, qy); ctx.lineTo(qx - pyrH * 0.2, qy); ctx.closePath(); ctx.fill();
+           }
+           ctx.restore();
+
+           // 8. Abu Simbel temples (far south near Aswan)
+           ctx.save();
+           ctx.globalAlpha = 0.1;
+           ctx.fillStyle = '#8B6914';
+           var abY = h * 0.88;
+           var abX = w * 0.20;
+           ctx.beginPath(); ctx.moveTo(abX - w * 0.02, abY);
+           ctx.lineTo(abX, abY - h * 0.025); ctx.lineTo(abX + w * 0.02, abY); ctx.closePath(); ctx.fill();
+           ctx.beginPath(); ctx.moveTo(abX + w * 0.03, abY);
+           ctx.lineTo(abX + w * 0.05, abY - h * 0.02); ctx.lineTo(abX + w * 0.07, abY); ctx.closePath(); ctx.fill();
+           ctx.fillStyle = 'rgba(139,105,20,0.08)';
+           for (var st = 0; st < 4; st++) {
+               ctx.beginPath(); ctx.arc(abX - w * 0.015 + st * w * 0.015, abY - h * 0.012, w * 0.003, 0, Math.PI * 2); ctx.fill();
+           }
+           ctx.restore();
+
+           // 9. Palm trees at oases (Faiyum, Kharga, Dakhla)
+           ctx.save();
+           ctx.globalAlpha = 0.15;
+           ctx.fillStyle = '#2d8a4e';
+           var oases = [
+               {x: w * 0.08, y: h * 0.42},  // Faiyum
+               {x: w * 0.06, y: h * 0.88},  // Kharga
+               {x: w * 0.12, y: h * 0.92},  // Dakhla
+               {x: w * 0.78, y: h * 0.95}   // Dakhla Oasis (east)
+           ];
+           for (var o = 0; o < oases.length; o++) {
+               var ox = oases[o].x, oy = oases[o].y;
+               var palmH = h * 0.025;
+               ctx.fillStyle = '#8B6914'; ctx.globalAlpha = 0.12;
+               ctx.fillRect(ox - w * 0.002, oy, w * 0.004, palmH * 0.6);
+               ctx.fillStyle = '#2d8a4e'; ctx.globalAlpha = 0.15;
+               for (var fr = 0; fr < 6; fr++) {
+                   var ang = fr * Math.PI / 3;
+                   ctx.beginPath(); ctx.moveTo(ox, oy);
+                   ctx.lineTo(ox + Math.cos(ang) * palmH * 0.8, oy + Math.sin(ang) * palmH * 0.8);
+                   ctx.lineTo(ox + Math.cos(ang + 0.1) * palmH * 0.4, oy + Math.sin(ang + 0.1) * palmH * 0.4);
+                   ctx.closePath(); ctx.fill();
+               }
+           }
+           ctx.restore();
+
+           // 10. Desert scatter — small sand dots
+           ctx.save(); ctx.globalAlpha = 0.06; ctx.fillStyle = '#8B6914';
+           for (var si = 0; si < 40; si++) {
+               var sx = (si * 137 + 50) % w; var sy = (si * 97 + 30) % h;
+               ctx.beginPath(); ctx.arc(sx, sy, 1 + si % 2, 0, Math.PI * 2); ctx.fill();
+           }
+           ctx.restore();
            ctx.lineTo(pyrX - w * 0.07, pyrY + h * 0.01);
            ctx.closePath();
            ctx.fill();
-           ctx.restore();
-
-           // 8. Desert scatter — small sand dots
-           ctx.save();
-           ctx.globalAlpha = 0.06;
-           ctx.fillStyle = '#8B6914';
-           for (var si = 0; si < 40; si++) {
-               var sx = (si * 137 + 50) % w;
-               var sy = (si * 97 + 30) % h;
-               ctx.beginPath();
-               ctx.arc(sx, sy, 1 + si % 2, 0, Math.PI * 2);
-               ctx.fill();
-           }
            ctx.restore();
        }
 
@@ -7479,12 +7525,13 @@
            ctx.ellipse(cx, cy + s * 0.25, s * 0.5, s * 0.08, 0, 0, Math.PI * 2);
            ctx.fill();
 
-           // Organized troop formation — neat rows
+           // Organized troop formation — neat rows of shields
            const totalTroops = Math.min(faction.troops, 20);
            const rows = Math.ceil(totalTroops / 5);
            const cols = Math.min(5, totalTroops);
-           const troopSize = Math.max(4, s * 0.06);
-           const spacing = troopSize * 2.5;
+           const shieldW = Math.max(6, s * 0.08);
+           const shieldH = shieldW * 1.4;
+           const spacing = shieldW * 2.2;
 
            for (let row = 0; row < rows; row++) {
                const rowCount = Math.min(cols, totalTroops - row * cols);
@@ -7493,15 +7540,29 @@
                for (let col = 0; col < rowCount; col++) {
                    const tx = rowX + col * spacing;
                    const ty = rowY;
-                   // Shield shape
+                   // Draw shield shape (not just circle)
                    ctx.fillStyle = color;
                    ctx.beginPath();
-                   ctx.arc(tx, ty, troopSize, 0, Math.PI * 2);
+                   ctx.moveTo(tx, ty - shieldH * 0.5);
+                   ctx.lineTo(tx + shieldW * 0.5, ty - shieldH * 0.2);
+                   ctx.lineTo(tx + shieldW * 0.5, ty + shieldH * 0.3);
+                   ctx.quadraticCurveTo(tx + shieldW * 0.5, ty + shieldH * 0.5, tx, ty + shieldH * 0.5);
+                   ctx.quadraticCurveTo(tx - shieldW * 0.5, ty + shieldH * 0.5, tx - shieldW * 0.5, ty + shieldH * 0.3);
+                   ctx.lineTo(tx - shieldW * 0.5, ty - shieldH * 0.2);
+                   ctx.closePath();
                    ctx.fill();
-                   // Highlight dot
-                   ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                   // Shield boss (center metal disc)
+                   ctx.fillStyle = lightenColor(color, 40);
                    ctx.beginPath();
-                   ctx.arc(tx - troopSize * 0.2, ty - troopSize * 0.2, troopSize * 0.3, 0, Math.PI * 2);
+                   ctx.arc(tx, ty - shieldH * 0.1, shieldW * 0.18, 0, Math.PI * 2);
+                   ctx.fill();
+                   // Highlight on top edge
+                   ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                   ctx.beginPath();
+                   ctx.moveTo(tx - shieldW * 0.3, ty - shieldH * 0.3);
+                   ctx.lineTo(tx + shieldW * 0.3, ty - shieldH * 0.3);
+                   ctx.lineTo(tx + shieldW * 0.3, ty - shieldH * 0.1);
+                   ctx.lineTo(tx - shieldW * 0.3, ty - shieldH * 0.1);
                    ctx.fill();
                }
            }
@@ -7539,10 +7600,11 @@
            const scale = Math.max(30, Math.min(60, Math.min(w, h) * 0.06));
            const bob = Math.sin(animFrame * 0.04 + cx * 0.1) * 1;
 
-           // Small organized dots for territory garrison
+           // Small organized shields for territory garrison
            const count = Math.min(rt.troops, 6);
-           const spacing = scale * 0.35;
-           const troopR = Math.max(2, scale * 0.08);
+           const spacing = scale * 0.4;
+           const shieldW = Math.max(4, scale * 0.09);
+           const shieldH = shieldW * 1.4;
 
            for (let i = 0; i < count; i++) {
                const row = Math.floor(i / 3);
@@ -7550,13 +7612,21 @@
                const rowCount = Math.min(3, count - row * 3);
                const tx = cx - (rowCount - 1) * spacing / 2 + col * spacing;
                const ty = cy - spacing * 0.5 + row * spacing + bob;
+               // Draw tiny shield
                ctx.fillStyle = color;
                ctx.beginPath();
-               ctx.arc(tx, ty, troopR, 0, Math.PI * 2);
+               ctx.moveTo(tx, ty - shieldH * 0.5);
+               ctx.lineTo(tx + shieldW * 0.5, ty - shieldH * 0.2);
+               ctx.lineTo(tx + shieldW * 0.5, ty + shieldH * 0.3);
+               ctx.quadraticCurveTo(tx + shieldW * 0.5, ty + shieldH * 0.5, tx, ty + shieldH * 0.5);
+               ctx.quadraticCurveTo(tx - shieldW * 0.5, ty + shieldH * 0.5, tx - shieldW * 0.5, ty + shieldH * 0.3);
+               ctx.lineTo(tx - shieldW * 0.5, ty - shieldH * 0.2);
+               ctx.closePath();
                ctx.fill();
-               ctx.fillStyle = 'rgba(255,255,255,0.4)';
+               // Shield boss
+               ctx.fillStyle = lightenColor(color, 40);
                ctx.beginPath();
-               ctx.arc(tx - troopR * 0.15, ty - troopR * 0.15, troopR * 0.3, 0, Math.PI * 2);
+               ctx.arc(tx, ty - shieldH * 0.1, shieldW * 0.18, 0, Math.PI * 2);
                ctx.fill();
            }
 
