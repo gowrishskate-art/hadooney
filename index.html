@@ -959,7 +959,8 @@
 /* Canvas container fills the entire viewport with no constraints */
 .game-canvas-container {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0; left: 0; right: 0;
+  height: 100vh;
   max-width: none !important;
   aspect-ratio: none !important;
   margin: 0 !important;
@@ -7154,8 +7155,6 @@
                ctx.beginPath(); ctx.moveTo(cx, flagY + 8); ctx.lineTo(cx, flagY); ctx.stroke();
                ctx.fillStyle = faction.color + 'cc';
                ctx.beginPath(); ctx.moveTo(cx, flagY); ctx.lineTo(cx + 8, flagY + 3 + flagWave); ctx.lineTo(cx, flagY + 6); ctx.fill();
-               // Draw warrior garrison
-               drawTerritoryWarriors(faction, rt, cx, cy + fontSize * 0.8, w, h);
            }
        }
 
@@ -7706,62 +7705,40 @@
            const cy = faction.y;
            const bob = Math.sin(animFrame * 0.03 + (faction.id === 'player' ? 0 : parseInt(faction.id.split('_')[1] || 0) * 3)) * 1.5;
 
-           // Faction banner/flag base
+           // Clean faction banner — no individual troops on map
            ctx.save();
-           // Shadow under formation
-           ctx.fillStyle = 'rgba(0,0,0,0.3)';
+
+           // Shadow under banner
+           ctx.fillStyle = 'rgba(0,0,0,0.25)';
            ctx.beginPath();
-           ctx.ellipse(cx, cy + s * 0.25, s * 0.5, s * 0.08, 0, 0, Math.PI * 2);
+           ctx.ellipse(cx, cy + s * 0.2, s * 0.4, s * 0.06, 0, 0, Math.PI * 2);
            ctx.fill();
 
-           // Organized troop formation — neat rows of shields
-           const totalTroops = Math.min(faction.troops, 20);
-           const rows = Math.ceil(totalTroops / 5);
-           const cols = Math.min(5, totalTroops);
-           const shieldW = Math.max(6, s * 0.08);
-           const shieldH = shieldW * 1.4;
-           const spacing = shieldW * 2.2;
+           // Banner pole
+           ctx.strokeStyle = '#654321';
+           ctx.lineWidth = 2;
+           ctx.beginPath();
+           ctx.moveTo(cx, cy + s * 0.15);
+           ctx.lineTo(cx, cy - s * 0.55);
+           ctx.stroke();
 
-           for (let row = 0; row < rows; row++) {
-               const rowCount = Math.min(cols, totalTroops - row * cols);
-               const rowX = cx - (rowCount - 1) * spacing / 2;
-               const rowY = cy - (rows - 1) * spacing * 0.5 + row * spacing + bob;
-               for (let col = 0; col < rowCount; col++) {
-                   const tx = rowX + col * spacing;
-                   const ty = rowY;
-                   // Draw shield shape (not just circle)
-                   ctx.fillStyle = color;
-                   ctx.beginPath();
-                   ctx.moveTo(tx, ty - shieldH * 0.5);
-                   ctx.lineTo(tx + shieldW * 0.5, ty - shieldH * 0.2);
-                   ctx.lineTo(tx + shieldW * 0.5, ty + shieldH * 0.3);
-                   ctx.quadraticCurveTo(tx + shieldW * 0.5, ty + shieldH * 0.5, tx, ty + shieldH * 0.5);
-                   ctx.quadraticCurveTo(tx - shieldW * 0.5, ty + shieldH * 0.5, tx - shieldW * 0.5, ty + shieldH * 0.3);
-                   ctx.lineTo(tx - shieldW * 0.5, ty - shieldH * 0.2);
-                   ctx.closePath();
-                   ctx.fill();
-                   // Shield boss (center metal disc)
-                   ctx.fillStyle = lightenColor(color, 40);
-                   ctx.beginPath();
-                   ctx.arc(tx, ty - shieldH * 0.1, shieldW * 0.18, 0, Math.PI * 2);
-                   ctx.fill();
-                   // Highlight on top edge
-                   ctx.fillStyle = 'rgba(255,255,255,0.3)';
-                   ctx.beginPath();
-                   ctx.moveTo(tx - shieldW * 0.3, ty - shieldH * 0.3);
-                   ctx.lineTo(tx + shieldW * 0.3, ty - shieldH * 0.3);
-                   ctx.lineTo(tx + shieldW * 0.3, ty - shieldH * 0.1);
-                   ctx.lineTo(tx - shieldW * 0.3, ty - shieldH * 0.1);
-                   ctx.fill();
-               }
-           }
+           // Banner flag (waving)
+           const flagWave = Math.sin(animFrame * 0.08 + (faction.id === 'player' ? 0 : parseInt(faction.id.split('_')[1] || 0))) * 3;
+           ctx.fillStyle = color;
+           ctx.beginPath();
+           ctx.moveTo(cx, cy - s * 0.55);
+           ctx.lineTo(cx + s * 0.35 + flagWave, cy - s * 0.45);
+           ctx.lineTo(cx + s * 0.35 + flagWave, cy - s * 0.2);
+           ctx.lineTo(cx, cy - s * 0.3);
+           ctx.closePath();
+           ctx.fill();
 
-           // Faction color ring around formation
+           // Faction color ring (pulsing)
            ctx.strokeStyle = color;
            ctx.lineWidth = 2;
            ctx.globalAlpha = 0.4 + Math.sin(animFrame * 0.06) * 0.2;
            ctx.beginPath();
-           ctx.arc(cx, cy, s * 0.4, 0, Math.PI * 2);
+           ctx.arc(cx, cy, s * 0.35, 0, Math.PI * 2);
            ctx.stroke();
            ctx.globalAlpha = 1;
 
@@ -7772,7 +7749,7 @@
            const label = faction.name + '  ' + faction.troops;
            const tw = ctx.measureText(label).width + 12;
            const bh = fontSize + 8;
-           const bx = cx - tw / 2, by = cy - s * 0.55;
+           const bx = cx - tw / 2, by = cy - s * 0.7;
            ctx.fillStyle = 'rgba(0,0,0,0.75)';
            ctx.beginPath(); ctx.roundRect(bx, by, tw, bh, 5); ctx.fill();
            ctx.strokeStyle = color;
