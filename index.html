@@ -6790,7 +6790,7 @@
                _bgCacheW = w; _bgCacheH = h; _bgCacheEra = eraId;
            }
            ctx.drawImage(_bgCache, 0, 0);
-           // Cached territory map (static hex fills + borders)
+           // Cached territory map (territory fills + borders + buildings)
            if (_mapDirty || !_mapCache || _mapCacheW !== w || _mapCacheH !== h) {
                _mapCache = document.createElement('canvas');
                _mapCache.width = w; _mapCache.height = h;
@@ -6803,8 +6803,12 @@
                _mapDirty = false;
            }
            ctx.drawImage(_mapCache, 0, 0);
-           // All visual effects disabled — plain land only
-           // No textures, sandstorm, terrain icons, battle anims, particles, effects
+           // Animated era-specific textures drawn per-frame
+           drawTerritoryTextures(eraId, w, h);
+           // Draw armies and their warriors
+           for (const f of getAllFactions()) drawArmyLand(f);
+           for (const f of getAllFactions()) drawArmy(f);
+           // Selection highlight
            if (gameState.selectedArmy) {
                const pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.1);
                ctx.globalAlpha = 0.4 + pulse * 0.4;
@@ -6842,11 +6846,317 @@
                    }
                }
            }
-           // All animations disabled — plain land only
+           // Particles and battle animations
+           drawParticles(); drawTroopMovements(); drawBattleAnimations();
+       }
+
+       // Draw an Egyptian village on a territory — mudbrick houses, temple, palm trees
+       function drawEgyptVillage(cx, cy, tDef, w, h, rt) {
+           const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
+           if (!faction) return;
+           const scale = Math.min(w, h) * 0.012;
+           const wallColor = '#c4956a';
+           const roofColor = '#8B6914';
+           const doorColor = '#654321';
+
+           // Use territory ID as seed for deterministic building placement
+           const seed = tDef.id * 137 + 42;
+           const terrain = tDef.terrain;
+
+           // Draw 2-4 mudbrick houses arranged in a cluster
+           const houseCount = 2 + (seed % 3);
+           for (let i = 0; i < houseCount; i++) {
+               const angle = (i / houseCount) * Math.PI * 2 + seed * 0.1;
+               const dist = scale * (1.5 + (seed + i * 31) % 3) * 0.8;
+               const hx = cx + Math.cos(angle) * dist;
+               const hy = cy + Math.sin(angle) * dist - scale * 0.5;
+               const houseW = scale * (0.8 + (seed + i * 17) % 3 * 0.15);
+               const houseH = scale * (0.6 + (seed + i * 13) % 3 * 0.1);
+
+               // Shadow under house
+               ctx.fillStyle = 'rgba(0,0,0,0.15)';
+               ctx.fillRect(hx - houseW / 2 + 1, hy + 1, houseW, houseH);
+
+               // Mudbrick walls (warm sandy color)
+               ctx.fillStyle = wallColor;
+               ctx.fillRect(hx - houseW / 2, hy, houseW, houseH);
+
+               // Wall texture — horizontal lines for mudbrick courses
+               ctx.strokeStyle = '#a07850';
+               ctx.lineWidth = 0.5;
+               for (let brick = 0; brick < 3; brick++) {
+                   const by = hy + houseH * (brick + 1) / 4;
+                   ctx.beginPath();
+                   ctx.moveTo(hx - houseW / 2, by);
+                   ctx.lineTo(hx + houseW / 2, by);
+                   ctx.stroke();
+               }
+
+               // Flat roof (slightly wider than walls, darker)
+               ctx.fillStyle = roofColor;
+               ctx.fillRect(hx - houseW / 2 - scale * 0.05, hy - scale * 0.06, houseW + scale * 0.1, scale * 0.08);
+
+               // Door (dark rectangle in center)
+               const doorW = houseW * 0.2;
+               const doorH = houseH * 0.5;
+               ctx.fillStyle = doorColor;
+               ctx.fillRect(hx - doorW / 2, hy + houseH - doorH, doorW, doorH);
+
+               // Window (small square)
+               if (i % 2 === 0) {
+                   ctx.fillStyle = '#1a1a2e';
+                   ctx.fillRect(hx + houseW * 0.2, hy + houseH * 0.25, houseW * 0.12, houseH * 0.2);
+               }
+           }
+
+           // Draw a temple for special territories (mountain = temple complexes, oasis = shrines)
+           if (terrain === 'mountain' || terrain === 'city' || tDef.id === 18 || tDef.id === 30 || tDef.id === 37) {
+               drawEgyptTemple(cx, cy + scale * 0.8, scale, faction.color);
+           }
+
+           // Draw palm trees near river/oasis territories
+           if (terrain === 'river' || terrain === 'oasis' || terrain === 'coast') {
+               const palmCount = 1 + (seed % 2);
+               for (let p = 0; p < palmCount; p++) {
+                   const px = cx + scale * (1.2 + p * 1.2) * (p % 2 === 0 ? 1 : -1);
+                   const py = cy - scale * 0.3;
+                   drawPalmTree(px, py, scale * 0.8);
+               }
+           }
+
+           // Draw granary silos near plains (food storage)
+           if (terrain === 'plains' && rt.troops > 3) {
+               const gx = cx - scale * 1.5;
+               const gy = cy + scale * 0.2;
+               ctx.fillStyle = '#d4a76a';
+               ctx.beginPath();
+               ctx.ellipse(gx, gy, scale * 0.25, scale * 0.4, 0, 0, Math.PI * 2);
+               ctx.fill();
+               ctx.fillStyle = '#a07850';
+               ctx.beginPath();
+               ctx.moveTo(gx - scale * 0.25, gy);
+               ctx.lineTo(gx, gy - scale * 0.55);
+               ctx.lineTo(gx + scale * 0.25, gy);
+               ctx.fill();
+           }
+       }
+
+       // Draw an Egyptian temple with columns and pylon gateway
+       function drawEgyptTemple(cx, cy, scale, factionColor) {
+           const templeW = scale * 2.2;
+           const templeH = scale * 1.6;
+
+           // Base platform
+           ctx.fillStyle = '#a08060';
+           ctx.fillRect(cx - templeW / 2, cy + templeH * 0.6, templeW, scale * 0.2);
+
+           // Pylon gateway (trapezoidal tower)
+           ctx.fillStyle = '#c4956a';
+           ctx.beginPath();
+           ctx.moveTo(cx - templeW * 0.35, cy + templeH * 0.6);
+           ctx.lineTo(cx - templeW * 0.3, cy - templeH * 0.2);
+           ctx.lineTo(cx - templeW * 0.2, cy - templeH * 0.2);
+           ctx.lineTo(cx - templeW * 0.25, cy + templeH * 0.6);
+           ctx.fill();
+           ctx.beginPath();
+           ctx.moveTo(cx + templeW * 0.35, cy + templeH * 0.6);
+           ctx.lineTo(cx + templeW * 0.3, cy - templeH * 0.2);
+           ctx.lineTo(cx + templeW * 0.2, cy - templeH * 0.2);
+           ctx.lineTo(cx + templeW * 0.25, cy + templeH * 0.6);
+           ctx.fill();
+
+           // Entrance between pylons (dark)
+           ctx.fillStyle = '#2a1a0a';
+           ctx.fillRect(cx - scale * 0.15, cy, scale * 0.3, templeH * 0.6);
+
+           // Columns along front
+           ctx.fillStyle = '#d4a87a';
+           for (let col = 0; col < 3; col++) {
+               const colX = cx - scale * 0.6 + col * scale * 0.5;
+               ctx.fillRect(colX - scale * 0.06, cy - templeH * 0.1, scale * 0.12, templeH * 0.7);
+               // Column capital (lotus/papyrus shape)
+               ctx.fillStyle = '#feca57';
+               ctx.beginPath();
+               ctx.arc(colX, cy - templeH * 0.1, scale * 0.1, 0, Math.PI * 2);
+               ctx.fill();
+               ctx.fillStyle = '#d4a87a';
+           }
+
+           // Sun disk on top ( Aten symbol)
+           ctx.fillStyle = '#feca57';
+           ctx.globalAlpha = 0.8;
+           ctx.beginPath();
+           ctx.arc(cx, cy - templeH * 0.3, scale * 0.12, 0, Math.PI * 2);
+           ctx.fill();
+           // Sun rays
+           ctx.strokeStyle = '#feca57';
+           ctx.lineWidth = 1;
+           for (let r = 0; r < 6; r++) {
+               const ang = r * Math.PI / 3;
+               ctx.beginPath();
+               ctx.moveTo(cx + Math.cos(ang) * scale * 0.15, cy - templeH * 0.3 + Math.sin(ang) * scale * 0.15);
+               ctx.lineTo(cx + Math.cos(ang) * scale * 0.28, cy - templeH * 0.3 + Math.sin(ang) * scale * 0.28);
+               ctx.stroke();
+           }
+           ctx.globalAlpha = 1;
+       }
+
+       // Draw a palm tree
+       function drawPalmTree(x, y, size) {
+           // Trunk (slightly curved brown trunk)
+           ctx.strokeStyle = '#8B6914';
+           ctx.lineWidth = Math.max(2, size * 0.08);
+           ctx.beginPath();
+           ctx.moveTo(x, y);
+           ctx.quadraticCurveTo(x + size * 0.05, y - size * 0.5, x + size * 0.02, y - size * 0.7);
+           ctx.stroke();
+
+           // Fronds (green drooping palm leaves)
+           ctx.fillStyle = '#2d8a4e';
+           const topX = x + size * 0.02, topY = y - size * 0.7;
+           for (let f = 0; f < 7; f++) {
+               const ang = f * Math.PI / 3.5 - Math.PI / 6;
+               const frondLen = size * (0.5 + (f % 2) * 0.15);
+               const endX = topX + Math.cos(ang) * frondLen;
+               const endY = topY + Math.sin(ang) * frondLen * 0.6 + frondLen * 0.3;
+               ctx.beginPath();
+               ctx.moveTo(topX, topY);
+               ctx.quadraticCurveTo(topX + Math.cos(ang) * frondLen * 0.5, topY + Math.sin(ang) * frondLen * 0.2, endX, endY);
+               ctx.quadraticCurveTo(topX + Math.cos(ang) * frondLen * 0.3, endY - size * 0.05, topX, topY);
+               ctx.fill();
+           }
        }
 
        function drawTerritoryMap(eraId, w, h) {
-           // Territories disabled — plain land only, no polygons drawn
+           const map = ERA_MAPS[eraId];
+           if (!map || !gameState.territories) return;
+           if (_territoryPaths.length === 0 || _territoryPaths[0].id === undefined) buildTerritoryPaths(eraId, w, h);
+           buildTerritoryLookup();
+           const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
+           const terrDefs = map._dynamic || map.territories;
+
+           // 1. Draw territory polygon fills with terrain colors and ownership
+           for (let ti = 0; ti < _territoryPaths.length; ti++) {
+               const tp = _territoryPaths[ti];
+               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
+               if (!tDef) continue;
+               const rt = _territoryById.get(tp.id);
+               const ownerEraId = rt && rt.owner ? getFactionEra(rt.owner) : null;
+               const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
+               const terrColors = {
+                   plains: land.ground, forest: land.ground2 || '#3a6a1c',
+                   mountain: '#6b7280', city: getCachedColor(land.ground, 20),
+                   water: '#3b82f6', coast: '#4a90d9', oasis: '#6ba368',
+                   river: '#4a90d9', desert: '#c49660'
+               };
+               const baseColor = terrColors[tDef.terrain] || land.ground;
+               if (rt && rt.owner) {
+                   const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
+                   if (faction) {
+                       ctx.fillStyle = blendColors(baseColor, faction.color, 0.35);
+                   } else { ctx.fillStyle = baseColor; }
+               } else { ctx.fillStyle = baseColor; }
+               ctx.fill(tp.path);
+               // Owner border
+               if (rt && rt.owner) {
+                   const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
+                   if (faction) {
+                       ctx.strokeStyle = faction.color + '60';
+                       ctx.lineWidth = 2;
+                       ctx.stroke(tp.path);
+                   }
+               }
+               // Subtle white border between territories
+               ctx.strokeStyle = tDef.terrain === 'water' ? '#3b82f660' : '#ffffff20';
+               ctx.lineWidth = 1;
+               ctx.stroke(tp.path);
+           }
+
+           // 2. Draw adjacency connection lines (roads between territories)
+           for (let ti = 0; ti < _territoryPaths.length; ti++) {
+               const tp = _territoryPaths[ti];
+               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
+               if (!tDef || tDef.terrain === 'water') continue;
+               for (const adjId of (tDef.adj || [])) {
+                   if (adjId <= tDef.id) continue;
+                   const adjTp = _territoryPaths.find(p => p.id === adjId);
+                   if (!adjTp) continue;
+                   // Draw dotted road/path between territories
+                   ctx.setLineDash([3, 5]);
+                   ctx.strokeStyle = '#ffffff18';
+                   ctx.lineWidth = 1;
+                   ctx.beginPath(); ctx.moveTo(tp.cx, tp.cy); ctx.lineTo(adjTp.cx, adjTp.cy); ctx.stroke();
+                   ctx.setLineDash([]);
+               }
+           }
+
+           // 3. Draw rivers from map features
+           if (map.features) {
+               for (const feat of map.features) {
+                   if (feat.type === 'river') {
+                       ctx.strokeStyle = feat.color || '#4a90d9';
+                       ctx.lineWidth = 3;
+                       ctx.globalAlpha = 0.5;
+                       ctx.beginPath();
+                       for (let i = 0; i < feat.points.length; i++) {
+                           const px = feat.points[i][0] * w;
+                           const py = feat.points[i][1] * h;
+                           i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+                       }
+                       ctx.stroke();
+                       ctx.globalAlpha = 1;
+                   }
+               }
+           }
+
+           // 4. Draw Egyptian buildings on owned territories
+           for (let ti = 0; ti < _territoryPaths.length; ti++) {
+               const tp = _territoryPaths[ti];
+               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
+               if (!tDef || tDef.terrain === 'water') continue;
+               const rt = _territoryById.get(tp.id);
+               if (!rt || !rt.owner) continue;
+               drawEgyptVillage(tp.cx, tp.cy, tDef, w, h, rt);
+           }
+
+           // 5. Draw territory labels and troop counts
+           for (let ti = 0; ti < _territoryPaths.length; ti++) {
+               const tp = _territoryPaths[ti];
+               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
+               if (!tDef || tDef.terrain === 'water') continue;
+               const rt = _territoryById.get(tp.id);
+               if (!rt || !rt.owner) continue;
+               const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
+               if (!faction) continue;
+               const cx = tp.cx, cy = tp.cy;
+               const fontSize = Math.max(10, w * 0.016);
+               ctx.font = 'bold ' + fontSize + 'px Arial';
+               ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+               // Territory name shadow + text
+               ctx.fillStyle = '#000000aa';
+               ctx.fillText(tDef.name, cx + 1, cy + 1 - fontSize * 0.9);
+               ctx.fillStyle = '#ffffffdd';
+               ctx.fillText(tDef.name, cx, cy - fontSize * 0.9);
+               // Troop count badge
+               const troopText = '' + rt.troops;
+               const ts2 = Math.max(12, w * 0.02);
+               ctx.font = 'bold ' + ts2 + 'px Arial';
+               const bgR = ts2 * 0.8;
+               ctx.fillStyle = faction.color;
+               ctx.beginPath(); ctx.arc(cx, cy + fontSize * 0.4, bgR, 0, Math.PI * 2); ctx.fill();
+               ctx.strokeStyle = '#00000040'; ctx.lineWidth = 1; ctx.stroke();
+               ctx.fillStyle = '#fff';
+               ctx.fillText(troopText, cx, cy + fontSize * 0.45);
+               // Animated flag
+               const flagY = cy - fontSize * 1.7;
+               const flagWave = Math.sin(animFrame * 0.08 + tp.id * 2) * 2;
+               ctx.strokeStyle = '#65432180'; ctx.lineWidth = 1.5;
+               ctx.beginPath(); ctx.moveTo(cx, flagY + 8); ctx.lineTo(cx, flagY); ctx.stroke();
+               ctx.fillStyle = faction.color + 'cc';
+               ctx.beginPath(); ctx.moveTo(cx, flagY); ctx.lineTo(cx + 8, flagY + 3 + flagWave); ctx.lineTo(cx, flagY + 6); ctx.fill();
+               // Draw warrior garrison
+               drawTerritoryWarriors(faction, rt, cx, cy + fontSize * 0.8, w, h);
+           }
        }
 
 
