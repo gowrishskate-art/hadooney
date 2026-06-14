@@ -7611,15 +7611,6 @@
            }
        }
 
-       function drawArmyHighlight(faction, color, lw) {
-           const s = gameState.armyScale || 80;
-           ctx.strokeStyle = color; ctx.lineWidth = lw;
-           ctx.globalAlpha = 0.6;
-           ctx.beginPath(); ctx.arc(faction.x, faction.y + s * 0.1, s * 0.6 + 3, 0, Math.PI * 2); ctx.stroke();
-           ctx.globalAlpha = 1;
-           ctx.beginPath(); ctx.arc(faction.x, faction.y + s * 0.1, s * 0.6, 0, Math.PI * 2); ctx.stroke();
-       }
-
        // ==================== INTERACTION ====================
        function getArmyAtPosition(x, y) {
            const r = (gameState.armyScale || 80) * 1.2;
