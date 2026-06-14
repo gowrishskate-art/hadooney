@@ -5730,15 +5730,7 @@
            animFrame++;
            updateParticles();
            if (typeof updateAllEnhancedEffects === 'function') updateAllEnhancedEffects();
-           // Phase 3.4: Spawn scarab particles for Egypt era (1 per 60 frames)
-           if (gameState.selectedEra && gameState.selectedEra.id === 'egypt' && typeof emitParticles === 'function' && animFrame % 60 === 0 && typeof canvas !== 'undefined') {
-               emitParticles(Math.random() * canvas.width, Math.random() * canvas.height, {
-                   count: 1, type: 'spark', speed: 0.5, life: 120, size: 2.5,
-                   color: '#d4a574', fadeOut: 0.008, sizeDecay: 0.002, gravity: -0.01,
-                   spread: 0.3, direction: Math.PI * 0.2
-               });
-               _renderDirty = true;
-           }
+           // Scarab particles disabled
            tickTimedEffects();
            // Only render when something changed or animations active
            const hasParticles = particles.length > 0;
@@ -6811,14 +6803,8 @@
                _mapDirty = false;
            }
            ctx.drawImage(_mapCache, 0, 0);
-           // Animated era-specific textures drawn per-frame (on top of cached hexes)
-           drawTerritoryTextures(eraId, w, h);
-           // Nile is now drawn in drawEgyptMapBackground for Egypt era
-           // Phase 3.5: Sandstorm overlay for Egypt era
-           if (eraId === 'egypt') { drawEgyptSandstorm(w, h); _renderDirty = true; }
-           // All army/warrior/land-base rendering disabled — plain land only
-           // Draw terrain icons on territories
-           drawTerrainIcons(w, h);
+           // All visual effects disabled — plain land only
+           // No textures, sandstorm, terrain icons, battle anims, particles, effects
            if (gameState.selectedArmy) {
                const pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.1);
                ctx.globalAlpha = 0.4 + pulse * 0.4;
@@ -6856,8 +6842,7 @@
                    }
                }
            }
-           drawParticles(); drawTroopMovements(); drawBattleAnimations();
-           if (typeof drawAllEnhancedEffects === 'function') drawAllEnhancedEffects(ctx);
+           // All animations disabled — plain land only
        }
 
        function drawTerritoryMap(eraId, w, h) {
@@ -6867,88 +6852,30 @@
            buildTerritoryLookup();
            const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
            const terrDefs = map._dynamic || map.territories;
+           // Draw all territories as plain terrain — no owner colors
            for (let ti = 0; ti < _territoryPaths.length; ti++) {
                const tp = _territoryPaths[ti];
                const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
                if (!tDef) continue;
-               const rt = _territoryById.get(tp.id);
-               const ownerEraId = rt && rt.owner ? getFactionEra(rt.owner) : null;
-               const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
-               const terrColors = { plains: land.ground, forest: land.ground2 || '#3a6a1c', mountain: '#6b7280', city: getCachedColor(land.ground, 20), water: '#3b82f6', coast: '#4a90d9', oasis: '#6ba368', river: '#4a90d9', desert: '#c49660' };
-               const baseColor = terrColors[tDef.terrain] || land.ground;
-               if (rt && rt.owner) {
-                   const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
-                   if (faction) {
-                       ctx.fillStyle = blendColors(baseColor, faction.color, 0.35);
-                   } else {
-                       ctx.fillStyle = baseColor;
-                   }
-               } else {
-                   ctx.fillStyle = baseColor;
-               }
+               const terrColors = { plains: defaultLand.ground, forest: defaultLand.ground2 || '#3a6a1c', mountain: '#6b7280', city: getCachedColor(defaultLand.ground, 20), water: '#3b82f6', coast: '#4a90d9', oasis: '#6ba368', river: '#4a90d9', desert: '#c49660' };
+               ctx.fillStyle = terrColors[tDef.terrain] || defaultLand.ground;
                ctx.fill(tp.path);
-               if (rt && rt.owner) {
-                   const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
-                   if (faction) {
-                       ctx.strokeStyle = faction.color + '60';
-                       ctx.lineWidth = 2;
-                       ctx.stroke(tp.path);
-                   }
-               }
-               ctx.strokeStyle = tDef.terrain === 'water' ? '#3b82f660' : '#ffffff20';
+               // Simple subtle border — same for all
+               ctx.strokeStyle = '#ffffff18';
                ctx.lineWidth = 1;
                ctx.stroke(tp.path);
            }
-
+           // Territory names only — centered in each territory
            for (let ti = 0; ti < _territoryPaths.length; ti++) {
                const tp = _territoryPaths[ti];
                const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
                if (!tDef || tDef.terrain === 'water') continue;
-               for (const adjId of (tDef.adj || [])) {
-                   if (adjId <= tDef.id) continue;
-                   const adjTp = _territoryPaths.find(p => p.id === adjId);
-                   if (!adjTp) continue;
-                   ctx.setLineDash([4, 4]);
-                   ctx.strokeStyle = '#ffffff25';
-                   ctx.lineWidth = 1;
-                   ctx.beginPath(); ctx.moveTo(tp.cx, tp.cy); ctx.lineTo(adjTp.cx, adjTp.cy); ctx.stroke();
-                   ctx.setLineDash([]);
-               }
-           }
-           if (map.features) {
-               for (const feat of map.features) {
-                   if (feat.type === 'river') {
-                       ctx.strokeStyle = feat.color || '#4a90d9';
-                       ctx.lineWidth = 3;
-                       ctx.globalAlpha = 0.5;
-                       ctx.beginPath();
-                       for (let i = 0; i < feat.points.length; i++) {
-                           const px = feat.points[i][0] * w;
-                           const py = feat.points[i][1] * h;
-                           i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-                       }
-                       ctx.stroke();
-                       ctx.globalAlpha = 1;
-                   }
-               }
-           }
-           for (let ti = 0; ti < _territoryPaths.length; ti++) {
-               const tp = _territoryPaths[ti];
-               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
-               if (!tDef || tDef.terrain === 'water') continue;
-               const rt = _territoryById.get(tp.id);
-               if (!rt || !rt.owner) continue;
-               const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
-               if (!faction) continue;
                const cx = tp.cx, cy = tp.cy;
-               const fontSize = Math.max(10, w * 0.018);
-               ctx.font = 'bold ' + fontSize + 'px Arial';
+               const fontSize = Math.max(9, w * 0.014);
+               ctx.font = fontSize + 'px Arial';
                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-               ctx.fillStyle = '#000000aa';
-               ctx.fillText(tDef.name, cx + 1, cy + 1);
-               ctx.fillStyle = '#ffffffdd';
+               ctx.fillStyle = '#ffffff80';
                ctx.fillText(tDef.name, cx, cy);
-               // No troop circles, flags, or warriors — plain land only
            }
        }
 
