@@ -4251,61 +4251,51 @@
            }
            ctx.restore();
 
-           // 3. Nile River — flowing south to north (bottom to top) with natural curves
+           // 3. Nile River — flowing south (Aswan) → north (Delta)
+           //    Follows actual Egypt territory geography on the left side of the map
            ctx.save();
-           // Wide river band
-           var nileWidth = w * 0.06;
-           var nileX = w * 0.48; // River center line
-
-           // Draw river as a series of bezier curves
            ctx.fillStyle = '#1a6eb5';
            ctx.beginPath();
-           // Left bank (going north = up)
-           ctx.moveTo(nileX - nileWidth * 1.5, h); // South end (wide)
-           ctx.bezierCurveTo(nileX - nileWidth * 1.2, h * 0.8, nileX - nileWidth * 0.8, h * 0.6, nileX - nileWidth * 0.5, h * 0.35);
-           ctx.bezierCurveTo(nileX - nileWidth * 0.4, h * 0.25, nileX - nileWidth * 0.6, h * 0.15, nileX - nileWidth * 2.5, 0); // Delta (very wide)
-           // Top of delta
-           ctx.lineTo(nileX + nileWidth * 2.5, 0);
-           // Right bank (going south = down)
-           ctx.bezierCurveTo(nileX + nileWidth * 0.6, h * 0.15, nileX + nileWidth * 0.4, h * 0.25, nileX + nileWidth * 0.5, h * 0.35);
-           ctx.bezierCurveTo(nileX + nileWidth * 0.8, h * 0.6, nileX + nileWidth * 1.2, h * 0.8, nileX + nileWidth * 1.5, h);
-           ctx.closePath();
-           ctx.fill();
-
-           // River shimmer/highlight
-           ctx.globalAlpha = 0.3;
-           ctx.fillStyle = '#4a9fd4';
-           ctx.beginPath();
-           ctx.moveTo(nileX - nileWidth * 0.8, h);
-           ctx.bezierCurveTo(nileX - nileWidth * 0.6, h * 0.8, nileX - nileWidth * 0.4, h * 0.6, nileX - nileWidth * 0.2, h * 0.35);
-           ctx.bezierCurveTo(nileX - nileWidth * 0.1, h * 0.25, nileX - nileWidth * 0.3, h * 0.15, nileX - nileWidth * 1.5, 0);
-           ctx.lineTo(nileX + nileWidth * 1.5, 0);
-           ctx.bezierCurveTo(nileX + nileWidth * 0.3, h * 0.15, nileX + nileWidth * 0.1, h * 0.25, nileX + nileWidth * 0.2, h * 0.35);
-           ctx.bezierCurveTo(nileX + nileWidth * 0.4, h * 0.6, nileX + nileWidth * 0.6, h * 0.8, nileX + nileWidth * 0.8, h);
+           // Left bank (south = bottom, north = top)
+           ctx.moveTo(w * 0.22 - w * 0.022, h * 1.00);   // Aswan (south, narrow)
+           ctx.bezierCurveTo(w * 0.20 - w * 0.022, h * 0.90, w * 0.17 - w * 0.025, h * 0.84, w * 0.16 - w * 0.025, h * 0.78); // Kom Ombo → Edfu
+           ctx.bezierCurveTo(w * 0.20 - w * 0.030, h * 0.72, w * 0.28 - w * 0.035, h * 0.66, w * 0.30 - w * 0.038, h * 0.60); // Qena Bend → Luxor
+           ctx.bezierCurveTo(w * 0.28 - w * 0.032, h * 0.54, w * 0.24 - w * 0.028, h * 0.48, w * 0.22 - w * 0.025, h * 0.42); // Abydos → Minya
+           ctx.bezierCurveTo(w * 0.20 - w * 0.025, h * 0.36, w * 0.22 - w * 0.030, h * 0.30, w * 0.22 - w * 0.030, h * 0.26); // Memphis
+           ctx.bezierCurveTo(w * 0.23 - w * 0.040, h * 0.22, w * 0.21 - w * 0.070, h * 0.16, w * 0.18 - w * 0.100, h * 0.10); // Delta west fan
+           ctx.bezierCurveTo(w * 0.16 - w * 0.120, h * 0.06, w * 0.15 - w * 0.140, h * 0.03, w * 0.14 - w * 0.140, h * 0.02);
+           // Delta top edge (Mediterranean shore)
+           ctx.lineTo(w * 0.36 + w * 0.140, h * 0.02);
+           // Right bank (north = top, south = bottom)
+           ctx.bezierCurveTo(w * 0.30 + w * 0.120, h * 0.03, w * 0.28 + w * 0.100, h * 0.06, w * 0.26 + w * 0.080, h * 0.10); // Delta east fan
+           ctx.bezierCurveTo(w * 0.25 + w * 0.050, h * 0.16, w * 0.23 + w * 0.035, h * 0.22, w * 0.22 + w * 0.030, h * 0.26); // Memphis
+           ctx.bezierCurveTo(w * 0.22 + w * 0.025, h * 0.30, w * 0.20 + w * 0.025, h * 0.36, w * 0.22 + w * 0.028, h * 0.42);
+           ctx.bezierCurveTo(w * 0.24 + w * 0.032, h * 0.48, w * 0.28 + w * 0.035, h * 0.54, w * 0.30 + w * 0.038, h * 0.60); // Qena Bend east return
+           ctx.bezierCurveTo(w * 0.28 + w * 0.032, h * 0.66, w * 0.20 + w * 0.028, h * 0.72, w * 0.16 + w * 0.025, h * 0.78); // Edfu
+           ctx.bezierCurveTo(w * 0.17 + w * 0.022, h * 0.84, w * 0.20 + w * 0.020, h * 0.90, w * 0.22 + w * 0.020, h * 1.00); // Aswan
            ctx.closePath();
            ctx.fill();
            ctx.restore();
 
            // 4. Fertile green strips along Nile banks
            ctx.save();
-           var fertileGrad = ctx.createLinearGradient(nileX - nileWidth * 3, 0, nileX + nileWidth * 3, 0);
-           fertileGrad.addColorStop(0, 'rgba(76,120,40,0)');
-           fertileGrad.addColorStop(0.3, 'rgba(76,120,40,0.15)');
-           fertileGrad.addColorStop(0.5, 'rgba(90,140,50,0.2)');
-           fertileGrad.addColorStop(0.7, 'rgba(76,120,40,0.15)');
-           fertileGrad.addColorStop(1, 'rgba(76,120,40,0)');
-           ctx.fillStyle = fertileGrad;
-           ctx.fillRect(nileX - nileWidth * 3, 0, nileWidth * 6, h);
-
-           // Patches of darker green near the river
-           ctx.globalAlpha = 0.12;
-           ctx.fillStyle = '#3d7a2a';
-           for (var gi = 0; gi < 15; gi++) {
-               var gx = nileX + ((gi * 67 - 200) % (nileWidth * 4));
-               var gy = h * 0.1 + (gi * 73 % 90) / 100 * h * 0.8;
-               var gr = nileWidth * 0.3 + (gi % 4) * nileWidth * 0.15;
+           ctx.globalAlpha = 0.2;
+           ctx.fillStyle = '#4c7828';
+           // Green patches along the river path
+           for (var gi = 0; gi < 12; gi++) {
+               var t = (gi + 0.5) / 12;
+               var gy = h * 0.10 + t * h * 0.85;
+               // Approximate Nile center X at this Y
+               var gx;
+               if (t < 0.10) gx = w * 0.23;
+               else if (t < 0.20) gx = w * (0.23 - (t - 0.10) / 0.10 * 0.06);
+               else if (t < 0.30) gx = w * (0.17 + (t - 0.20) / 0.10 * 0.11);
+               else if (t < 0.50) gx = w * (0.28 + (t - 0.30) / 0.20 * 0.04);
+               else if (t < 0.65) gx = w * (0.32 - (t - 0.50) / 0.15 * 0.08);
+               else gx = w * (0.24 - (t - 0.65) / 0.35 * 0.04);
+               var gr = w * 0.015 + t * w * 0.020;
                ctx.beginPath();
-               ctx.ellipse(gx, gy, gr * 1.5, gr, 0.3, 0, Math.PI * 2);
+               ctx.ellipse(gx, gy, gr * 2, gr * 0.5, 0, 0, Math.PI * 2);
                ctx.fill();
            }
            ctx.restore();
