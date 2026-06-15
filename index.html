@@ -4252,88 +4252,45 @@
            ctx.restore();
 
            // 3. Realistic Nile River — multi-layer rendering
-           //    Geographic accuracy: narrow south (Aswan) → Qena Bend S-curve (Luxor/Thebes)
-           //    → widens through Middle Egypt → Faiyum branch → Delta fan at Mediterranean
+           //    South (Aswan, narrow) → Qena Bend S-curve (Luxor) → widens north → Delta fan
            ctx.save();
-           var rw = w * 0.018;  // base river half-width (narrow in south)
-           // River center-line control points (x ratios, from south=1.0 to north=0.0)
-           // Matching real Nile geography relative to Egypt map layout
-           var nilePoints = [
-               // [x_ratio, y_ratio, width_multiplier]
-               [0.22, 1.00, 1.0],   // Aswan — far south, narrow
-               [0.20, 0.92, 1.0],   // near Aswan/Abu Simbel
-               [0.18, 0.85, 1.2],   // Kom Ombo — widens slightly
-               [0.16, 0.78, 1.2],   // Edfu
-               [0.20, 0.72, 1.4],   // Qena Bend west swing begins
-               [0.28, 0.66, 1.6],   // Qena Bend peak
-               [0.32, 0.60, 1.8],   // Luxor/Thebes — widest valley
-               [0.28, 0.54, 1.6],   // Qena Bend east return
-               [0.24, 0.48, 1.4],   // Abydos
-               [0.22, 0.42, 1.3],   // Minya/Beni Hasan
-               [0.20, 0.36, 1.2],   // Amarna
-               [0.22, 0.30, 1.5],   // Memphis/Cairo
-               [0.24, 0.24, 2.5],   // Delta begins fanning
-               [0.26, 0.18, 4.0],   // Delta mid
-               [0.28, 0.12, 5.5],   // Delta branches at coast
-               [0.22, 0.06, 7.0]    // Delta Rosetta mouth
+
+           // Draw river as filled shape using two bezier paths (left bank, right bank)
+           // Each layer is the same shape at different scale/width for depth effect
+           var nileLayers = [
+               {color: '#0d4a7a', alpha: 1.0, scale: 1.0},   // deep water edge
+               {color: '#1565a0', alpha: 1.0, scale: 0.75},  // main water
+               {color: '#2196c8', alpha: 0.5, scale: 0.42}   // bright center
            ];
-
-           // Helper: build left/right bank arrays from center points
-           function nileBuildBanks(scale) {
-               var left = [], right = [];
-               for (var i = 0; i < nilePoints.length; i++) {
-                   var ptY = h * nilePoints[i][1];
-                   var ptX = w * nilePoints[i][0];
-                   var halfW = rw * nilePoints[i][2] * scale;
-                   left.push({x: ptX - halfW, y: ptY});
-                   right.push({x: ptX + halfW, y: ptY});
-               }
-               return {left: left, right: right};
-           }
-
-           // Draw a Nile river shape from bank arrays
-           function drawNileShape(banksL, banksR, fillColor, alpha) {
-               ctx.globalAlpha = alpha || 1;
-               ctx.fillStyle = fillColor;
+           for (var li = 0; li < nileLayers.length; li++) {
+               var layer = nileLayers[li];
+               var bw = w * 0.020 * layer.scale; // base half-width per layer
+               ctx.globalAlpha = layer.alpha;
+               ctx.fillStyle = layer.color;
                ctx.beginPath();
-               // Left bank south→north
-               ctx.moveTo(banksL[0].x, banksL[0].y);
-               for (var i = 1; i < banksL.length; i++) {
-                   var p = banksL[i - 1], c = banksL[i];
-                   ctx.quadraticCurveTo(p.x, (p.y + c.y) / 2, c.x, c.y);
-               }
-               // Delta fan top
-               var dt = h * 0.02;
-               ctx.lineTo(banksL[banksL.length - 1].x, dt);
-               ctx.quadraticCurveTo(w * 0.22, h * 0.005, w * 0.35, h * 0.015);
-               // Right bank north→south
-               ctx.lineTo(banksR[banksR.length - 1].x, banksR[banksR.length - 1].y);
-               for (var i = banksR.length - 2; i >= 0; i--) {
-                   var n = banksR[i + 1], c = banksR[i];
-                   ctx.quadraticCurveTo(n.x, (n.y + c.y) / 2, c.x, c.y);
-               }
+               // Left bank: south (bottom) → north (top)
+               ctx.moveTo(w * 0.22 - bw * 1.0, h * 1.00);    // Aswan
+               ctx.bezierCurveTo(w * 0.19 - bw * 1.0, h * 0.90, w * 0.17 - bw * 1.2, h * 0.84, w * 0.16 - bw * 1.2, h * 0.78); // Kom Ombo → Edfu
+               ctx.bezierCurveTo(w * 0.18 - bw * 1.4, h * 0.73, w * 0.26 - bw * 1.6, h * 0.68, w * 0.28 - bw * 1.8, h * 0.66); // Qena Bend west
+               ctx.bezierCurveTo(w * 0.30 - bw * 1.8, h * 0.63, w * 0.32 - bw * 1.8, h * 0.60, w * 0.30 - bw * 1.6, h * 0.57); // Luxor
+               ctx.bezierCurveTo(w * 0.27 - bw * 1.4, h * 0.52, w * 0.24 - bw * 1.3, h * 0.48, w * 0.22 - bw * 1.2, h * 0.42); // Abydos → Minya
+               ctx.bezierCurveTo(w * 0.20 - bw * 1.2, h * 0.38, w * 0.21 - bw * 1.5, h * 0.33, w * 0.22 - bw * 1.5, h * 0.30); // Memphis
+               ctx.bezierCurveTo(w * 0.23 - bw * 2.5, h * 0.26, w * 0.24 - bw * 4.0, h * 0.20, w * 0.25 - bw * 5.0, h * 0.15); // Delta fan
+               ctx.bezierCurveTo(w * 0.24 - bw * 5.5, h * 0.10, w * 0.22 - bw * 7.0, h * 0.07, w * 0.18 - bw * 7.0, h * 0.04); // Delta coast west
+               // Delta top edge (Mediterranean shore)
+               ctx.lineTo(w * 0.34 + bw * 7.0, h * 0.04);   // Delta coast east
+               // Right bank: north (top) → south (bottom)
+               ctx.bezierCurveTo(w * 0.28 + bw * 5.5, h * 0.07, w * 0.26 + bw * 5.0, h * 0.10, w * 0.25 + bw * 4.0, h * 0.15);
+               ctx.bezierCurveTo(w * 0.24 + bw * 2.5, h * 0.20, w * 0.23 + bw * 1.5, h * 0.26, w * 0.22 + bw * 1.5, h * 0.30);
+               ctx.bezierCurveTo(w * 0.21 + bw * 1.2, h * 0.33, w * 0.20 + bw * 1.2, h * 0.38, w * 0.22 + bw * 1.3, h * 0.42);
+               ctx.bezierCurveTo(w * 0.24 + bw * 1.4, h * 0.48, w * 0.27 + bw * 1.6, h * 0.52, w * 0.30 + bw * 1.8, h * 0.57);
+               ctx.bezierCurveTo(w * 0.32 + bw * 1.8, h * 0.60, w * 0.30 + bw * 1.8, h * 0.63, w * 0.28 + bw * 1.6, h * 0.66);
+               ctx.bezierCurveTo(w * 0.26 + bw * 1.4, h * 0.68, w * 0.18 + bw * 1.4, h * 0.73, w * 0.16 + bw * 1.2, h * 0.78);
+               ctx.bezierCurveTo(w * 0.17 + bw * 1.2, h * 0.84, w * 0.19 + bw * 1.0, h * 0.90, w * 0.22 + bw * 1.0, h * 1.00);
                ctx.closePath();
                ctx.fill();
-               ctx.globalAlpha = 1;
            }
-
-           // --- Layer 3a: Deep water base (darkest, widest) ---
-           drawNileShape(
-               nileBuildBanks(1.0).left, nileBuildBanks(1.0).right,
-               '#0d4a7a', 1.0
-           );
-
-           // --- Layer 3b: Main water body (lighter, narrower) ---
-           drawNileShape(
-               nileBuildBanks(0.78).left, nileBuildBanks(0.78).right,
-               '#1565a0', 1.0
-           );
-
-           // --- Layer 3c: Bright center channel ---
-           drawNileShape(
-               nileBuildBanks(0.45).left, nileBuildBanks(0.45).right,
-               '#2196c8', 0.5
-           );
+           ctx.globalAlpha = 1;
 
            // --- Layer 3d: Delta branch lines (Rosetta, Damietta, Canopic, etc.) ---
            // The real Nile Delta has ~7 branches. Draw 5 visible ones fanning from ~Y=0.10
@@ -4395,40 +4352,46 @@
            // --- Layer 3f: Riverbank green vegetation strips ---
            ctx.save();
            ctx.globalAlpha = 0.18;
-           for (var i = 0; i < nilePoints.length - 3; i++) {
-               var y = h * nilePoints[i][1];
-               var ptX = w * nilePoints[i][0];
-               var halfW = rw * nilePoints[i][2] * 1.5;
-               var vegW = rw * nilePoints[i][2] * 0.6;
-               var vegH = h * 0.025 + rw * nilePoints[i][2] * 0.3;
-               var vegGrad = ctx.createRadialGradient(ptX - halfW, y, 0, ptX - halfW, y, vegW);
-               vegGrad.addColorStop(0, '#3d7a2a');
-               vegGrad.addColorStop(1, 'rgba(61,122,42,0)');
-               ctx.fillStyle = vegGrad;
-               ctx.fillRect(ptX - halfW - vegW, y - vegH / 2, vegW * 2, vegH);
-               var vegGrad2 = ctx.createRadialGradient(ptX + halfW, y, 0, ptX + halfW, y, vegW);
-               vegGrad2.addColorStop(0, '#3d7a2a');
-               vegGrad2.addColorStop(1, 'rgba(61,122,42,0)');
-               ctx.fillStyle = vegGrad2;
-               ctx.fillRect(ptX + halfW - vegW, y - vegH / 2, vegW * 2, vegH);
+           var vegPts = [[0.22,1.0],[0.20,0.92],[0.18,0.85],[0.16,0.78],[0.20,0.72],[0.28,0.66],[0.32,0.60],[0.28,0.54],[0.24,0.48],[0.22,0.42],[0.20,0.36],[0.22,0.30]];
+           for (var i = 0; i < vegPts.length; i++) {
+               var vy = h * vegPts[i][1];
+               var vx = w * vegPts[i][0];
+               var vhw = w * 0.025;
+               var vgr = w * 0.012;
+               var vgh = h * 0.03;
+               var vGrad = ctx.createRadialGradient(vx - vhw, vy, 0, vx - vhw, vy, vgr);
+               vGrad.addColorStop(0, '#3d7a2a');
+               vGrad.addColorStop(1, 'rgba(61,122,42,0)');
+               ctx.fillStyle = vGrad;
+               ctx.fillRect(vx - vhw - vgr, vy - vgh / 2, vgr * 2, vgh);
+               var vGrad2 = ctx.createRadialGradient(vx + vhw, vy, 0, vx + vhw, vy, vgr);
+               vGrad2.addColorStop(0, '#3d7a2a');
+               vGrad2.addColorStop(1, 'rgba(61,122,42,0)');
+               ctx.fillStyle = vGrad2;
+               ctx.fillRect(vx + vhw - vgr, vy - vgh / 2, vgr * 2, vgh);
            }
            ctx.restore();
 
-           // --- Layer 3g: Water shimmer/reflection lines on main river ---
+           // --- Layer 3g: Water shimmer lines ---
            ctx.save();
-           ctx.globalAlpha = 0.12;
+           ctx.globalAlpha = 0.15;
            ctx.strokeStyle = '#7ec8e3';
            ctx.lineWidth = 0.8;
-           for (var si = 0; si < 25; si++) {
-               var t = si / 25;
-               var idx = Math.min(Math.floor(t * (nilePoints.length - 1)), nilePoints.length - 2);
-               var frac = t * (nilePoints.length - 1) - idx;
-               var shimmerY = h * (nilePoints[idx][1] + (nilePoints[idx + 1][1] - nilePoints[idx][1]) * frac);
-               var shimmerX = w * (nilePoints[idx][0] + (nilePoints[idx + 1][0] - nilePoints[idx][0]) * frac);
-               var shimmerW = rw * (nilePoints[idx][2] + (nilePoints[idx + 1][2] - nilePoints[idx][2]) * frac) * 0.6;
+           for (var si = 0; si < 30; si++) {
+               var sy = h * 0.08 + (si / 30) * h * 0.88;
+               var t = si / 30;
+               // Approximate Nile center X at this Y (matches the bezier curve)
+               var sx;
+               if (t < 0.15) sx = w * 0.20;
+               else if (t < 0.30) sx = w * (0.16 + (t - 0.15) / 0.15 * 0.12);
+               else if (t < 0.45) sx = w * (0.28 + (t - 0.30) / 0.15 * 0.04);
+               else if (t < 0.55) sx = w * (0.32 - (t - 0.45) / 0.10 * 0.08);
+               else if (t < 0.70) sx = w * (0.24 - (t - 0.55) / 0.15 * 0.04);
+               else sx = w * 0.20 + (t - 0.70) / 0.30 * w * 0.04;
+               var sw = w * 0.008;
                ctx.beginPath();
-               ctx.moveTo(shimmerX - shimmerW, shimmerY);
-               ctx.lineTo(shimmerX + shimmerW, shimmerY + 1);
+               ctx.moveTo(sx - sw, sy);
+               ctx.lineTo(sx + sw, sy + 1);
                ctx.stroke();
            }
            ctx.restore();
