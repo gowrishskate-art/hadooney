@@ -4251,155 +4251,64 @@
            }
            ctx.restore();
 
-           // 3. Realistic Nile River — multi-layer rendering
-           //    South (Aswan, narrow) → Qena Bend S-curve (Luxor) → widens north → Delta fan
+           // 3. Nile River — flowing south to north (bottom to top) with natural curves
            ctx.save();
+           // Wide river band
+           var nileWidth = w * 0.06;
+           var nileX = w * 0.48; // River center line
 
-           // Draw river as filled shape using two bezier paths (left bank, right bank)
-           // Each layer is the same shape at different scale/width for depth effect
-           var nileLayers = [
-               {color: '#0d4a7a', alpha: 1.0, scale: 1.0},   // deep water edge
-               {color: '#1565a0', alpha: 1.0, scale: 0.75},  // main water
-               {color: '#2196c8', alpha: 0.5, scale: 0.42}   // bright center
-           ];
-           for (var li = 0; li < nileLayers.length; li++) {
-               var layer = nileLayers[li];
-               var bw = w * 0.020 * layer.scale; // base half-width per layer
-               ctx.globalAlpha = layer.alpha;
-               ctx.fillStyle = layer.color;
-               ctx.beginPath();
-               // Left bank: south (bottom) → north (top)
-               ctx.moveTo(w * 0.22 - bw * 1.0, h * 1.00);    // Aswan
-               ctx.bezierCurveTo(w * 0.19 - bw * 1.0, h * 0.90, w * 0.17 - bw * 1.2, h * 0.84, w * 0.16 - bw * 1.2, h * 0.78); // Kom Ombo → Edfu
-               ctx.bezierCurveTo(w * 0.18 - bw * 1.4, h * 0.73, w * 0.26 - bw * 1.6, h * 0.68, w * 0.28 - bw * 1.8, h * 0.66); // Qena Bend west
-               ctx.bezierCurveTo(w * 0.30 - bw * 1.8, h * 0.63, w * 0.32 - bw * 1.8, h * 0.60, w * 0.30 - bw * 1.6, h * 0.57); // Luxor
-               ctx.bezierCurveTo(w * 0.27 - bw * 1.4, h * 0.52, w * 0.24 - bw * 1.3, h * 0.48, w * 0.22 - bw * 1.2, h * 0.42); // Abydos → Minya
-               ctx.bezierCurveTo(w * 0.20 - bw * 1.2, h * 0.38, w * 0.21 - bw * 1.5, h * 0.33, w * 0.22 - bw * 1.5, h * 0.30); // Memphis
-               ctx.bezierCurveTo(w * 0.23 - bw * 2.5, h * 0.26, w * 0.24 - bw * 4.0, h * 0.20, w * 0.25 - bw * 5.0, h * 0.15); // Delta fan
-               ctx.bezierCurveTo(w * 0.24 - bw * 5.5, h * 0.10, w * 0.22 - bw * 7.0, h * 0.07, w * 0.18 - bw * 7.0, h * 0.04); // Delta coast west
-               // Delta top edge (Mediterranean shore)
-               ctx.lineTo(w * 0.34 + bw * 7.0, h * 0.04);   // Delta coast east
-               // Right bank: north (top) → south (bottom)
-               ctx.bezierCurveTo(w * 0.28 + bw * 5.5, h * 0.07, w * 0.26 + bw * 5.0, h * 0.10, w * 0.25 + bw * 4.0, h * 0.15);
-               ctx.bezierCurveTo(w * 0.24 + bw * 2.5, h * 0.20, w * 0.23 + bw * 1.5, h * 0.26, w * 0.22 + bw * 1.5, h * 0.30);
-               ctx.bezierCurveTo(w * 0.21 + bw * 1.2, h * 0.33, w * 0.20 + bw * 1.2, h * 0.38, w * 0.22 + bw * 1.3, h * 0.42);
-               ctx.bezierCurveTo(w * 0.24 + bw * 1.4, h * 0.48, w * 0.27 + bw * 1.6, h * 0.52, w * 0.30 + bw * 1.8, h * 0.57);
-               ctx.bezierCurveTo(w * 0.32 + bw * 1.8, h * 0.60, w * 0.30 + bw * 1.8, h * 0.63, w * 0.28 + bw * 1.6, h * 0.66);
-               ctx.bezierCurveTo(w * 0.26 + bw * 1.4, h * 0.68, w * 0.18 + bw * 1.4, h * 0.73, w * 0.16 + bw * 1.2, h * 0.78);
-               ctx.bezierCurveTo(w * 0.17 + bw * 1.2, h * 0.84, w * 0.19 + bw * 1.0, h * 0.90, w * 0.22 + bw * 1.0, h * 1.00);
-               ctx.closePath();
-               ctx.fill();
-           }
-           ctx.globalAlpha = 1;
-
-           // --- Layer 3d: Delta branch lines (Rosetta, Damietta, Canopic, etc.) ---
-           // The real Nile Delta has ~7 branches. Draw 5 visible ones fanning from ~Y=0.10
-           ctx.strokeStyle = '#1565a0';
-           ctx.lineCap = 'round';
-           var deltaBaseY = h * 0.10;
-           var deltaBaseX = w * 0.24;
-           var deltaBranches = [
-               {angle: -0.45, len: 0.10, width: 3.0},   // Canopic (west)
-               {angle: -0.22, len: 0.09, width: 3.5},   // Rosetta (west-center)
-               {angle: 0.00, len: 0.11, width: 4.0},    // Bolbitine (center)
-               {angle: 0.18, len: 0.09, width: 3.5},   // Damietta (east-center)
-               {angle: 0.38, len: 0.08, width: 2.5}    // Tanitic (east)
-           ];
-           for (var b = 0; b < deltaBranches.length; b++) {
-               var br = deltaBranches[b];
-               var endX = deltaBaseX + Math.sin(br.angle) * w * br.len;
-               var endY = deltaBaseY - Math.cos(br.angle) * h * br.len * 0.8;
-               var cx1 = deltaBaseX + Math.sin(br.angle * 0.3) * w * br.len * 0.4;
-               var cy1 = deltaBaseY - Math.cos(br.angle * 0.3) * h * br.len * 0.3;
-               var cx2 = deltaBaseX + Math.sin(br.angle * 0.7) * w * br.len * 0.7;
-               var cy2 = deltaBaseY - Math.cos(br.angle * 0.7) * h * br.len * 0.6;
-               ctx.lineWidth = Math.max(1.5, rw * br.width);
-               ctx.globalAlpha = 0.7;
-               ctx.beginPath();
-               ctx.moveTo(deltaBaseX, deltaBaseY);
-               ctx.bezierCurveTo(cx1, cy1, cx2, cy2, endX, endY);
-               ctx.stroke();
-               // Lighter shimmer on each branch
-               ctx.lineWidth = Math.max(0.8, rw * br.width * 0.4);
-               ctx.strokeStyle = '#2196c8';
-               ctx.globalAlpha = 0.3;
-               ctx.beginPath();
-               ctx.moveTo(deltaBaseX, deltaBaseY);
-               ctx.bezierCurveTo(cx1, cy1, cx2, cy2, endX, endY);
-               ctx.stroke();
-               ctx.strokeStyle = '#1565a0';
-           }
-           ctx.globalAlpha = 1;
-
-           // --- Layer 3e: Faiyum branch (west of main river near Memphis) ---
-           // A canal/branch flowing west from the river to Lake Moeris (Faiyum)
-           ctx.save();
-           ctx.globalAlpha = 0.5;
-           ctx.strokeStyle = '#1565a0';
-           ctx.lineWidth = Math.max(1.2, rw * 0.7);
+           // Draw river as a series of bezier curves
+           ctx.fillStyle = '#1a6eb5';
            ctx.beginPath();
-           ctx.moveTo(w * 0.22, h * 0.28);
-           ctx.bezierCurveTo(w * 0.16, h * 0.27, w * 0.10, h * 0.28, w * 0.08, h * 0.32);
-           ctx.stroke();
-           // Faiyum lake at end of branch
-           ctx.fillStyle = '#1565a0';
-           ctx.globalAlpha = 0.35;
+           // Left bank (going north = up)
+           ctx.moveTo(nileX - nileWidth * 1.5, h); // South end (wide)
+           ctx.bezierCurveTo(nileX - nileWidth * 1.2, h * 0.8, nileX - nileWidth * 0.8, h * 0.6, nileX - nileWidth * 0.5, h * 0.35);
+           ctx.bezierCurveTo(nileX - nileWidth * 0.4, h * 0.25, nileX - nileWidth * 0.6, h * 0.15, nileX - nileWidth * 2.5, 0); // Delta (very wide)
+           // Top of delta
+           ctx.lineTo(nileX + nileWidth * 2.5, 0);
+           // Right bank (going south = down)
+           ctx.bezierCurveTo(nileX + nileWidth * 0.6, h * 0.15, nileX + nileWidth * 0.4, h * 0.25, nileX + nileWidth * 0.5, h * 0.35);
+           ctx.bezierCurveTo(nileX + nileWidth * 0.8, h * 0.6, nileX + nileWidth * 1.2, h * 0.8, nileX + nileWidth * 1.5, h);
+           ctx.closePath();
+           ctx.fill();
+
+           // River shimmer/highlight
+           ctx.globalAlpha = 0.3;
+           ctx.fillStyle = '#4a9fd4';
            ctx.beginPath();
-           ctx.ellipse(w * 0.07, h * 0.34, w * 0.03, h * 0.025, -0.2, 0, Math.PI * 2);
+           ctx.moveTo(nileX - nileWidth * 0.8, h);
+           ctx.bezierCurveTo(nileX - nileWidth * 0.6, h * 0.8, nileX - nileWidth * 0.4, h * 0.6, nileX - nileWidth * 0.2, h * 0.35);
+           ctx.bezierCurveTo(nileX - nileWidth * 0.1, h * 0.25, nileX - nileWidth * 0.3, h * 0.15, nileX - nileWidth * 1.5, 0);
+           ctx.lineTo(nileX + nileWidth * 1.5, 0);
+           ctx.bezierCurveTo(nileX + nileWidth * 0.3, h * 0.15, nileX + nileWidth * 0.1, h * 0.25, nileX + nileWidth * 0.2, h * 0.35);
+           ctx.bezierCurveTo(nileX + nileWidth * 0.4, h * 0.6, nileX + nileWidth * 0.6, h * 0.8, nileX + nileWidth * 0.8, h);
+           ctx.closePath();
            ctx.fill();
            ctx.restore();
 
-           // --- Layer 3f: Riverbank green vegetation strips ---
+           // 4. Fertile green strips along Nile banks
            ctx.save();
-           ctx.globalAlpha = 0.18;
-           var vegPts = [[0.22,1.0],[0.20,0.92],[0.18,0.85],[0.16,0.78],[0.20,0.72],[0.28,0.66],[0.32,0.60],[0.28,0.54],[0.24,0.48],[0.22,0.42],[0.20,0.36],[0.22,0.30]];
-           for (var i = 0; i < vegPts.length; i++) {
-               var vy = h * vegPts[i][1];
-               var vx = w * vegPts[i][0];
-               var vhw = w * 0.025;
-               var vgr = w * 0.012;
-               var vgh = h * 0.03;
-               var vGrad = ctx.createRadialGradient(vx - vhw, vy, 0, vx - vhw, vy, vgr);
-               vGrad.addColorStop(0, '#3d7a2a');
-               vGrad.addColorStop(1, 'rgba(61,122,42,0)');
-               ctx.fillStyle = vGrad;
-               ctx.fillRect(vx - vhw - vgr, vy - vgh / 2, vgr * 2, vgh);
-               var vGrad2 = ctx.createRadialGradient(vx + vhw, vy, 0, vx + vhw, vy, vgr);
-               vGrad2.addColorStop(0, '#3d7a2a');
-               vGrad2.addColorStop(1, 'rgba(61,122,42,0)');
-               ctx.fillStyle = vGrad2;
-               ctx.fillRect(vx + vhw - vgr, vy - vgh / 2, vgr * 2, vgh);
-           }
-           ctx.restore();
+           var fertileGrad = ctx.createLinearGradient(nileX - nileWidth * 3, 0, nileX + nileWidth * 3, 0);
+           fertileGrad.addColorStop(0, 'rgba(76,120,40,0)');
+           fertileGrad.addColorStop(0.3, 'rgba(76,120,40,0.15)');
+           fertileGrad.addColorStop(0.5, 'rgba(90,140,50,0.2)');
+           fertileGrad.addColorStop(0.7, 'rgba(76,120,40,0.15)');
+           fertileGrad.addColorStop(1, 'rgba(76,120,40,0)');
+           ctx.fillStyle = fertileGrad;
+           ctx.fillRect(nileX - nileWidth * 3, 0, nileWidth * 6, h);
 
-           // --- Layer 3g: Water shimmer lines ---
-           ctx.save();
-           ctx.globalAlpha = 0.15;
-           ctx.strokeStyle = '#7ec8e3';
-           ctx.lineWidth = 0.8;
-           for (var si = 0; si < 30; si++) {
-               var sy = h * 0.08 + (si / 30) * h * 0.88;
-               var t = si / 30;
-               // Approximate Nile center X at this Y (matches the bezier curve)
-               var sx;
-               if (t < 0.15) sx = w * 0.20;
-               else if (t < 0.30) sx = w * (0.16 + (t - 0.15) / 0.15 * 0.12);
-               else if (t < 0.45) sx = w * (0.28 + (t - 0.30) / 0.15 * 0.04);
-               else if (t < 0.55) sx = w * (0.32 - (t - 0.45) / 0.10 * 0.08);
-               else if (t < 0.70) sx = w * (0.24 - (t - 0.55) / 0.15 * 0.04);
-               else sx = w * 0.20 + (t - 0.70) / 0.30 * w * 0.04;
-               var sw = w * 0.008;
+           // Patches of darker green near the river
+           ctx.globalAlpha = 0.12;
+           ctx.fillStyle = '#3d7a2a';
+           for (var gi = 0; gi < 15; gi++) {
+               var gx = nileX + ((gi * 67 - 200) % (nileWidth * 4));
+               var gy = h * 0.1 + (gi * 73 % 90) / 100 * h * 0.8;
+               var gr = nileWidth * 0.3 + (gi % 4) * nileWidth * 0.15;
                ctx.beginPath();
-               ctx.moveTo(sx - sw, sy);
-               ctx.lineTo(sx + sw, sy + 1);
-               ctx.stroke();
+               ctx.ellipse(gx, gy, gr * 1.5, gr, 0.3, 0, Math.PI * 2);
+               ctx.fill();
            }
            ctx.restore();
-
-           ctx.restore();
-
-
-           // 4. Fertile green strips — handled by Nile bank vegetation in section 3f
 
            // 5. Mediterranean Sea at top
            ctx.save();
@@ -4507,6 +4416,10 @@
                var sx = (si * 137 + 50) % w; var sy = (si * 97 + 30) % h;
                ctx.beginPath(); ctx.arc(sx, sy, 1 + si % 2, 0, Math.PI * 2); ctx.fill();
            }
+           ctx.restore();
+           ctx.lineTo(pyrX - w * 0.07, pyrY + h * 0.01);
+           ctx.closePath();
+           ctx.fill();
            ctx.restore();
        }
 
@@ -5578,45 +5491,7 @@
            if (!map || !gameState.territories) return;
            if (_territoryPaths.length === 0 || _territoryPaths[0].id === undefined) buildTerritoryPaths(eraId, w, h);
            buildTerritoryLookup();
-           const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
-           const terrDefs = map._dynamic || map.territories;
-
-           // Plain colored land polygons — no buildings, no names, no roads, no rivers, no warriors
-           for (let ti = 0; ti < _territoryPaths.length; ti++) {
-               const tp = _territoryPaths[ti];
-               const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
-               if (!tDef) continue;
-               const rt = _territoryById.get(tp.id);
-               const ownerEraId = rt && rt.owner ? getFactionEra(rt.owner) : null;
-               const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
-               const terrColors = {
-                   plains: land.ground, forest: land.ground2 || '#3a6a1c',
-                   mountain: '#6b7280', city: blendColors(land.ground, '#ffffff', 0.08),
-                   water: '#3b82f6', coast: '#4a90d9', oasis: '#6ba368',
-                   river: '#4a90d9', desert: '#c49660'
-               };
-               const baseColor = terrColors[tDef.terrain] || land.ground;
-               if (rt && rt.owner) {
-                   const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
-                   if (faction) {
-                       ctx.fillStyle = blendColors(baseColor, faction.color, 0.35);
-                   } else { ctx.fillStyle = baseColor; }
-               } else { ctx.fillStyle = baseColor; }
-               ctx.fill(tp.path);
-               // Owner border
-               if (rt && rt.owner) {
-                   const faction = rt.owner === 'player' ? gameState.player : gameState.opponents.find(o => o.id === rt.owner);
-                   if (faction) {
-                       ctx.strokeStyle = faction.color + '60';
-                       ctx.lineWidth = 2;
-                       ctx.stroke(tp.path);
-                   }
-               }
-               // Subtle white border between territories
-               ctx.strokeStyle = tDef.terrain === 'water' ? '#3b82f660' : '#ffffff20';
-               ctx.lineWidth = 1;
-               ctx.stroke(tp.path);
-           }
+           // Land is invisible — polygons not drawn. Only background shows.
        }
 
 
