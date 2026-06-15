@@ -4448,7 +4448,7 @@
            drawEraLandmarks(eraId, w, h, horizonY, land);
            // Ground with perspective
            const gndGrad = ctx.createLinearGradient(0, horizonY, 0, h);
-           gndGrad.addColorStop(0, getCachedColor(land.ground, 15));
+           gndGrad.addColorStop(0, blendColors(land.ground, '#ffffff', 0.06));
            gndGrad.addColorStop(0.3, land.ground);
            gndGrad.addColorStop(1, land.ground2);
            ctx.fillStyle = gndGrad;
@@ -5486,6 +5486,55 @@
            }
        }
 
+       // Draw a tiny village at (cx, cy) — small mudbrick houses, NO people, NO warriors
+       function drawVillage(cx, cy, factionColor, seed) {
+           const s = 5 + (seed % 3) * 2; // house scale: 5-9px
+           const wallColor = blendColors('#c4956a', factionColor, 0.15);
+           const roofColor = '#8B6914';
+           const doorColor = '#3d2e20';
+
+           // 3 houses in a triangle cluster
+           const positions = [
+               { dx: -s * 1.2, dy: -s * 0.3 },
+               { dx: s * 0.3, dy: -s * 1.0 },
+               { dx: s * 0.6, dy: s * 0.6 }
+           ];
+
+           for (let i = 0; i < positions.length; i++) {
+               const hx = cx + positions[i].dx;
+               const hy = cy + positions[i].dy;
+               const hw = s * (0.8 + ((seed + i * 17) % 3) * 0.15);
+               const hh = s * (0.6 + ((seed + i * 13) % 3) * 0.1);
+
+               // Shadow under house
+               ctx.fillStyle = 'rgba(0,0,0,0.15)';
+               ctx.fillRect(hx - hw / 2 + 1, hy + 1, hw, hh);
+
+               // Mudbrick wall
+               ctx.fillStyle = wallColor;
+               ctx.fillRect(hx - hw / 2, hy, hw, hh);
+
+               // Brick course lines
+               ctx.strokeStyle = '#a07850';
+               ctx.lineWidth = 0.5;
+               for (let b = 1; b <= 3; b++) {
+                   const by = hy + hh * b / 4;
+                   ctx.beginPath();
+                   ctx.moveTo(hx - hw / 2, by);
+                   ctx.lineTo(hx + hw / 2, by);
+                   ctx.stroke();
+               }
+
+               // Flat roof (slightly wider)
+               ctx.fillStyle = roofColor;
+               ctx.fillRect(hx - hw / 2 - 1, hy - 2, hw + 2, 3);
+
+               // Dark door
+               ctx.fillStyle = doorColor;
+               ctx.fillRect(hx - hw * 0.12, hy + hh * 0.5, hw * 0.24, hh * 0.5);
+           }
+       }
+
        function drawTerritoryMap(eraId, w, h) {
            const map = ERA_MAPS[eraId];
            if (!map || !gameState.territories) return;
@@ -5494,7 +5543,7 @@
            const defaultLand = ERA_LANDS[eraId] || ERA_LANDS.rome;
            const terrDefs = map._dynamic || map.territories;
 
-           // ONLY plain colored land polygons — no buildings, no names, no roads, no rivers, no warriors
+           // 1. Plain colored land polygons — no warriors, no people
            for (let ti = 0; ti < _territoryPaths.length; ti++) {
                const tp = _territoryPaths[ti];
                const tDef = terrDefs.find(t => t.id === tp.id) || terrDefs[tp.id];
@@ -5504,7 +5553,7 @@
                const land = ownerEraId ? (ERA_LANDS[ownerEraId] || defaultLand) : defaultLand;
                const terrColors = {
                    plains: land.ground, forest: land.ground2 || '#3a6a1c',
-                   mountain: '#6b7280', city: getCachedColor(land.ground, 20),
+                   mountain: '#6b7280', city: blendColors(land.ground, '#ffffff', 0.08),
                    water: '#3b82f6', coast: '#4a90d9', oasis: '#6ba368',
                    river: '#4a90d9', desert: '#c49660'
                };
@@ -5529,6 +5578,17 @@
                ctx.strokeStyle = tDef.terrain === 'water' ? '#3b82f660' : '#ffffff20';
                ctx.lineWidth = 1;
                ctx.stroke(tp.path);
+           }
+
+           // 2. Draw one village per opponent faction — just houses, NO warriors
+           for (const opp of gameState.opponents) {
+               if (opp.eliminated) continue;
+               const terr = getFactionTerritory(opp.id);
+               if (!terr) continue;
+               const tp = _territoryPaths.find(p => p.id === terr.id);
+               if (!tp) continue;
+               const seed = parseInt(opp.id.replace('ai_', '')) * 137 + 42;
+               drawVillage(tp.cx, tp.cy, opp.color, seed);
            }
        }
 
