@@ -4366,18 +4366,18 @@
                        // Water → floodplain transition (dark earth/mud near riverbank)
                        var wt = (nd - 0.8) / 0.7;
                        var lushNoise = fbm(c * 0.2, r * 0.2, 3, 256);
-                       ri = 20 + wt * (65-20) + lushNoise * 10;
-                       gi = 70 + wt * (110-70) + lushNoise * 12;
-                       bi = 30 + wt * (45-30) + detailNoise * 6;
+                       ri = 55 + wt * (110-55) + lushNoise * 10;
+                       gi = 45 + wt * (70-45) + lushNoise * 8;
+                       bi = 25 + wt * (35-25) + detailNoise * 4;
                    }
                    else if (nd < 4.5) {
                        // Semi-arid — warm brown earth tones (grass drawn as overlay on top)
                        var ft = (nd - 1.5) / 3.0;
                        var soilNoise = fbm(c * 0.12, r * 0.12, 3, 512);
                        var fertileMix = soilNoise > 0.55 ? 0.3 : (soilNoise < 0.35 ? -0.15 : 0);
-                       ri = 65 + ft * (155-65) + detailNoise * 10 + fertileMix * 15;
-                       gi = 155 - ft * (155-118) + noiseVal * 12 + fertileMix * 20;
-                       bi = 35 + ft * (65-35) + detailNoise * 6 + fertileMix * 8;
+                       ri = 100 + ft * (165-100) + detailNoise * 12 + fertileMix * 15;
+                       gi = 75 - ft * (75-55) + noiseVal * 1.5 + noiseVal * 8 + fertileMix * 10;
+                       bi = 30 + ft * (55-30) + detailNoise * 5 + fertileMix * 6;
                    }
                    else if (nd < 7.5) {
                        // Semi-desert — sandy with subtle rock color variation
