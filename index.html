@@ -4284,9 +4284,8 @@
                for (var c = 0; c < COLS; c++) {
                    var tx = (c + 0.5) / COLS, ty = (r + 0.5) / ROWS;
                    var t;
-                   if (ty < 0.055) t = 'sea';
-                   else if (tx > 0.88) t = 'red_sea';
-                   else {
+                   // No sea zones — all land now for bigger playable map
+                   {
                        var nd = nileDist(tx, ty);
                        if (nd < 0.4) t = 'deep_water';
                        else if (nd < 0.8) t = 'water';
@@ -4325,7 +4324,7 @@
                var fx = 0.10 + nse(fSeed * 5) * 0.28;
                // Only on terrain that's not river/sea/desert
                var ttype = terrain[Math.floor(fy * ROWS)] ? terrain[Math.floor(fy * ROWS)][Math.floor(fx * COLS)] : 'desert';
-               if (ttype === 'deep_water' || ttype === 'water' || ttype === 'sea' || ttype === 'red_sea') continue;
+               if (ttype === 'deep_water' || ttype === 'water') continue;
                // Fields oriented perpendicular to Nile (roughly east-west)
                var fw = w * (0.008 + nse(fSeed * 7) * 0.012);
                var fh = h * (0.008 + nse(fSeed * 11) * 0.015);
@@ -4414,7 +4413,7 @@
            for (var r = 0; r < ROWS; r++) {
                elevMap[r] = [];
                for (var c = 0; c < COLS; c++) {
-                   if (terrain[r][c] === 'sea' || terrain[r][c] === 'red_sea') { elevMap[r][c] = 0.5; continue; }
+                   if (terrain[r][c] === 'deep_water' || terrain[r][c] === 'water') { elevMap[r][c] = 0.5; continue; }
                    // Use FBM for smooth, natural-looking elevation
                    elevMap[r][c] = fbm(c * 0.1, r * 0.1, 4, 1234);
                }
@@ -4426,7 +4425,6 @@
            ctx.globalAlpha = 0.14;
            for (var r = 1; r < ROWS - 1; r++) {
                for (var c = 1; c < COLS - 1; c++) {
-                   if (terrain[r][c] === 'sea' || terrain[r][c] === 'red_sea') continue;
                    if (terrain[r][c] === 'deep_water' || terrain[r][c] === 'water') continue;
                    var elev = elevMap[r][c];
                    // Compute slope in x and y from neighbors
