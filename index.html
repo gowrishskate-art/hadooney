@@ -4602,11 +4602,11 @@
                    var dist = nse(bs * 5) * radius * 0.6;
                    var bx = gc.x + Math.cos(angle) * dist;
                    var by = gc.y + Math.sin(angle) * dist * 0.35;
-                   // Blades: 12-28px tall, curved, 1.5-3px wide
-                   var bladeH = 12 + nse(bs * 7) * 16 * (0.6 + proximity * 0.4);
+                   // Blades: 16-35px tall, curved, 2-4px wide, filled for solid appearance
+                   var bladeH = 16 + nse(bs * 7) * 19 * (0.6 + proximity * 0.4);
                    var lean = (nse(bs * 9) - 0.5) * 1.2;
-                   var curveAmt = (nse(bs * 11) - 0.5) * 8;
-                   var bladeW = 1.5 + nse(bs * 13) * 1.5;
+                   var curveAmt = (nse(bs * 11) - 0.5) * 10;
+                   var bladeW = 2.0 + nse(bs * 13) * 2.0;
                    // Color layering
                    var ci = Math.floor((b / bladeCount) * (shades.length - 1) + nse(bs * 15) * 1.5);
                    ci = Math.max(0, Math.min(shades.length - 1, ci));
