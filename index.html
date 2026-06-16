@@ -4227,8 +4227,17 @@
 
        // Egypt top-down strategic map background — tile-based terrain system
        function drawEgyptMapBackground(w, h) {
-           var COLS = 80, ROWS = 40;
+           var COLS = 160, ROWS = 80;
            var tileW = w / COLS, tileH = h / ROWS;
+           // Render terrain to small offscreen canvas, then scale up for smooth blending
+           var offW = COLS, offH = ROWS;
+           var offCanvas = document.createElement('canvas');
+           offCanvas.width = offW; offCanvas.height = offH;
+           var offCtx = offCanvas.getContext('2d');
+           var origCtx = ctx;
+           // We'll fill the offscreen canvas, then draw it scaled to main canvas with smoothing
+           // Switch ctx to offscreen for tile rendering
+           ctx = offCtx;
            // Multi-octave value noise for natural terrain variation
            function nse(s) { return ((s * 9301 + 49297) % 233280) / 233280; }
            function smoothNoise(x, y, seed) {
@@ -4395,6 +4404,11 @@
                    ctx.fillRect(c * tileW, r * tileH, tileW + 1, tileH + 1);
                }
            }
+           // Blit offscreen terrain to main canvas with bilinear smoothing
+           ctx = origCtx;
+           ctx.imageSmoothingEnabled = true;
+           ctx.imageSmoothingQuality = 'high';
+           ctx.drawImage(offCanvas, 0, 0, w, h);
            // Height map shading — FBM-based elevation with directional sunlight from upper-right
            ctx.save();
            var elevMap = [];
