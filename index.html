@@ -4226,34 +4226,25 @@
        };
 
        // Egypt top-down strategic map background — tile-based terrain system
-       // The tiles are structural only (invisible grid) — land looks natural
        function drawEgyptMapBackground(w, h) {
-           // ===== BUILD TILE TERRAIN MAP (40×20 grid) =====
            var COLS = 40, ROWS = 20;
            var tileW = w / COLS, tileH = h / ROWS;
-           
-           // Nile center-line waypoints (x, y, river half-width)
            var nilePts = [
                [0.20,1.00,0.022],[0.18,0.90,0.022],[0.16,0.80,0.025],[0.18,0.73,0.028],
                [0.24,0.67,0.032],[0.30,0.60,0.038],[0.26,0.54,0.032],[0.24,0.48,0.028],
                [0.22,0.42,0.025],[0.22,0.36,0.025],[0.22,0.28,0.030],[0.22,0.22,0.040],
                [0.20,0.16,0.070],[0.22,0.10,0.100],[0.25,0.02,0.140]
            ];
-           
-           // Distance from (tx,ty) to nearest nile center point (in river-width units)
            function nileDist(tx, ty) {
                var minD = 999;
                for (var i = 0; i < nilePts.length; i++) {
                    var dx = tx - nilePts[i][0], dy = ty - nilePts[i][1];
-                   minD = Math.min(minD, Math.sqrt(dx * dx + dy * dy) / nilePts[i][2]);
+                   var d = Math.sqrt(dx * dx + dy * dy) / nilePts[i][2];
+                   if (d < minD) minD = d;
                }
                return minD;
            }
-           
-           // Seeded noise for deterministic per-tile variation
            function nse(s) { return ((s * 9301 + 49297) % 233280) / 233280; }
-           
-           // Build terrain grid — each cell gets a terrain type
            var terrain = [];
            for (var r = 0; r < ROWS; r++) {
                terrain[r] = [];
@@ -4264,8 +4255,8 @@
                    else if (tx > 0.88) t = 'red_sea';
                    else {
                        var nd = nileDist(tx, ty);
-                       if (nd < 0.5) t = 'deep_water';
-                       else if (nd < 0.9) t = 'water';
+                       if (nd < 0.45) t = 'deep_water';
+                       else if (nd < 0.85) t = 'water';
                        else if (nd < 2.8) t = 'floodplain';
                        else if (nd < 4.5) t = 'semi_desert';
                        else t = 'desert';
@@ -4273,42 +4264,32 @@
                    terrain[r][c] = t;
                }
            }
-           
-           // Village positions from Egypt territory geography (computed from ERA_MAPS.egypt)
            var villages = [
                [0.11,0.07],[0.22,0.07],[0.37,0.07],[0.10,0.28],[0.33,0.28],[0.48,0.28],
                [0.09,0.42],[0.21,0.42],[0.33,0.42],[0.09,0.56],[0.21,0.56],[0.48,0.56],
                [0.09,0.78],[0.23,0.78],[0.41,0.78]
            ];
-           
-           // ===== RENDER TERRAIN TILES =====
-           // Each tile drawn with slight color noise so no grid lines are visible
            for (var r = 0; r < ROWS; r++) {
                for (var c = 0; c < COLS; c++) {
-                   var tx = (c + 0.5) / COLS, ty = (r + 0.5) / ROWS;
                    var type = terrain[r][c];
                    var seed = r * COLS + c;
                    var rn = (nse(seed * 7 + 1) - 0.5) * 0.12;
                    var gn = (nse(seed * 11 + 2) - 0.5) * 0.12;
                    var bn = (nse(seed * 13 + 3) - 0.5) * 0.12;
-                   
                    var ri, gi, bi;
-                   if (type === 'deep_water')      { ri=12; gi=65; bi=135; }
-                   else if (type === 'water')       { ri=18; gi=85; bi=155; }
-                   else if (type === 'floodplain')  { ri=55; gi=135; bi=40; }
-                   else if (type === 'semi_desert') { ri=145; gi=115; bi=60; }
-                   else if (type === 'desert')      { ri=195; gi=148; bi=90; }
-                   else                             { ri=22; gi=100; bi=165; } // sea / red_sea
-                   
-                   var cr = Math.floor((ri * (1 + rn))), cg = Math.floor((gi * (1 + gn))), cb = Math.floor((bi * (1 + bn)));
+                   if (type === 'deep_water') { ri = 12; gi = 65; bi = 135; }
+                   else if (type === 'water') { ri = 18; gi = 85; bi = 155; }
+                   else if (type === 'floodplain') { ri = 55; gi = 135; bi = 40; }
+                   else if (type === 'semi_desert') { ri = 145; gi = 115; bi = 60; }
+                   else if (type === 'desert') { ri = 195; gi = 148; bi = 90; }
+                   else { ri = 22; gi = 100; bi = 165; }
+                   var cr = Math.min(255, Math.floor(ri * (1 + rn)));
+                   var cg = Math.min(255, Math.floor(gi * (1 + gn)));
+                   var cb = Math.min(255, Math.floor(bi * (1 + bn)));
                    ctx.fillStyle = 'rgb(' + cr + ',' + cg + ',' + cb + ')';
                    ctx.fillRect(c * tileW, r * tileH, tileW + 1, tileH + 1);
                }
            }
-           
-           // ===== GRASS TUFT DETAILS ON FLOODPLAIN =====
-           // Short green strokes that blend with the tile color — no visible grid
-           // (village tiles keep grass but villages draw on top)
            ctx.save();
            for (var r = 0; r < ROWS; r++) {
                for (var c = 0; c < COLS; c++) {
@@ -4330,22 +4311,15 @@
                }
            }
            ctx.restore();
-           
-           // ===== VILLAGES =====
-           // Small clusters of mudbrick buildings with palm trees at settlement positions
            ctx.save();
            for (var vi = 0; vi < villages.length; vi++) {
                var vx = villages[vi][0] * w, vy = villages[vi][1] * h;
                var vSeed = vi * 137 + 50;
-               var vs = w * 0.015; // village scale
-               
-               // Village ground clearing — subtle sandy patch
+               var vs = w * 0.015;
                ctx.globalAlpha = 0.15;
                ctx.fillStyle = '#c4956a';
                ctx.beginPath(); ctx.arc(vx, vy, vs * 1.8, 0, Math.PI * 2); ctx.fill();
                ctx.globalAlpha = 1;
-               
-               // 3 mudbrick houses arranged in a triangle
                for (var hi = 0; hi < 3; hi++) {
                    var angle = hi * 2.094 + vSeed * 0.01;
                    var dist = vs * (0.5 + nse(vSeed * 7 + hi * 11) * 0.3);
@@ -4353,22 +4327,15 @@
                    var hy = vy + Math.sin(angle) * dist;
                    var hw = w * 0.006 + nse(vSeed * 13 + hi * 17) * w * 0.003;
                    var hh = hw * 0.7;
-                   
-                   // House body (mudbrick)
                    ctx.fillStyle = '#c4956a';
-                   ctx.fillRect(hx - hw/2, hy - hh, hw, hh);
-                   // Roof (flat, darker)
+                   ctx.fillRect(hx - hw / 2, hy - hh, hw, hh);
                    ctx.fillStyle = '#8B6914';
-                   ctx.fillRect(hx - hw/2 - 1, hy - hh - 1, hw + 2, hh * 0.25);
-                   // Door
+                   ctx.fillRect(hx - hw / 2 - 1, hy - hh - 1, hw + 2, hh * 0.25);
                    ctx.fillStyle = '#5a3a1a';
                    ctx.fillRect(hx - hw * 0.15, hy - hh * 0.4, hw * 0.3, hh * 0.4);
-                   // Window
                    ctx.fillStyle = '#3a2a1a';
                    ctx.fillRect(hx - hw * 0.4, hy - hh * 0.65, hw * 0.25, hh * 0.2);
                }
-               
-               // Palm tree near each village
                var palmX = vx + vs * 1.5, palmY = vy - vs * 0.3;
                ctx.fillStyle = '#8B6914';
                ctx.fillRect(palmX - w * 0.002, palmY, w * 0.004, vs * 0.6);
@@ -4384,9 +4351,6 @@
                ctx.globalAlpha = 1;
            }
            ctx.restore();
-           
-           // ===== NILE RIVER OVERLAY =====
-           // Blue water path drawn on top of tiles ensures river always visible
            ctx.save();
            ctx.fillStyle = '#1a6eb5';
            ctx.beginPath();
@@ -4406,35 +4370,24 @@
            ctx.bezierCurveTo(w * 0.17 + w * 0.022, h * 0.84, w * 0.20 + w * 0.020, h * 0.90, w * 0.22 + w * 0.020, h * 1.00);
            ctx.closePath(); ctx.fill();
            ctx.restore();
-           
-           // ===== MEDITERRANEAN SEA OVERLAY =====
            ctx.save();
            var seaGrad = ctx.createLinearGradient(0, 0, 0, h * 0.06);
-           seaGrad.addColorStop(0, '#1565a0');
-           seaGrad.addColorStop(0.6, '#1a7ab8');
-           seaGrad.addColorStop(1, '#2196c8');
+           seaGrad.addColorStop(0, '#1565a0'); seaGrad.addColorStop(0.6, '#1a7ab8'); seaGrad.addColorStop(1, '#2196c8');
            ctx.fillStyle = seaGrad; ctx.fillRect(0, 0, w, h * 0.06);
            ctx.globalAlpha = 0.15; ctx.strokeStyle = '#5bc0eb'; ctx.lineWidth = 1;
            for (var wi = 0; wi < 8; wi++) {
                var wy = h * 0.01 + wi * h * 0.006;
                ctx.beginPath(); ctx.moveTo(0, wy);
-               for (var wx = 0; wx < w; wx += 15) {
-                   ctx.lineTo(wx, wy + Math.sin(wx * 0.03 + animFrame * 0.02 + wi) * 2);
-               }
+               for (var wx = 0; wx < w; wx += 15) { ctx.lineTo(wx, wy + Math.sin(wx * 0.03 + animFrame * 0.02 + wi) * 2); }
                ctx.stroke();
            }
            ctx.restore();
-           
-           // ===== RED SEA OVERLAY =====
            ctx.save();
            ctx.globalAlpha = 0.25;
            var redSeaGrad = ctx.createLinearGradient(w * 0.92, 0, w, 0);
-           redSeaGrad.addColorStop(0, '#0f4c75');
-           redSeaGrad.addColorStop(1, '#1b6ca0');
+           redSeaGrad.addColorStop(0, '#0f4c75'); redSeaGrad.addColorStop(1, '#1b6ca0');
            ctx.fillStyle = redSeaGrad; ctx.fillRect(w * 0.92, 0, w * 0.08, h);
            ctx.restore();
-           
-           // ===== PYRAMIDS (Giza) =====
            ctx.save();
            ctx.globalAlpha = 0.12; ctx.fillStyle = '#8B6914';
            var pyrY = h * 0.28, pyrX = w * 0.30, pyrH = h * 0.05;
@@ -4450,8 +4403,6 @@
                ctx.lineTo(qx + pyrH * 0.2, qy); ctx.lineTo(qx - pyrH * 0.2, qy); ctx.closePath(); ctx.fill();
            }
            ctx.restore();
-           
-           // ===== ABU SIMBEL TEMPLES =====
            ctx.save();
            ctx.globalAlpha = 0.1; ctx.fillStyle = '#8B6914';
            var abY = h * 0.88, abX = w * 0.20;
@@ -4460,13 +4411,9 @@
            ctx.beginPath(); ctx.moveTo(abX + w * 0.03, abY);
            ctx.lineTo(abX + w * 0.05, abY - h * 0.02); ctx.lineTo(abX + w * 0.07, abY); ctx.closePath(); ctx.fill();
            ctx.fillStyle = 'rgba(139,105,20,0.08)';
-           for (var st = 0; st < 4; st++) {
-               ctx.beginPath(); ctx.arc(abX - w * 0.015 + st * w * 0.015, abY - h * 0.012, w * 0.003, 0, Math.PI * 2); ctx.fill();
-           }
+           for (var st = 0; st < 4; st++) { ctx.beginPath(); ctx.arc(abX - w * 0.015 + st * w * 0.015, abY - h * 0.012, w * 0.003, 0, Math.PI * 2); ctx.fill(); }
            ctx.restore();
        }
-
-
 
        function drawEraBackground(eraId, w, h) {
            // Egypt gets a top-down strategic map instead of perspective horizon
