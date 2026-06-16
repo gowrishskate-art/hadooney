@@ -4540,95 +4540,111 @@
            ctx.restore();
            ctx.save();
            // --- Realistic grass system ---
-           // Dense blade clusters with bezier curves, shadow underlay, 6-shade palette
+           // Dense blade clusters placed at absolute pixel coords in fertile zone
+           // Each cluster: shadow underlay → dark base blades → bright foreground blades
            ctx.restore();
            ctx.save();
            var GRASS_SHADES = [
-               '#1a5a08', // darkest shadow green
-               '#246a12', // deep forest
-               '#2d7a18', // rich green
-               '#3a8a22', // medium green
-               '#4a9a30', // bright green
-               '#5aaa38'  // lime highlight
+               '#145a04', // deepest shadow
+               '#1a6a0a', // dark forest
+               '#227a14', // deep green
+               '#2d8a1c', // rich green
+               '#389828', // medium green
+               '#44a630', // bright green
+               '#52b438'  // lime highlight
            ];
-           var DRY_SHADES = ['#6a7a28', '#7a8a30', '#8a9a38']; // semi-desert scrub
-           for (var r = 0; r < ROWS; r++) {
-               for (var c = 0; c < COLS; c++) {
-                   var type = terrain[r][c];
-                   if (type !== 'floodplain' && type !== 'semi_desert') continue;
-                   var seed = r * COLS + c + 200;
-                   var nd = nileDist((c + 0.5) / COLS, (r + 0.5) / ROWS);
-                   var cx = c * tileW + tileW * 0.5, cy = r * tileH + tileH * 0.5;
-                   // Determine grass density — very dense near Nile, sparse at edges
-                   var isDry = type === 'semi_desert' || nd > 3.0;
-                   var clusterCount;
-                   if (type === 'floodplain') {
-                       clusterCount = nd < 1.5 ? 5 : (nd < 2.5 ? 4 : 3);
-                   } else {
-                       clusterCount = nd < 8 ? 2 : 1;
-                   }
-                   for (var cl = 0; cl < clusterCount; cl++) {
-                       var clSeed = seed + cl * 997;
-                       var clx = cx + (nse(clSeed * 7) - 0.5) * tileW * 0.7;
-                       var cly = cy + (nse(clSeed * 11) - 0.5) * tileH * 0.7;
-                       var clScale = 0.6 + nse(clSeed * 13) * 0.8;
-                       // Cluster shadow — dark elliptical shadow under the grass
-                       ctx.globalAlpha = 0.12;
-                       ctx.fillStyle = '#0a2a00';
+           var DRY_SHADES = ['#5a7020', '#6a8028', '#7a9030', '#8aa038'];
+           // Place ~3000 grass clusters across the fertile zone
+           var GRASS_COUNT = 3000;
+           var grassClusters = [];
+           for (var gi = 0; gi < GRASS_COUNT; gi++) {
+               var gSeed = gi * 7919 + 31;
+               // Position biased toward the Nile corridor
+               var gx = 0.08 + nse(gSeed * 3) * 0.35; // x: 8-43% of map width (Nile corridor)
+               var gy = 0.06 + nse(gSeed * 5) * 0.88; // y: 6-94% of map height
+               var gnd = nileDist(gx, gy);
+               // Skip if in water, sea, or deep desert
+               if (gnd < 1.2 || gy < 0.06 || gx > 0.85) continue;
+               // Probability of placing grass decreases with distance from Nile
+               if (gnd > 6.0 && nse(gSeed * 7) > 0.15) continue;
+               if (gnd > 4.5 && nse(gSeed * 7) > 0.35) continue;
+               var isDry = gnd > 3.5;
+               grassClusters.push({x: gx * w, y: gy * h, seed: gSeed, dry: isDry, nileDist: gnd});
+           }
+           // Sort clusters by y-position for rough depth ordering
+           grassClusters.sort(function(a, b) { return a.y - b.y; });
+           // Draw each cluster
+           for (var gi = 0; gi < grassClusters.length; gi++) {
+               var gc = grassClusters[gi];
+               var s = gc.seed;
+               // Cluster radius and blade count based on proximity to Nile
+               var proximity = Math.max(0, 1 - gc.nileDist / 6.0);
+               var radius = (12 + proximity * 18) * (0.7 + nse(s * 11) * 0.6);
+               var bladeCount = gc.dry ? Math.floor(3 + nse(s * 13) * 5) : Math.floor(8 + proximity * 14 + nse(s * 13) * 6);
+               // Cluster shadow — soft dark ellipse beneath
+               ctx.globalAlpha = 0.18;
+               ctx.fillStyle = '#0a2800';
+               ctx.beginPath();
+               ctx.ellipse(gc.x, gc.y + 2, radius * 0.8, radius * 0.35, nse(s * 17) * 0.3, 0, Math.PI * 2);
+               ctx.fill();
+               // Dark base fill — a slightly lighter green mound
+               ctx.globalAlpha = 0.22;
+               ctx.fillStyle = gc.dry ? '#4a6018' : '#1a5a10';
+               ctx.beginPath();
+               ctx.ellipse(gc.x, gc.y, radius * 0.6, radius * 0.25, 0, 0, Math.PI * 2);
+               ctx.fill();
+               // Draw blades — dark to bright for depth layering
+               var shades = gc.dry ? DRY_SHADES : GRASS_SHADES;
+               for (var b = 0; b < bladeCount; b++) {
+                   var bs = s + b * 53;
+                   // Random offset within cluster radius
+                   var angle = nse(bs * 3) * Math.PI * 2;
+                   var dist = nse(bs * 5) * radius * 0.7;
+                   var bx = gc.x + Math.cos(angle) * dist;
+                   var by = gc.y + Math.sin(angle) * dist * 0.4;
+                   // Blade properties — height, lean, curve, width
+                   var bladeH = 8 + nse(bs * 7) * 16 * (0.6 + proximity * 0.4);
+                   var lean = (nse(bs * 9) - 0.5) * 1.2;
+                   var curveAmt = (nse(bs * 11) - 0.5) * 8;
+                   var bladeW = 1.0 + nse(bs * 13) * 1.5;
+                   // Color — progress from dark (background) to bright (foreground) as blade index increases
+                   var ci = Math.floor((b / bladeCount) * (shades.length - 1) + nse(bs * 15) * 2);
+                   ci = Math.max(0, Math.min(shades.length - 1, ci));
+                   ctx.strokeStyle = shades[ci];
+                   ctx.globalAlpha = gc.dry ? (0.35 + nse(bs * 17) * 0.3) : (0.55 + nse(bs * 17) * 0.35);
+                   ctx.lineWidth = bladeW;
+                   ctx.lineCap = 'round';
+                   // Quadratic bezier blade
+                   var tipX = bx + lean * bladeH * 0.3;
+                   var tipY = by - bladeH;
+                   var cpX = bx + curveAmt + lean * bladeH * 0.15;
+                   var cpY = by - bladeH * 0.55;
+                   ctx.beginPath();
+                   ctx.moveTo(bx, by);
+                   ctx.quadraticCurveTo(cpX, cpY, tipX, tipY);
+                   ctx.stroke();
+                   // Companion blade — slightly offset, thinner, different shade
+                   if (nse(bs * 19) > 0.25) {
+                       var compX = bx + (nse(bs * 21) - 0.5) * 4;
+                       var compLean = lean + (nse(bs * 23) - 0.5) * 0.6;
+                       var compH = bladeH * (0.5 + nse(bs * 25) * 0.4);
+                       var compCi = Math.min(shades.length - 1, ci + 1);
+                       ctx.strokeStyle = shades[compCi];
+                       ctx.globalAlpha *= 0.65;
+                       ctx.lineWidth = bladeW * 0.6;
                        ctx.beginPath();
-                       ctx.ellipse(clx, cly + 1, tileW * 0.35 * clScale, tileH * 0.2 * clScale, 0, 0, Math.PI * 2);
-                       ctx.fill();
-                       // Blade count per cluster — dense tufts
-                       var bladeCount = isDry ? Math.floor(3 + nse(clSeed * 17) * 4) : Math.floor(6 + nse(clSeed * 17) * 8);
-                       // Draw blades back-to-front (dark blades first, bright on top)
-                       for (var b = 0; b < bladeCount; b++) {
-                           var bSeed = clSeed + b * 31;
-                           // Each blade has a base position, height, angle, curve, and taper
-                           var bx = clx + (nse(bSeed * 3) - 0.5) * tileW * 0.5 * clScale;
-                           var by = cly + (nse(bSeed * 5) - 0.5) * tileH * 0.3 * clScale;
-                           var bladeH = (4 + nse(bSeed * 7) * 8) * clScale;
-                           var angle = (nse(bSeed * 9) - 0.5) * 0.9; // lean angle
-                           var curve = (nse(bSeed * 11) - 0.5) * 4; // bezier curve amount
-                           var thickness = (0.8 + nse(bSeed * 13) * 1.0) * clScale;
-                           // Color selection — layer from dark to bright across blades
-                           var shadeIdx;
-                           if (isDry) {
-                               shadeIdx = Math.floor(nse(bSeed * 15) * DRY_SHADES.length);
-                               ctx.strokeStyle = DRY_SHADES[shadeIdx];
-                           } else {
-                               // Earlier blades are darker (background), later are brighter (foreground)
-                               shadeIdx = Math.floor((b / bladeCount) * (GRASS_SHADES.length - 1) + nse(bSeed * 15) * 1.5);
-                               shadeIdx = Math.max(0, Math.min(GRASS_SHADES.length - 1, shadeIdx));
-                               ctx.strokeStyle = GRASS_SHADES[shadeIdx];
-                           }
-                           ctx.globalAlpha = isDry ? (0.3 + nse(bSeed * 17) * 0.25) : (0.45 + nse(bSeed * 17) * 0.35);
-                           ctx.lineWidth = thickness;
-                           // Draw blade as quadratic bezier — base to tip with natural curve
-                           var tipX = bx + Math.sin(angle) * bladeH;
-                           var tipY = by - Math.cos(angle) * bladeH;
-                           var cpX = bx + curve + Math.sin(angle) * bladeH * 0.4;
-                           var cpY = by - Math.cos(angle) * bladeH * 0.5;
-                           ctx.beginPath();
-                           ctx.moveTo(bx, by);
-                           ctx.quadraticCurveTo(cpX, cpY, tipX, tipY);
-                           ctx.stroke();
-                           // Second overlapping blade for density (not on every blade — looks more natural)
-                           if (b % 3 === 0 && nse(bSeed * 19) > 0.3) {
-                               var offX = (nse(bSeed * 21) - 0.5) * 2;
-                               var offAngle = angle + (nse(bSeed * 23) - 0.5) * 0.4;
-                               var tip2X = bx + offX + Math.sin(offAngle) * bladeH * 0.8;
-                               var tip2Y = by - Math.cos(offAngle) * bladeH * 0.8;
-                               ctx.lineWidth = thickness * 0.7;
-                               ctx.globalAlpha *= 0.7;
-                               ctx.beginPath();
-                               ctx.moveTo(bx + offX, by);
-                               ctx.quadraticCurveTo(bx + offX + curve * 0.5, by - bladeH * 0.35, tip2X, tip2Y);
-                               ctx.stroke();
-                           }
-                       }
+                       ctx.moveTo(compX, by + 1);
+                       ctx.quadraticCurveTo(
+                           compX + curveAmt * 0.4 + compLean * compH * 0.15,
+                           by - compH * 0.5,
+                           compX + compLean * compH * 0.3,
+                           by - compH
+                       );
+                       ctx.stroke();
                    }
                }
            }
+           ctx.lineCap = 'butt';
            ctx.restore();
            // --- Villages with houses, paths, palms, and crop fields ---
            ctx.save();
