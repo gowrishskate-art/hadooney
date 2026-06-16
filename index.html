@@ -4296,12 +4296,26 @@
                    var gn = (nse(seed * 11 + 2) - 0.5) * 0.12;
                    var bn = (nse(seed * 13 + 3) - 0.5) * 0.12;
                    var ri, gi, bi;
-                   if (type === 'deep_water') { ri = 12; gi = 65; bi = 135; }
-                   else if (type === 'water') { ri = 18; gi = 85; bi = 155; }
-                   else if (type === 'floodplain') { ri = 48; gi = 148; bi = 32; }
-                   else if (type === 'semi_desert') { ri = 145; gi = 115; bi = 60; }
-                   else if (type === 'desert') { ri = 195; gi = 148; bi = 90; }
-                   else { ri = 22; gi = 100; bi = 165; }
+                   // Smooth color blending between terrain zones for natural transitions
+                   var nd = nileDist(tx, ty);
+                   if (nd < 0.3) { ri=12; gi=65; bi=135; }                         // deep_water core
+                   else if (nd < 0.8) {                                            // water zone (deep_water->water blend at low end)
+                       var wt = (nd - 0.3) / 0.5;
+                       ri = 12 + wt * (18-12); gi = 65 + wt * (85-65); bi = 135 + wt * (155-135);
+                   }
+                   else if (nd < 1.5) {                                            // water->floodplain blend
+                       var wt = (nd - 0.8) / 0.7;
+                       ri = 18 + wt * (48-18); gi = 85 + wt * (148-85); bi = 155 - wt * (155-32);
+                   }
+                   else if (nd < 4.5) {                                            // floodplain -> semi-desert blend
+                       var ft = (nd - 1.5) / 3.0;
+                       ri = 48 + ft * (145-48); gi = 148 - ft * (148-115); bi = 32 + ft * (60-32);
+                   }
+                   else if (nd < 7.5) {                                            // semi-desert -> desert blend
+                       var st = (nd - 4.5) / 3.0;
+                       ri = 145 + st * (195-145); gi = 115 + st * (148-115); bi = 60 + st * (90-60);
+                   }
+                   else { ri=195; gi=148; bi=90; }                                 // pure desert
                    var cr = Math.min(255, Math.floor(ri * (1 + rn)));
                    var cg = Math.min(255, Math.floor(gi * (1 + gn)));
                    var cb = Math.min(255, Math.floor(bi * (1 + bn)));
@@ -4329,6 +4343,25 @@
                        ctx.stroke();
                    }
                }
+           }
+           ctx.restore();
+           // Wadis — faint dry riverbeds in desert areas
+           ctx.save();
+           ctx.globalAlpha = 0.07;
+           ctx.lineWidth = 1.2;
+           ctx.strokeStyle = '#8a7050';
+           for (var wd = 0; wd < 5; wd++) {
+               var wSeed = wd * 277 + 13;
+               var wx = 0.55 + nse(wSeed * 3) * 0.35;
+               var wy = 0.15 + nse(wSeed * 5) * 0.70;
+               var wlen = 0.15 + nse(wSeed * 7) * 0.20;
+               ctx.beginPath(); ctx.moveTo(w * wx, h * wy);
+               for (var ws = 0; ws < 6; ws++) {
+                   wx += (nse(wSeed * 11 + ws * 7) - 0.5) * 0.03;
+                   wy += wlen / 6 + (nse(wSeed * 13 + ws * 11) - 0.5) * 0.02;
+                   ctx.lineTo(w * wx, h * wy);
+               }
+               ctx.stroke();
            }
            ctx.restore();
            ctx.save();
@@ -4467,25 +4500,89 @@
                    ctx.globalAlpha = 1;
                }
            }
-           ctx.restore();
+           // --- Nile: 3-layer depth river with delta branches ---
+           // Waypoints: [y, centerX, halfWidth] defining river center and width at each altitude from Aswan to Delta
+           var nw = [
+               [1.00,0.22,0.022],[0.90,0.20,0.022],[0.84,0.17,0.025],[0.78,0.16,0.025],
+               [0.72,0.20,0.030],[0.66,0.28,0.035],[0.60,0.30,0.038],[0.54,0.26,0.032],
+               [0.48,0.24,0.028],[0.42,0.22,0.025],[0.36,0.22,0.025],[0.30,0.22,0.030],
+               [0.26,0.22,0.030],[0.22,0.23,0.040],[0.16,0.21,0.070],[0.10,0.18,0.100],
+               [0.06,0.16,0.120],[0.03,0.15,0.140],[0.02,0.14,0.140],[0.02,0.50,0.120]
+           ];
+           // Delta branch channels
+           var deltaBranches = [
+               [[0.02,0.36,0.100],[0.04,0.28,0.050],[0.08,0.22,0.025],[0.14,0.18,0.012]],
+               [[0.02,0.25,0.100],[0.04,0.20,0.040],[0.08,0.16,0.020]],
+               [[0.02,0.14,0.100],[0.04,0.12,0.035],[0.08,0.12,0.018]]
+           ];
+           // Reed bank vegetation along river edges (drawn before water layers so they sit under shallow water)
            ctx.save();
-           ctx.fillStyle = '#1a6eb5';
-           ctx.beginPath();
-           ctx.moveTo(w * 0.22 - w * 0.022, h * 1.00);
-           ctx.bezierCurveTo(w * 0.20 - w * 0.022, h * 0.90, w * 0.17 - w * 0.025, h * 0.84, w * 0.16 - w * 0.025, h * 0.78);
-           ctx.bezierCurveTo(w * 0.20 - w * 0.030, h * 0.72, w * 0.28 - w * 0.035, h * 0.66, w * 0.30 - w * 0.038, h * 0.60);
-           ctx.bezierCurveTo(w * 0.28 - w * 0.032, h * 0.54, w * 0.24 - w * 0.028, h * 0.48, w * 0.22 - w * 0.025, h * 0.42);
-           ctx.bezierCurveTo(w * 0.20 - w * 0.025, h * 0.36, w * 0.22 - w * 0.030, h * 0.30, w * 0.22 - w * 0.030, h * 0.26);
-           ctx.bezierCurveTo(w * 0.23 - w * 0.040, h * 0.22, w * 0.21 - w * 0.070, h * 0.16, w * 0.18 - w * 0.100, h * 0.10);
-           ctx.bezierCurveTo(w * 0.16 - w * 0.120, h * 0.06, w * 0.15 - w * 0.140, h * 0.03, w * 0.14 - w * 0.140, h * 0.02);
-           ctx.lineTo(w * 0.36 + w * 0.140, h * 0.02);
-           ctx.bezierCurveTo(w * 0.30 + w * 0.120, h * 0.03, w * 0.28 + w * 0.100, h * 0.06, w * 0.26 + w * 0.080, h * 0.10);
-           ctx.bezierCurveTo(w * 0.25 + w * 0.050, h * 0.16, w * 0.23 + w * 0.035, h * 0.22, w * 0.22 + w * 0.030, h * 0.26);
-           ctx.bezierCurveTo(w * 0.22 + w * 0.025, h * 0.30, w * 0.20 + w * 0.025, h * 0.36, w * 0.22 + w * 0.028, h * 0.42);
-           ctx.bezierCurveTo(w * 0.24 + w * 0.032, h * 0.48, w * 0.28 + w * 0.035, h * 0.54, w * 0.30 + w * 0.038, h * 0.60);
-           ctx.bezierCurveTo(w * 0.28 + w * 0.032, h * 0.66, w * 0.20 + w * 0.028, h * 0.72, w * 0.16 + w * 0.025, h * 0.78);
-           ctx.bezierCurveTo(w * 0.17 + w * 0.022, h * 0.84, w * 0.20 + w * 0.020, h * 0.90, w * 0.22 + w * 0.020, h * 1.00);
-           ctx.closePath(); ctx.fill();
+           ctx.globalAlpha = 0.2;
+           for (var ri = 0; ri < nw.length; ri++) {
+               var yc = nw[ri][0], xc = nw[ri][1], hw = nw[ri][2];
+               var lx = xc - hw * 1.1, rx = xc + hw * 1.1;
+               var ly = yc, ry = yc;
+               ctx.fillStyle = '#2a6a20';
+               ctx.beginPath(); ctx.arc(w * lx, h * ly, w * 0.005 + hw * w * 0.025, 0, Math.PI * 2); ctx.fill();
+               ctx.fillStyle = '#3a7a28';
+               ctx.beginPath(); ctx.arc(w * rx, h * ry, w * 0.004 + hw * w * 0.02, 0, Math.PI * 2); ctx.fill();
+           }
+           ctx.restore();
+           // 4 depth layers: deep channel (dark) → mid water → surface → shallow shore
+           var depthLayers = [
+               {scale:0.28, color:'#082860'}, {scale:0.48, color:'#0f4a90'},
+               {scale:0.70, color:'#1a70b8'}, {scale:1.00, color:'#2a88cc'}
+           ];
+           for (var dl = 0; dl < depthLayers.length; dl++) {
+               var sc = depthLayers[dl].scale;
+               ctx.fillStyle = depthLayers[dl].color;
+               ctx.beginPath();
+               ctx.moveTo(w * (nw[0][1] - nw[0][2] * sc), h * nw[0][0]);
+               for (var wi = 1; wi < nw.length; wi++)
+                   ctx.lineTo(w * (nw[wi][1] - nw[wi][2] * sc), h * nw[wi][0]);
+               for (var wi = nw.length - 1; wi >= 0; wi--)
+                   ctx.lineTo(w * (nw[wi][1] + nw[wi][2] * sc), h * nw[wi][0]);
+               ctx.closePath(); ctx.fill();
+               // Delta branches (mid layers and above)
+               if (sc >= 0.48) {
+                   for (var db = 0; db < deltaBranches.length; db++) {
+                       var br = deltaBranches[db];
+                       ctx.beginPath();
+                       ctx.moveTo(w * (br[0][1] - br[0][2] * sc * 0.7), h * br[0][0]);
+                       for (var bi = 1; bi < br.length; bi++)
+                           ctx.lineTo(w * (br[bi][1] - br[bi][2] * sc * 0.7), h * br[bi][0]);
+                       for (var bi = br.length - 1; bi >= 0; bi--)
+                           ctx.lineTo(w * (br[bi][1] + br[bi][2] * sc * 0.7), h * br[bi][0]);
+                       ctx.closePath(); ctx.fill();
+                   }
+               }
+           }
+           // River sandbar islands (inside river channel)
+           ctx.save();
+           ctx.globalAlpha = 0.4;
+           for (var isl = 0; isl < 6; isl++) {
+               var is = isl * 137 + 91;
+               var iy = 0.20 + nse(is * 3) * 0.55;
+               var iN = 0;
+               for (var ni = 0; ni < nw.length; ni++) { if (nw[ni][0] <= iy) { iN = ni; break; } }
+               if (iN >= nw.length || iN === 0) continue;
+               var n0 = nw[iN-1], n1 = nw[iN];
+               var tFrac = (iy - n0[0]) / (n1[0] - n0[0] + 0.001);
+               var cx = n0[1] + (n1[1] - n0[1]) * tFrac;
+               var chw = (n0[2] + (n1[2] - n0[2]) * tFrac) * 0.5;
+               var ix = w * (cx + (nse(is * 5) - 0.5) * chw * 1.2);
+               var iy2 = h * (iy + (nse(is * 7) - 0.5) * 0.04);
+               var ir = w * (0.005 + nse(is * 11) * 0.008);
+               ctx.fillStyle = '#c4a060';
+               ctx.beginPath(); ctx.arc(ix, iy2, ir, 0, Math.PI * 2); ctx.fill();
+               // Tiny veg speck on island
+               if (nse(is * 13) > 0.4) {
+                   ctx.fillStyle = '#4a7a30';
+                   ctx.globalAlpha = 0.2;
+                   ctx.beginPath(); ctx.arc(ix - ir*0.2, iy2 - ir*0.3, ir*0.25, 0, Math.PI*2); ctx.fill();
+                   ctx.globalAlpha = 0.4;
+               }
+           }
            ctx.restore();
            ctx.save();
            var seaGrad = ctx.createLinearGradient(0, 0, 0, h * 0.06);
@@ -5328,6 +5425,20 @@
                _mapDirty = false;
            }
            ctx.drawImage(_mapCache, 0, 0);
+           // Animated water shimmer on Nile (per-frame overlay)
+           if (eraId === 'egypt') {
+               ctx.save();
+               ctx.globalAlpha = 0.08 + Math.sin(animFrame * 0.03) * 0.04;
+               for (var sh = 0; sh < 12; sh++) {
+                   var shy = 0.05 + sh * 0.075;
+                   var shx = 0.15 + Math.sin(shy * 3 + animFrame * 0.015 + sh) * 0.12;
+                   ctx.fillStyle = '#ffffff';
+                   ctx.beginPath();
+                   ctx.arc(shx * w + Math.sin(animFrame * 0.02 + sh * 1.5) * w * 0.01, shy * h + Math.cos(animFrame * 0.025 + sh * 1.7) * h * 0.005, w * 0.003 + Math.sin(animFrame * 0.04 + sh) * w * 0.001, 0, Math.PI * 2);
+                   ctx.fill();
+               }
+               ctx.restore();
+           }
            // Selection highlight: show adjacent territories to attack
            if (gameState.selectedArmy) {
                const pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.1);
