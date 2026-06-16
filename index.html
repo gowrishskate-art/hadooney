@@ -4227,8 +4227,31 @@
 
        // Egypt top-down strategic map background — tile-based terrain system
        function drawEgyptMapBackground(w, h) {
-           var COLS = 40, ROWS = 20;
+           var COLS = 80, ROWS = 40;
            var tileW = w / COLS, tileH = h / ROWS;
+           // Multi-octave value noise for natural terrain variation
+           function nse(s) { return ((s * 9301 + 49297) % 233280) / 233280; }
+           function smoothNoise(x, y, seed) {
+               var ix = Math.floor(x), iy = Math.floor(y);
+               var fx = x - ix, fy = y - iy;
+               // Smoothstep interpolation
+               var sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+               var n00 = nse(ix * 374761 + iy * 668265 + seed);
+               var n10 = nse((ix+1) * 374761 + iy * 668265 + seed);
+               var n01 = nse(ix * 374761 + (iy+1) * 668265 + seed);
+               var n11 = nse((ix+1) * 374761 + (iy+1) * 668265 + seed);
+               var nx0 = n00 + sx * (n10 - n00);
+               var nx1 = n01 + sx * (n11 - n01);
+               return nx0 + sy * (nx1 - nx0);
+           }
+           function fbm(x, y, octaves, seed) {
+               var val = 0, amp = 1, freq = 1, max = 0;
+               for (var o = 0; o < octaves; o++) {
+                   val += smoothNoise(x * freq, y * freq, seed + o * 1000) * amp;
+                   max += amp; amp *= 0.5; freq *= 2;
+               }
+               return val / max;
+           }
            var nilePts = [
                [0.20,1.00,0.022],[0.18,0.90,0.022],[0.16,0.80,0.025],[0.18,0.73,0.028],
                [0.24,0.67,0.032],[0.30,0.60,0.038],[0.26,0.54,0.032],[0.24,0.48,0.028],
@@ -4246,7 +4269,6 @@
                }
                return minD;
            }
-           function nse(s) { return ((s * 9301 + 49297) % 233280) / 233280; }
            var terrain = [];
            for (var r = 0; r < ROWS; r++) {
                terrain[r] = [];
@@ -4315,97 +4337,159 @@
            for (var r = 0; r < ROWS; r++) {
                for (var c = 0; c < COLS; c++) {
                    var type = terrain[r][c];
-                   var seed = r * COLS + c;
-                   var rn = (nse(seed * 7 + 1) - 0.5) * 0.12;
-                   var gn = (nse(seed * 11 + 2) - 0.5) * 0.12;
-                   var bn = (nse(seed * 13 + 3) - 0.5) * 0.12;
-                   var ri, gi, bi;
-                   // Smooth color blending between terrain zones for natural transitions
                    var tx = (c + 0.5) / COLS, ty = (r + 0.5) / ROWS;
                    var nd = nileDist(tx, ty);
-                   if (nd < 0.3) { ri=12; gi=65; bi=135; }                         // deep_water core
-                   else if (nd < 0.8) {                                            // water zone (deep_water->water blend at low end)
+                   var ri, gi, bi;
+                   // Richer color palette with FBM noise for natural variation
+                   var noiseVal = fbm(c * 0.15, r * 0.15, 4, 42);
+                   var detailNoise = fbm(c * 0.4, r * 0.4, 3, 137);
+                   if (nd < 0.3) {
+                       // Deep water — dark blue with subtle depth variation
+                       ri=8 + noiseVal * 8; gi=55 + noiseVal * 15; bi=120 + noiseVal * 20;
+                   }
+                   else if (nd < 0.8) {
                        var wt = (nd - 0.3) / 0.5;
-                       ri = 12 + wt * (18-12); gi = 65 + wt * (85-65); bi = 135 + wt * (155-135);
+                       ri = 8 + wt * (15-8) + detailNoise * 6;
+                       gi = 55 + wt * (75-55) + noiseVal * 10;
+                       bi = 120 + wt * (145-120) + detailNoise * 10;
                    }
-                   else if (nd < 1.5) {                                            // water->floodplain blend
+                   else if (nd < 1.5) {
+                       // Water → lush floodplain transition
                        var wt = (nd - 0.8) / 0.7;
-                       ri = 18 + wt * (48-18); gi = 85 + wt * (148-85); bi = 155 - wt * (155-32);
+                       var lushNoise = fbm(c * 0.2, r * 0.2, 3, 256);
+                       ri = 15 + wt * (55-15) + lushNoise * 12;
+                       gi = 75 + wt * (155-75) + lushNoise * 18;
+                       bi = 145 - wt * (145-35) + detailNoise * 8;
                    }
-                   else if (nd < 4.5) {                                            // floodplain -> semi-desert blend
+                   else if (nd < 4.5) {
+                       // Rich floodplain / semi-arid — warm earth tones with green patches
                        var ft = (nd - 1.5) / 3.0;
-                       ri = 48 + ft * (145-48); gi = 148 - ft * (148-115); bi = 32 + ft * (60-32);
+                       var soilNoise = fbm(c * 0.12, r * 0.12, 3, 512);
+                       // Patches of darker fertile soil vs lighter sandy soil
+                       var fertileMix = soilNoise > 0.55 ? 0.3 : (soilNoise < 0.35 ? -0.15 : 0);
+                       ri = 55 + ft * (155-55) + detailNoise * 10 + fertileMix * 15;
+                       gi = 155 - ft * (155-118) + noiseVal * 12 + fertileMix * 20;
+                       bi = 35 + ft * (65-35) + detailNoise * 6 + fertileMix * 8;
                    }
-                   else if (nd < 7.5) {                                            // semi-desert -> desert blend
+                   else if (nd < 7.5) {
+                       // Semi-desert — sandy with subtle rock color variation
                        var st = (nd - 4.5) / 3.0;
-                       ri = 145 + st * (195-145); gi = 115 + st * (148-115); bi = 60 + st * (90-60);
+                       var sandNoise = fbm(c * 0.08, r * 0.08, 4, 777);
+                       // Sand dune color shifts between warm gold and cooler tan
+                       ri = 155 + st * (200-155) + sandNoise * 18 + detailNoise * 6;
+                       gi = 118 + st * (155-118) + sandNoise * 12 + detailNoise * 4;
+                       bi = 65 + st * (100-65) + sandNoise * 10 + detailNoise * 3;
                    }
-                   else { ri=195; gi=148; bi=90; }                                 // pure desert
-                   var cr = Math.min(255, Math.floor(ri * (1 + rn)));
-                   var cg = Math.min(255, Math.floor(gi * (1 + gn)));
-                   var cb = Math.min(255, Math.floor(bi * (1 + bn)));
-                   ctx.fillStyle = 'rgb(' + cr + ',' + cg + ',' + cb + ')';
+                   else {
+                       // Pure desert — warm golden sand with natural dune variation
+                       var desertNoise = fbm(c * 0.06, r * 0.06, 4, 999);
+                       var duneShift = desertNoise * 25 - 12;
+                       ri = 200 + duneShift + detailNoise * 5;
+                       gi = 155 + duneShift * 0.7 + detailNoise * 3;
+                       bi = 100 + duneShift * 0.4 + detailNoise * 2;
+                   }
+                   ri = Math.max(0, Math.min(255, Math.round(ri)));
+                   gi = Math.max(0, Math.min(255, Math.round(gi)));
+                   bi = Math.max(0, Math.min(255, Math.round(bi)));
+                   ctx.fillStyle = 'rgb(' + ri + ',' + gi + ',' + bi + ')';
                    ctx.fillRect(c * tileW, r * tileH, tileW + 1, tileH + 1);
                }
            }
-           // Height map shading — elevation-based lighting for 3D terrain feel
+           // Height map shading — FBM-based elevation with directional sunlight from upper-right
            ctx.save();
-           // Precompute elevation array for neighbor comparisons
            var elevMap = [];
            for (var r = 0; r < ROWS; r++) {
                elevMap[r] = [];
                for (var c = 0; c < COLS; c++) {
                    if (terrain[r][c] === 'sea' || terrain[r][c] === 'red_sea') { elevMap[r][c] = 0.5; continue; }
-                   var hSeed = r * COLS + c + 900;
-                   var h1 = nse(hSeed * 3 + 1);
-                   var h2 = nse(hSeed * 7 + 2) * 0.5;
-                   var h3 = nse(hSeed * 11 + 3) * 0.25;
-                   elevMap[r][c] = (h1 + h2 + h3) * 0.57;
+                   // Use FBM for smooth, natural-looking elevation
+                   elevMap[r][c] = fbm(c * 0.1, r * 0.1, 4, 1234);
                }
            }
-           ctx.globalAlpha = 0.10;
-           for (var r = 0; r < ROWS; r++) {
-               for (var c = 0; c < COLS; c++) {
+           // Sun direction: upper-right (southwest in map terms) — Egyptian noon sun
+           var sunDx = 0.7, sunDy = -0.5;
+           var sunLen = Math.sqrt(sunDx*sunDx + sunDy*sunDy);
+           sunDx /= sunLen; sunDy /= sunLen;
+           ctx.globalAlpha = 0.14;
+           for (var r = 1; r < ROWS - 1; r++) {
+               for (var c = 1; c < COLS - 1; c++) {
                    if (terrain[r][c] === 'sea' || terrain[r][c] === 'red_sea') continue;
+                   if (terrain[r][c] === 'deep_water' || terrain[r][c] === 'water') continue;
                    var elev = elevMap[r][c];
-                   // Slope-based directional shading: compare with left and up neighbors
-                   var lx = c > 0 && terrain[r][c-1] !== 'sea' && terrain[r][c-1] !== 'red_sea' ? (elev - elevMap[r][c-1]) : 0;
-                   var uy = r > 0 && terrain[r-1] && terrain[r-1][c] !== 'sea' && terrain[r-1][c] !== 'red_sea' ? (elev - elevMap[r-1][c]) : 0;
-                   var slope = lx + uy;
-                   var light = 0.85 + slope * 0.15 + (elev - 0.5) * 0.12;
-                   ctx.fillStyle = 'rgba(' + Math.round((1-light)*255) + ',' + Math.round((1-light)*255) + ',' + Math.round((1-light)*255) + ',0.12)';
-                   ctx.fillRect(c * tileW, r * tileH, tileW, tileH);
+                   // Compute slope in x and y from neighbors
+                   var slopeX = (elevMap[r][Math.min(c+1, COLS-1)] - elevMap[r][Math.max(c-1, 0)]) * 0.5;
+                   var slopeY = (elevMap[Math.min(r+1, ROWS-1)][c] - elevMap[Math.max(r-1, 0)][c]) * 0.5;
+                   // Dot product with sun direction
+                   var sunDot = slopeX * sunDx + slopeY * sunDy;
+                   var light = 0.8 + sunDot * 0.6;
+                   light = Math.max(0.5, Math.min(1.2, light));
+                   var shade = (1.0 - light) * 0.5;
+                   if (shade > 0) {
+                       ctx.fillStyle = 'rgba(0,0,0,' + Math.min(0.2, shade).toFixed(3) + ')';
+                       ctx.fillRect(c * tileW, r * tileH, tileW + 1, tileH + 1);
+                   } else if (shade < -0.02) {
+                       ctx.fillStyle = 'rgba(255,248,220,' + Math.min(0.08, -shade * 0.15).toFixed(3) + ')';
+                       ctx.fillRect(c * tileW, r * tileH, tileW + 1, tileH + 1);
+                   }
                }
            }
            ctx.restore();
            // Desert dune shadows on sand tiles
            ctx.save();
-           ctx.globalAlpha = 0.06;
-           ctx.strokeStyle = '#8a6a30';
-           ctx.lineWidth = 1.5;
+           ctx.globalAlpha = 0.08;
+           ctx.strokeStyle = '#7a5a20';
+           ctx.lineWidth = 1.2;
            for (var r = 0; r < ROWS; r++) {
                for (var c = 0; c < COLS; c++) {
                    if (terrain[r][c] !== 'desert') continue;
                    var dSeed = r * COLS + c + 800;
-                   if (nse(dSeed * 5) > 0.5) {
+                   if (nse(dSeed * 5) > 0.45) {
                        var dcx = (c + 0.5) * tileW;
                        var dcy = (r + nse(dSeed * 7) * 0.6) * tileH;
-                       var dw = tileW * (0.3 + nse(dSeed * 11) * 0.4);
-                       var dh = tileH * 0.15;
+                       var dw = tileW * (0.3 + nse(dSeed * 11) * 0.5);
+                       var dh = tileH * (0.12 + nse(dSeed * 17) * 0.1);
+                       // Dune shadow on the windward (dark) side
                        ctx.beginPath();
                        ctx.moveTo(dcx - dw/2, dcy);
                        ctx.quadraticCurveTo(dcx, dcy - dh, dcx + dw/2, dcy);
                        ctx.stroke();
+                       // Bright crest highlight on leeward side
+                       ctx.strokeStyle = '#c8a860';
+                       ctx.globalAlpha = 0.04;
+                       ctx.beginPath();
+                       ctx.moveTo(dcx + dw * 0.15, dcy - dh * 0.4);
+                       ctx.quadraticCurveTo(dcx + dw * 0.35, dcy - dh * 0.8, dcx + dw * 0.5, dcy - dh * 0.2);
+                       ctx.stroke();
+                       ctx.strokeStyle = '#7a5a20';
+                       ctx.globalAlpha = 0.08;
                    }
                }
            }
            ctx.restore();
-           // Wadis — faint dry riverbeds in desert areas
+           // Sand grain texture overlay — fine stipple pattern on desert/semi-desert tiles
+           ctx.save();
+           ctx.globalAlpha = 0.04;
+           for (var r = 0; r < ROWS; r++) {
+               for (var c = 0; c < COLS; c++) {
+                   var tType = terrain[r][c];
+                   if (tType !== 'desert' && tType !== 'semi_desert') continue;
+                   var gSeed = r * COLS + c + 1200;
+                   var grainCount = tType === 'desert' ? 3 : 2;
+                   for (var gi = 0; gi < grainCount; gi++) {
+                       var gx = (c + nse(gSeed * 7 + gi * 13) * 0.9) * tileW;
+                       var gy = (r + nse(gSeed * 11 + gi * 17) * 0.9) * tileH;
+                       ctx.fillStyle = nse(gSeed * 19 + gi * 23) > 0.5 ? '#d4b880' : '#a08050';
+                       ctx.fillRect(gx, gy, 1, 1);
+                   }
+               }
+           }
+           ctx.restore();
+           // Wadis — faint dry riverbeds in desert areas with more branches
            ctx.save();
            ctx.globalAlpha = 0.07;
            ctx.lineWidth = 1.2;
            ctx.strokeStyle = '#8a7050';
-           for (var wd = 0; wd < 5; wd++) {
+           for (var wd = 0; wd < 8; wd++) {
                var wSeed = wd * 277 + 13;
                var wx = 0.55 + nse(wSeed * 3) * 0.35;
                var wy = 0.15 + nse(wSeed * 5) * 0.70;
@@ -4699,10 +4783,10 @@
            ctx.restore();
            // Irrigation canals — thin dark blue lines branching from Nile into floodplain
            ctx.save();
-           ctx.globalAlpha = 0.08;
+           ctx.globalAlpha = 0.10;
            ctx.lineWidth = 0.8;
            ctx.strokeStyle = '#1a6a90';
-           for (var ci = 0; ci < 8; ci++) {
+           for (var ci = 0; ci < 14; ci++) {
                var cSeed = ci * 137 + 31;
                var cy = 0.12 + nse(cSeed * 3) * 0.70;
                var cx = 0.14 + nse(cSeed * 5) * 0.08; // starts near Nile
