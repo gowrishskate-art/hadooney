@@ -4297,7 +4297,7 @@
                    terrain[r][c] = t;
                }
            }
-           // Rich soil patches on fertile tiles — darker green/brown spots for realism
+           // Rich soil patches on fertile tiles — dark brown earth spots for realism
            ctx.save();
            ctx.globalAlpha = 0.15;
            for (var r = 0; r < ROWS; r++) {
@@ -4308,17 +4308,17 @@
                        var scx = (c + 0.3 + nse(sSeed * 11) * 0.4) * tileW;
                        var scy = (r + 0.3 + nse(sSeed * 13) * 0.4) * tileH;
                        var sr = tileW * (0.15 + nse(sSeed * 17) * 0.2);
-                       ctx.fillStyle = terrain[r][c] === 'floodplain' ? '#2a6a18' : '#5a4a20';
+                       ctx.fillStyle = terrain[r][c] === 'floodplain' ? '#3a2a10' : '#5a4a20';
                        ctx.beginPath(); ctx.arc(scx, scy, sr, 0, Math.PI * 2); ctx.fill();
                    }
                }
            }
            ctx.restore();
-           // Agricultural field strips — narrow rectangular plots on the floodplain
+           // Agricultural field strips — narrow rectangular plots on the floodplain (bare earth)
            ctx.save();
            ctx.globalAlpha = 0.18;
-           // Field colors: green crop, golden ripe, brown fallow, dark irrigated
-           var fieldColors = ['#6a9a40','#8a7a30','#7a6a28','#88aa50'];
+           // Field colors: brown soil, dark earth, tan fallow, ochre
+           var fieldColors = ['#7a6a30','#6a5a28','#8a7a40','#5a4a20'];
            for (var fi = 0; fi < 40; fi++) {
                var fSeed = fi * 73 + 41;
                var fy = 0.08 + nse(fSeed * 3) * 0.82;
