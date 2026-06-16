@@ -4539,8 +4539,7 @@
            ctx.restore();
            ctx.save();
            // --- Realistic grass system ---
-           // Dense blade clusters placed at absolute pixel coords in fertile zone
-           // Each cluster: shadow underlay → dark base blades → bright foreground blades
+           // Sparse grass patches with visible bare earth between them
            ctx.restore();
            ctx.save();
            var GRASS_SHADES = [
@@ -4553,67 +4552,69 @@
                '#52b438'  // lime highlight
            ];
            var DRY_SHADES = ['#5a7020', '#6a8028', '#7a9030', '#8aa038'];
-           // Place ~2500 grass clusters across the fertile zone
-           var GRASS_COUNT = 2500;
+           // Place grass PATCHES — discrete areas of dense grass with bare earth between
+           var PATCH_COUNT = 600;
            var grassClusters = [];
-           for (var gi = 0; gi < GRASS_COUNT; gi++) {
+           for (var gi = 0; gi < PATCH_COUNT; gi++) {
                var gSeed = gi * 7919 + 31;
-               // Position biased toward the Nile corridor
-               var gx = 0.08 + nse(gSeed * 3) * 0.35; // x: 8-43% of map width (Nile corridor)
-               var gy = 0.06 + nse(gSeed * 5) * 0.88; // y: 6-94% of map height
+               var gx = 0.08 + nse(gSeed * 3) * 0.38;
+               var gy = 0.06 + nse(gSeed * 5) * 0.88;
                var gnd = nileDist(gx, gy);
-               // Skip if in water, sea, or deep desert
                if (gnd < 1.2 || gy < 0.06 || gx > 0.85) continue;
-               // Probability of placing grass decreases with distance from Nile
-               if (gnd > 6.0 && nse(gSeed * 7) > 0.15) continue;
-               if (gnd > 4.5 && nse(gSeed * 7) > 0.35) continue;
+               if (gnd > 6.0 && nse(gSeed * 7) > 0.25) continue;
+               if (gnd > 4.5 && nse(gSeed * 7) > 0.45) continue;
                var isDry = gnd > 3.5;
-               grassClusters.push({x: gx * w, y: gy * h, seed: gSeed, dry: isDry, nileDist: gnd});
+               // Each "patch" generates 3-6 micro-clusters nearby
+               var subCount = isDry ? 2 : Math.floor(2 + nse(gSeed * 19) * 4);
+               for (var sc = 0; sc < subCount; sc++) {
+                   var scSeed = gSeed + sc * 431;
+                   var sx = gx + (nse(scSeed * 23) - 0.5) * 0.025;
+                   var sy = gy + (nse(scSeed * 29) - 0.5) * 0.03;
+                   var sd = nileDist(sx, sy);
+                   if (sd < 1.0) continue;
+                   grassClusters.push({
+                       x: sx * w, y: sy * h,
+                       seed: scSeed, dry: isDry || sd > 3.5,
+                       nileDist: sd
+                   });
+               }
            }
-           // Sort clusters by y-position for rough depth ordering
            grassClusters.sort(function(a, b) { return a.y - b.y; });
-           // Draw each cluster
+           // Draw each micro-cluster
            for (var gi = 0; gi < grassClusters.length; gi++) {
                var gc = grassClusters[gi];
                var s = gc.seed;
-               // Cluster radius and blade count based on proximity to Nile
                var proximity = Math.max(0, 1 - gc.nileDist / 6.0);
-               var radius = (12 + proximity * 18) * (0.7 + nse(s * 11) * 0.6);
-               var bladeCount = gc.dry ? Math.floor(2 + nse(s * 13) * 3) : Math.floor(5 + proximity * 8 + nse(s * 13) * 4);
-               // Cluster shadow — soft dark ellipse beneath
-               ctx.globalAlpha = 0.10;
+               // Small radius for each micro-cluster — visible individual tufts
+               var radius = (6 + proximity * 12) * (0.7 + nse(s * 11) * 0.6);
+               var bladeCount = gc.dry ? Math.floor(3 + nse(s * 13) * 4) : Math.floor(6 + proximity * 10 + nse(s * 13) * 5);
+               // Subtle shadow under cluster
+               ctx.globalAlpha = 0.08;
                ctx.fillStyle = '#0a2800';
                ctx.beginPath();
-               ctx.ellipse(gc.x, gc.y + 2, radius * 0.8, radius * 0.35, nse(s * 17) * 0.3, 0, Math.PI * 2);
+               ctx.ellipse(gc.x, gc.y + 1, radius * 0.9, radius * 0.4, nse(s * 17) * 0.3, 0, Math.PI * 2);
                ctx.fill();
-               // Dark base fill — a slightly lighter green mound
-               ctx.globalAlpha = 0.08;
-               ctx.fillStyle = gc.dry ? '#4a6018' : '#1a5a10';
-               ctx.beginPath();
-               ctx.ellipse(gc.x, gc.y, radius * 0.6, radius * 0.25, 0, 0, Math.PI * 2);
-               ctx.fill();
-               // Draw blades — dark to bright for depth layering
+               // Blades
                var shades = gc.dry ? DRY_SHADES : GRASS_SHADES;
                for (var b = 0; b < bladeCount; b++) {
                    var bs = s + b * 53;
-                   // Random offset within cluster radius
                    var angle = nse(bs * 3) * Math.PI * 2;
-                   var dist = nse(bs * 5) * radius * 0.7;
+                   var dist = nse(bs * 5) * radius * 0.6;
                    var bx = gc.x + Math.cos(angle) * dist;
-                   var by = gc.y + Math.sin(angle) * dist * 0.4;
-                   // Blade properties — height, lean, curve, width
-                   var bladeH = 10 + nse(bs * 7) * 20 * (0.6 + proximity * 0.4);
-                   var lean = (nse(bs * 9) - 0.5) * 1.4;
-                   var curveAmt = (nse(bs * 11) - 0.5) * 10;
-                   var bladeW = 1.5 + nse(bs * 13) * 2.0;
-                   // Color — progress from dark (background) to bright (foreground) as blade index increases
-                   var ci = Math.floor((b / bladeCount) * (shades.length - 1) + nse(bs * 15) * 2);
+                   var by = gc.y + Math.sin(angle) * dist * 0.35;
+                   // Blades: 12-28px tall, curved, 1.5-3px wide
+                   var bladeH = 12 + nse(bs * 7) * 16 * (0.6 + proximity * 0.4);
+                   var lean = (nse(bs * 9) - 0.5) * 1.2;
+                   var curveAmt = (nse(bs * 11) - 0.5) * 8;
+                   var bladeW = 1.5 + nse(bs * 13) * 1.5;
+                   // Color layering
+                   var ci = Math.floor((b / bladeCount) * (shades.length - 1) + nse(bs * 15) * 1.5);
                    ci = Math.max(0, Math.min(shades.length - 1, ci));
                    ctx.strokeStyle = shades[ci];
-                   ctx.globalAlpha = gc.dry ? (0.45 + nse(bs * 17) * 0.35) : (0.65 + nse(bs * 17) * 0.30);
+                   ctx.globalAlpha = gc.dry ? (0.5 + nse(bs * 17) * 0.3) : (0.7 + nse(bs * 17) * 0.25);
                    ctx.lineWidth = bladeW;
                    ctx.lineCap = 'round';
-                   // Quadratic bezier blade
+                   // Curved blade
                    var tipX = bx + lean * bladeH * 0.3;
                    var tipY = by - bladeH;
                    var cpX = bx + curveAmt + lean * bladeH * 0.15;
@@ -4622,14 +4623,14 @@
                    ctx.moveTo(bx, by);
                    ctx.quadraticCurveTo(cpX, cpY, tipX, tipY);
                    ctx.stroke();
-                   // Companion blade — slightly offset, thinner, different shade
-                   if (nse(bs * 19) > 0.25) {
-                       var compX = bx + (nse(bs * 21) - 0.5) * 4;
-                       var compLean = lean + (nse(bs * 23) - 0.5) * 0.6;
-                       var compH = bladeH * (0.5 + nse(bs * 25) * 0.4);
+                   // Companion blade
+                   if (nse(bs * 19) > 0.3) {
+                       var compX = bx + (nse(bs * 21) - 0.5) * 3;
+                       var compLean = lean + (nse(bs * 23) - 0.5) * 0.5;
+                       var compH = bladeH * (0.5 + nse(bs * 25) * 0.35);
                        var compCi = Math.min(shades.length - 1, ci + 1);
                        ctx.strokeStyle = shades[compCi];
-                       ctx.globalAlpha *= 0.65;
+                       ctx.globalAlpha *= 0.6;
                        ctx.lineWidth = bladeW * 0.6;
                        ctx.beginPath();
                        ctx.moveTo(compX, by + 1);
