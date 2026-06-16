@@ -4264,10 +4264,29 @@
                    terrain[r][c] = t;
                }
            }
+           // Rich soil patches on fertile tiles — darker green/brown spots for realism
+           ctx.save();
+           ctx.globalAlpha = 0.15;
+           for (var r = 0; r < ROWS; r++) {
+               for (var c = 0; c < COLS; c++) {
+                   if (terrain[r][c] !== 'floodplain' && terrain[r][c] !== 'semi_desert') continue;
+                   var sSeed = r * COLS + c + 500;
+                   if (nse(sSeed * 7) > 0.55) {
+                       var scx = (c + 0.3 + nse(sSeed * 11) * 0.4) * tileW;
+                       var scy = (r + 0.3 + nse(sSeed * 13) * 0.4) * tileH;
+                       var sr = tileW * (0.15 + nse(sSeed * 17) * 0.2);
+                       ctx.fillStyle = terrain[r][c] === 'floodplain' ? '#2a6a18' : '#5a4a20';
+                       ctx.beginPath(); ctx.arc(scx, scy, sr, 0, Math.PI * 2); ctx.fill();
+                   }
+               }
+           }
+           ctx.restore();
            var villages = [
                [0.11,0.07],[0.22,0.07],[0.37,0.07],[0.10,0.28],[0.33,0.28],[0.48,0.28],
                [0.09,0.42],[0.21,0.42],[0.33,0.42],[0.09,0.56],[0.21,0.56],[0.48,0.56],
-               [0.09,0.78],[0.23,0.78],[0.41,0.78]
+               [0.09,0.78],[0.23,0.78],[0.41,0.78],
+               // Additional villages for more realistic coverage
+               [0.16,0.16],[0.28,0.42],[0.16,0.50],[0.34,0.68],[0.15,0.88]
            ];
            for (var r = 0; r < ROWS; r++) {
                for (var c = 0; c < COLS; c++) {
@@ -4290,72 +4309,163 @@
                    ctx.fillRect(c * tileW, r * tileH, tileW + 1, tileH + 1);
                }
            }
+           // Desert dune shadows on sand tiles
            ctx.save();
+           ctx.globalAlpha = 0.06;
+           ctx.strokeStyle = '#8a6a30';
+           ctx.lineWidth = 1.5;
+           for (var r = 0; r < ROWS; r++) {
+               for (var c = 0; c < COLS; c++) {
+                   if (terrain[r][c] !== 'desert') continue;
+                   var dSeed = r * COLS + c + 800;
+                   if (nse(dSeed * 5) > 0.5) {
+                       var dcx = (c + 0.5) * tileW;
+                       var dcy = (r + nse(dSeed * 7) * 0.6) * tileH;
+                       var dw = tileW * (0.3 + nse(dSeed * 11) * 0.4);
+                       var dh = tileH * 0.15;
+                       ctx.beginPath();
+                       ctx.moveTo(dcx - dw/2, dcy);
+                       ctx.quadraticCurveTo(dcx, dcy - dh, dcx + dw/2, dcy);
+                       ctx.stroke();
+                   }
+               }
+           }
+           ctx.restore();
+           ctx.save();
+           // --- Grass tufts on fertile tiles ---
+           // Uses 3 color variants for natural density — dark, medium, light green
            for (var r = 0; r < ROWS; r++) {
                for (var c = 0; c < COLS; c++) {
                    var type = terrain[r][c];
                    if (type !== 'floodplain' && type !== 'semi_desert') continue;
                    var seed = r * COLS + c + 200;
                    var cx = c * tileW + tileW * 0.5, cy = r * tileH + tileH * 0.5;
-                   var dense = type === 'floodplain' ? 8 : 3;
-                   ctx.strokeStyle = type === 'floodplain' ? '#3a8a1a' : '#7a6a30';
+                   // Denser grass near Nile = more tufts
+                   var nd = nileDist((c + 0.5) / COLS, (r + 0.5) / ROWS);
+                   var dense = type === 'floodplain' ? (nd < 1.5 ? 24 : 16) : (nd < 8 ? 5 : 3);
+                   // Three grass colors for depth
+                   var grassColors = ['#3a8a1a','#4ca02a','#2d7a10'];
+                   var bushColor = '#5a7a30';
                    ctx.lineWidth = 1.2;
-                   ctx.globalAlpha = 0.3 + nse(seed * 3) * 0.25;
                    for (var g = 0; g < dense; g++) {
-                       var gx = cx + (nse(seed * 7 + g * 13) - 0.5) * tileW * 0.7;
-                       var gy = cy + (nse(seed * 11 + g * 17) - 0.5) * tileH * 0.7;
-                       var gh = 3 + nse(seed * 19 + g * 23) * 5;
+                       var gx = cx + (nse(seed * 7 + g * 13) - 0.5) * tileW * 0.8;
+                       var gy = cy + (nse(seed * 11 + g * 17) - 0.5) * tileH * 0.8;
+                       var gh = 3 + nse(seed * 19 + g * 23) * 6;
                        var lean = (nse(seed * 29 + g * 31) - 0.5) * 3;
+                       var ci = g % 3;
+                       ctx.strokeStyle = grassColors[ci];
+                       ctx.globalAlpha = 0.25 + nse(seed * 37 + g * 41) * 0.3;
                        ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + lean, gy - gh); ctx.stroke();
+                       // Second shorter blade at slight angle for density
+                       if (g % 2 === 0) {
+                           ctx.strokeStyle = grassColors[(ci + 1) % 3];
+                           ctx.globalAlpha = 0.15 + nse(seed * 43 + g * 47) * 0.2;
+                           ctx.beginPath(); ctx.moveTo(gx + 2, gy); ctx.lineTo(gx + lean + 4, gy - gh * 0.6); ctx.stroke();
+                       }
+                   }
+                   // Small brownish bush on semi-desert
+                   if (type === 'semi_desert' && nse(seed * 53 + 1) > 0.4) {
+                       var bx = cx + (nse(seed * 61 + 2) - 0.5) * tileW * 0.5;
+                       var by = cy + (nse(seed * 67 + 3) - 0.5) * tileH * 0.5;
+                       ctx.fillStyle = bushColor;
+                       ctx.globalAlpha = 0.2 + nse(seed * 71) * 0.15;
+                       ctx.beginPath(); ctx.arc(bx, by, 2 + nse(seed * 73) * 3, 0, Math.PI * 2); ctx.fill();
                    }
                }
            }
            ctx.restore();
+           // --- Villages with houses, paths, palms, and crop fields ---
            ctx.save();
+           // Crop field patches near village positions (drawn FIRST so houses sit on top)
+           for (var fi = 0; fi < villages.length; fi++) {
+               var fvx = villages[fi][0] * w, fvy = villages[fi][1] * h;
+               var fSeed = fi * 137 + 50;
+               var fs = w * 0.025;
+               // Irregular crop field patches — gold/brown rectangles scattered around village
+               ctx.globalAlpha = 0.12;
+               for (var cf = 0; cf < 4; cf++) {
+                   var fangle = cf * 1.57 + nse(fSeed * 7 + cf) * 1.0;
+                   var fdist = fs * (0.8 + nse(fSeed * 11 + cf) * 0.6);
+                   var fcx = fvx + Math.cos(fangle) * fdist;
+                   var fcy = fvy + Math.sin(fangle) * fdist;
+                   var fw = fs * (0.4 + nse(fSeed * 13 + cf * 3) * 0.3);
+                   var fh = fs * (0.3 + nse(fSeed * 17 + cf * 5) * 0.2);
+                   var cropColor = nse(fSeed * 19 + cf * 7) > 0.5 ? '#8a7a40' : '#7a6a30';
+                   ctx.fillStyle = cropColor;
+                   ctx.save();
+                   ctx.translate(fcx, fcy);
+                   ctx.rotate(nse(fSeed * 23 + cf * 9) * 0.4 - 0.2);
+                   ctx.fillRect(-fw/2, -fh/2, fw, fh);
+                   ctx.restore();
+               }
+           }
+           ctx.globalAlpha = 1;
            for (var vi = 0; vi < villages.length; vi++) {
                var vx = villages[vi][0] * w, vy = villages[vi][1] * h;
                var vSeed = vi * 137 + 50;
-               var vs = w * 0.018; // village scale
+               var vs = w * 0.022; // village scale (bigger)
                
                // Village ground clearing — subtle sandy patch
-               ctx.globalAlpha = 0.18;
+               ctx.globalAlpha = 0.15;
                ctx.fillStyle = '#c4956a';
-               ctx.beginPath(); ctx.arc(vx, vy, vs * 2.0, 0, Math.PI * 2); ctx.fill();
-               // Small enclosure wall
+               ctx.beginPath(); ctx.arc(vx, vy, vs * 2.2, 0, Math.PI * 2); ctx.fill();
+               // Enclosure wall
                ctx.strokeStyle = '#b08060';
                ctx.lineWidth = 1;
-               ctx.globalAlpha = 0.2;
-               ctx.beginPath(); ctx.arc(vx, vy, vs * 1.5, 0, Math.PI * 2); ctx.stroke();
+               ctx.globalAlpha = 0.25;
+               ctx.beginPath(); ctx.arc(vx, vy, vs * 1.6, 0, Math.PI * 2); ctx.stroke();
                ctx.globalAlpha = 1;
-               for (var hi = 0; hi < 3; hi++) {
-                   var angle = hi * 2.094 + vSeed * 0.01;
-                   var dist = vs * (0.5 + nse(vSeed * 7 + hi * 11) * 0.3);
+               // 4-5 houses per village in cluster
+               var numHouses = 4 + (nse(vSeed * 3) > 0.5 ? 1 : 0);
+               for (var hi = 0; hi < numHouses; hi++) {
+                   var angle = hi * 1.57 + vSeed * 0.01 + nse(vSeed * 5 + hi) * 0.3;
+                   var dist = vs * (0.3 + nse(vSeed * 7 + hi * 11) * 0.4);
                    var hx = vx + Math.cos(angle) * dist;
                    var hy = vy + Math.sin(angle) * dist;
-                   var hw = w * 0.006 + nse(vSeed * 13 + hi * 17) * w * 0.003;
+                   var hw = w * 0.007 + nse(vSeed * 13 + hi * 17) * w * 0.003;
                    var hh = hw * 0.7;
+                   // Mudbrick wall
                    ctx.fillStyle = '#c4956a';
                    ctx.fillRect(hx - hw / 2, hy - hh, hw, hh);
+                   // Roof
                    ctx.fillStyle = '#8B6914';
                    ctx.fillRect(hx - hw / 2 - 1, hy - hh - 1, hw + 2, hh * 0.25);
+                   // Door
                    ctx.fillStyle = '#5a3a1a';
                    ctx.fillRect(hx - hw * 0.15, hy - hh * 0.4, hw * 0.3, hh * 0.4);
+                   // Window
                    ctx.fillStyle = '#3a2a1a';
                    ctx.fillRect(hx - hw * 0.4, hy - hh * 0.65, hw * 0.25, hh * 0.2);
+                   // Brick texture lines
+                   ctx.strokeStyle = '#b08060';
+                   ctx.lineWidth = 0.4;
+                   for (var br = 1; br < 3; br++) {
+                       var bry = hy - hh + br * hh / 3;
+                       ctx.beginPath(); ctx.moveTo(hx - hw / 2, bry); ctx.lineTo(hx + hw / 2, bry); ctx.stroke();
+                   }
                }
-               var palmX = vx + vs * 1.5, palmY = vy - vs * 0.3;
-               ctx.fillStyle = '#8B6914';
-               ctx.fillRect(palmX - w * 0.002, palmY, w * 0.004, vs * 0.6);
-               ctx.fillStyle = '#2d8a4e';
-               ctx.globalAlpha = 0.5;
-               for (var fr = 0; fr < 5; fr++) {
-                   var ang = fr * 1.256 + vSeed * 0.01;
-                   ctx.beginPath(); ctx.moveTo(palmX, palmY);
-                   ctx.lineTo(palmX + Math.cos(ang) * vs * 0.6, palmY + Math.sin(ang) * vs * 0.5);
-                   ctx.lineTo(palmX + Math.cos(ang + 0.2) * vs * 0.3, palmY + Math.sin(ang + 0.2) * vs * 0.25);
-                   ctx.closePath(); ctx.fill();
+               // 2 palm trees per village
+               for (var pi = 0; pi < 2; pi++) {
+                   var palmAngle = pi * 3.14 + vSeed * 0.01 + nse(vSeed * 31 + pi) * 0.5;
+                   var palmDist = vs * (1.2 + nse(vSeed * 37 + pi) * 0.5);
+                   var palmX = vx + Math.cos(palmAngle) * palmDist;
+                   var palmY = vy + Math.sin(palmAngle) * palmDist;
+                   palmY = Math.min(palmY, vy + vs * 0.3); // don't go too far down
+                   // Trunk
+                   ctx.fillStyle = '#8B6914';
+                   ctx.fillRect(palmX - w * 0.002, palmY, w * 0.004, vs * 0.7);
+                   // Fronds
+                   ctx.fillStyle = '#2d8a4e';
+                   ctx.globalAlpha = 0.5;
+                   for (var fr = 0; fr < 5; fr++) {
+                       var ang = fr * 1.256 + vSeed * 0.01 + pi * 0.5;
+                       ctx.beginPath(); ctx.moveTo(palmX, palmY);
+                       ctx.lineTo(palmX + Math.cos(ang) * vs * 0.7, palmY + Math.sin(ang) * vs * 0.6);
+                       ctx.lineTo(palmX + Math.cos(ang + 0.2) * vs * 0.35, palmY + Math.sin(ang + 0.2) * vs * 0.3);
+                       ctx.closePath(); ctx.fill();
+                   }
+                   ctx.globalAlpha = 1;
                }
-               ctx.globalAlpha = 1;
            }
            ctx.restore();
            ctx.save();
