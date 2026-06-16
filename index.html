@@ -4239,6 +4239,8 @@
                var minD = 999;
                for (var i = 0; i < nilePts.length; i++) {
                    var dx = tx - nilePts[i][0], dy = ty - nilePts[i][1];
+                   // Skip waypoints too far in y to avoid delta inflating distances
+                   if (Math.abs(dy) > 0.12) continue;
                    var d = Math.sqrt(dx * dx + dy * dy) / nilePts[i][2];
                    if (d < minD) minD = d;
                }
