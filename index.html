@@ -4883,24 +4883,7 @@
                }
            }
            ctx.restore();
-           ctx.save();
-           var seaGrad = ctx.createLinearGradient(0, 0, 0, h * 0.06);
-           seaGrad.addColorStop(0, '#1565a0'); seaGrad.addColorStop(0.6, '#1a7ab8'); seaGrad.addColorStop(1, '#2196c8');
-           ctx.fillStyle = seaGrad; ctx.fillRect(0, 0, w, h * 0.06);
-           ctx.globalAlpha = 0.15; ctx.strokeStyle = '#5bc0eb'; ctx.lineWidth = 1;
-           for (var wi = 0; wi < 8; wi++) {
-               var wy = h * 0.01 + wi * h * 0.006;
-               ctx.beginPath(); ctx.moveTo(0, wy);
-               for (var wx = 0; wx < w; wx += 15) { ctx.lineTo(wx, wy + Math.sin(wx * 0.03 + animFrame * 0.02 + wi) * 2); }
-               ctx.stroke();
-           }
-           ctx.restore();
-           ctx.save();
-           ctx.globalAlpha = 0.25;
-           var redSeaGrad = ctx.createLinearGradient(w * 0.92, 0, w, 0);
-           redSeaGrad.addColorStop(0, '#0f4c75'); redSeaGrad.addColorStop(1, '#1b6ca0');
-           ctx.fillStyle = redSeaGrad; ctx.fillRect(w * 0.92, 0, w * 0.08, h);
-           ctx.restore();
+           // Sea/Red Sea overlays removed — all land now for bigger playable map
            ctx.save();
            ctx.globalAlpha = 0.12; ctx.fillStyle = '#8B6914';
            var pyrY = h * 0.28, pyrX = w * 0.30, pyrH = h * 0.05;
