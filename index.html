@@ -4553,8 +4553,8 @@
                '#52b438'  // lime highlight
            ];
            var DRY_SHADES = ['#5a7020', '#6a8028', '#7a9030', '#8aa038'];
-           // Place ~4000 grass clusters across the fertile zone
-           var GRASS_COUNT = 4000;
+           // Place ~2500 grass clusters across the fertile zone
+           var GRASS_COUNT = 2500;
            var grassClusters = [];
            for (var gi = 0; gi < GRASS_COUNT; gi++) {
                var gSeed = gi * 7919 + 31;
@@ -4579,15 +4579,15 @@
                // Cluster radius and blade count based on proximity to Nile
                var proximity = Math.max(0, 1 - gc.nileDist / 6.0);
                var radius = (12 + proximity * 18) * (0.7 + nse(s * 11) * 0.6);
-               var bladeCount = gc.dry ? Math.floor(3 + nse(s * 13) * 5) : Math.floor(8 + proximity * 14 + nse(s * 13) * 6);
+               var bladeCount = gc.dry ? Math.floor(2 + nse(s * 13) * 3) : Math.floor(5 + proximity * 8 + nse(s * 13) * 4);
                // Cluster shadow — soft dark ellipse beneath
-               ctx.globalAlpha = 0.18;
+               ctx.globalAlpha = 0.10;
                ctx.fillStyle = '#0a2800';
                ctx.beginPath();
                ctx.ellipse(gc.x, gc.y + 2, radius * 0.8, radius * 0.35, nse(s * 17) * 0.3, 0, Math.PI * 2);
                ctx.fill();
                // Dark base fill — a slightly lighter green mound
-               ctx.globalAlpha = 0.22;
+               ctx.globalAlpha = 0.08;
                ctx.fillStyle = gc.dry ? '#4a6018' : '#1a5a10';
                ctx.beginPath();
                ctx.ellipse(gc.x, gc.y, radius * 0.6, radius * 0.25, 0, 0, Math.PI * 2);
@@ -4605,7 +4605,7 @@
                    var bladeH = 10 + nse(bs * 7) * 20 * (0.6 + proximity * 0.4);
                    var lean = (nse(bs * 9) - 0.5) * 1.4;
                    var curveAmt = (nse(bs * 11) - 0.5) * 10;
-                   var bladeW = 1.2 + nse(bs * 13) * 1.8;
+                   var bladeW = 1.5 + nse(bs * 13) * 2.0;
                    // Color — progress from dark (background) to bright (foreground) as blade index increases
                    var ci = Math.floor((b / bladeCount) * (shades.length - 1) + nse(bs * 15) * 2);
                    ci = Math.max(0, Math.min(shades.length - 1, ci));
