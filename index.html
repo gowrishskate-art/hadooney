@@ -4283,6 +4283,28 @@
                }
            }
            ctx.restore();
+           // Agricultural field strips — narrow rectangular plots on the floodplain
+           ctx.save();
+           ctx.globalAlpha = 0.18;
+           // Field colors: green crop, golden ripe, brown fallow, dark irrigated
+           var fieldColors = ['#6a9a40','#8a7a30','#7a6a28','#88aa50'];
+           for (var fi = 0; fi < 40; fi++) {
+               var fSeed = fi * 73 + 41;
+               var fy = 0.08 + nse(fSeed * 3) * 0.82;
+               var fx = 0.10 + nse(fSeed * 5) * 0.28;
+               // Only on terrain that's not river/sea/desert
+               var ttype = terrain[Math.floor(fy * ROWS)] ? terrain[Math.floor(fy * ROWS)][Math.floor(fx * COLS)] : 'desert';
+               if (ttype === 'deep_water' || ttype === 'water' || ttype === 'sea' || ttype === 'red_sea') continue;
+               // Fields oriented perpendicular to Nile (roughly east-west)
+               var fw = w * (0.008 + nse(fSeed * 7) * 0.012);
+               var fh = h * (0.008 + nse(fSeed * 11) * 0.015);
+               var fc = fieldColors[Math.floor(nse(fSeed * 13) * 4)];
+               ctx.fillStyle = fc;
+               ctx.fillRect(fx * w, fy * h, fw, fh);
+               // Second parallel strip
+               ctx.fillRect(fx * w + fw * (0.6 + nse(fSeed * 17) * 0.4), fy * h, fw * 0.8, fh);
+           }
+           ctx.restore();
            var villages = [
                [0.11,0.07],[0.22,0.07],[0.37,0.07],[0.10,0.28],[0.33,0.28],[0.48,0.28],
                [0.09,0.42],[0.21,0.42],[0.33,0.42],[0.09,0.56],[0.21,0.56],[0.48,0.56],
@@ -4326,6 +4348,36 @@
                    ctx.fillRect(c * tileW, r * tileH, tileW + 1, tileH + 1);
                }
            }
+           // Height map shading — elevation-based lighting for 3D terrain feel
+           ctx.save();
+           // Precompute elevation array for neighbor comparisons
+           var elevMap = [];
+           for (var r = 0; r < ROWS; r++) {
+               elevMap[r] = [];
+               for (var c = 0; c < COLS; c++) {
+                   if (terrain[r][c] === 'sea' || terrain[r][c] === 'red_sea') { elevMap[r][c] = 0.5; continue; }
+                   var hSeed = r * COLS + c + 900;
+                   var h1 = nse(hSeed * 3 + 1);
+                   var h2 = nse(hSeed * 7 + 2) * 0.5;
+                   var h3 = nse(hSeed * 11 + 3) * 0.25;
+                   elevMap[r][c] = (h1 + h2 + h3) * 0.57;
+               }
+           }
+           ctx.globalAlpha = 0.10;
+           for (var r = 0; r < ROWS; r++) {
+               for (var c = 0; c < COLS; c++) {
+                   if (terrain[r][c] === 'sea' || terrain[r][c] === 'red_sea') continue;
+                   var elev = elevMap[r][c];
+                   // Slope-based directional shading: compare with left and up neighbors
+                   var lx = c > 0 && terrain[r][c-1] !== 'sea' && terrain[r][c-1] !== 'red_sea' ? (elev - elevMap[r][c-1]) : 0;
+                   var uy = r > 0 && terrain[r-1] && terrain[r-1][c] !== 'sea' && terrain[r-1][c] !== 'red_sea' ? (elev - elevMap[r-1][c]) : 0;
+                   var slope = lx + uy;
+                   var light = 0.85 + slope * 0.15 + (elev - 0.5) * 0.12;
+                   ctx.fillStyle = 'rgba(' + Math.round((1-light)*255) + ',' + Math.round((1-light)*255) + ',' + Math.round((1-light)*255) + ',0.12)';
+                   ctx.fillRect(c * tileW, r * tileH, tileW, tileH);
+               }
+           }
+           ctx.restore();
            // Desert dune shadows on sand tiles
            ctx.save();
            ctx.globalAlpha = 0.06;
@@ -4365,6 +4417,27 @@
                    ctx.lineTo(w * wx, h * wy);
                }
                ctx.stroke();
+           }
+           ctx.restore();
+           // Rocky outcrops and gravel patches in desert/semi-desert areas
+           ctx.save();
+           ctx.globalAlpha = 0.12;
+           for (var rk = 0; rk < 60; rk++) {
+               var rSeed = rk * 179 + 43;
+               var rx = 0.30 + nse(rSeed * 3) * 0.60;
+               var ry = 0.08 + nse(rSeed * 5) * 0.82;
+               var rt = terrain[Math.floor(ry * ROWS)] ? terrain[Math.floor(ry * ROWS)][Math.floor(rx * COLS)] : 'desert';
+               if (rt !== 'desert' && rt !== 'semi_desert') continue;
+               var rr = w * (0.002 + nse(rSeed * 7) * 0.005);
+               ctx.fillStyle = nse(rSeed * 11) > 0.5 ? '#6a5a3a' : '#7a6a4a';
+               ctx.beginPath(); ctx.arc(rx * w, ry * h, rr, 0, Math.PI * 2); ctx.fill();
+               // Small rock cluster (2-3 nearby rocks)
+               if (nse(rSeed * 13) > 0.3) {
+                   ctx.fillStyle = '#5a4a2a';
+                   ctx.globalAlpha = 0.08;
+                   ctx.beginPath(); ctx.arc(rx * w + (nse(rSeed*17)-0.5)*w*0.01, ry * h + (nse(rSeed*19)-0.5)*h*0.01, rr*0.6, 0, Math.PI*2); ctx.fill();
+                   ctx.globalAlpha = 0.12;
+               }
            }
            ctx.restore();
            ctx.save();
@@ -4478,8 +4551,27 @@
                    for (var br = 1; br < 3; br++) {
                        var bry = hy - hh + br * hh / 3;
                        ctx.beginPath(); ctx.moveTo(hx - hw / 2, bry); ctx.lineTo(hx + hw / 2, bry); ctx.stroke();
-                   }
+                       }
+                       }
+                       // Small garden patchesaround village (green vegetable plots)
+               ctx.globalAlpha = 0.12;
+               for (var gi = 0; gi < 4; gi++) {
+                   var gAngle = gi * 1.57 + nse(vSeed * 41 + gi) * 0.5;
+                   var gDist = vs * (0.8 + nse(vSeed * 43 + gi * 7) * 0.6);
+                   var gx = vx + Math.cos(gAngle) * gDist;
+                   var gy = vy + Math.sin(gAngle) * gDist;
+                   var gr = vs * (0.1 + nse(vSeed * 47 + gi * 11) * 0.08);
+                   ctx.fillStyle = nse(vSeed * 53 + gi * 13) > 0.5 ? '#4a8a30' : '#3a7a20';
+                   ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.fill();
                }
+               // Central well — small dark circle at village center
+               ctx.globalAlpha = 0.2;
+               ctx.fillStyle = '#4a3a2a';
+               ctx.beginPath(); ctx.arc(vx, vy, vs * 0.15, 0, Math.PI * 2); ctx.fill();
+               ctx.fillStyle = '#3a6aa0';
+               ctx.globalAlpha = 0.08;
+               ctx.beginPath(); ctx.arc(vx, vy, vs * 0.1, 0, Math.PI * 2); ctx.fill();
+               ctx.globalAlpha = 1;
                // 2 palm trees per village
                for (var pi = 0; pi < 2; pi++) {
                    var palmAngle = pi * 3.14 + vSeed * 0.01 + nse(vSeed * 31 + pi) * 0.5;
@@ -4584,6 +4676,49 @@
                    ctx.globalAlpha = 0.2;
                    ctx.beginPath(); ctx.arc(ix - ir*0.2, iy2 - ir*0.3, ir*0.25, 0, Math.PI*2); ctx.fill();
                    ctx.globalAlpha = 0.4;
+               }
+           }
+           ctx.restore();
+           // River silt/sediment deposits at inner bends — lighter sandy patches along river edges
+           ctx.save();
+           ctx.globalAlpha = 0.10;
+           for (var si = 0; si < 15; si++) {
+               var sSeed = si * 211 + 67;
+               var sy = 0.10 + nse(sSeed * 3) * 0.75;
+               var sx = 0.15 + nse(sSeed * 5) * 0.12;
+               var st = terrain[Math.floor(sy * ROWS)] ? terrain[Math.floor(sy * ROWS)][Math.floor(sx * COLS)] : 'desert';
+               if (st !== 'floodplain') continue;
+               var sR = w * (0.006 + nse(sSeed * 7) * 0.010);
+               ctx.fillStyle = '#b8a070';
+               ctx.beginPath(); ctx.arc(sx * w, sy * h, sR, 0, Math.PI * 2); ctx.fill();
+               ctx.fillStyle = '#c8b080';
+               ctx.globalAlpha = 0.06;
+               ctx.beginPath(); ctx.arc(sx * w + nse(sSeed*11)*w*0.005, sy * h + nse(sSeed*13)*h*0.005, sR*0.7, 0, Math.PI*2); ctx.fill();
+               ctx.globalAlpha = 0.10;
+           }
+           ctx.restore();
+           // Irrigation canals — thin dark blue lines branching from Nile into floodplain
+           ctx.save();
+           ctx.globalAlpha = 0.08;
+           ctx.lineWidth = 0.8;
+           ctx.strokeStyle = '#1a6a90';
+           for (var ci = 0; ci < 8; ci++) {
+               var cSeed = ci * 137 + 31;
+               var cy = 0.12 + nse(cSeed * 3) * 0.70;
+               var cx = 0.14 + nse(cSeed * 5) * 0.08; // starts near Nile
+               var clen = 0.04 + nse(cSeed * 7) * 0.06;
+               ctx.beginPath(); ctx.moveTo(cx * w, cy * h);
+               for (var cs = 0; cs < 4; cs++) {
+                   cx += clen / 4 + (nse(cSeed * 11 + cs * 7) - 0.5) * 0.008;
+                   cy += (nse(cSeed * 13 + cs * 11) - 0.5) * 0.006;
+                   ctx.lineTo(cx * w, cy * h);
+               }
+               ctx.stroke();
+               // Tiny branch off the canal
+               if (nse(cSeed * 17) > 0.3) {
+                   ctx.beginPath(); ctx.moveTo(cx * w, cy * h);
+                   ctx.lineTo((cx + 0.01 + nse(cSeed*19)*0.01) * w, (cy + 0.005) * h);
+                   ctx.stroke();
                }
            }
            ctx.restore();
