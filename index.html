@@ -4363,20 +4363,19 @@
                        bi = 120 + wt * (145-120) + detailNoise * 10;
                    }
                    else if (nd < 1.5) {
-                       // Water → lush floodplain transition
+                       // Water → floodplain transition (dark earth/mud near riverbank)
                        var wt = (nd - 0.8) / 0.7;
                        var lushNoise = fbm(c * 0.2, r * 0.2, 3, 256);
-                       ri = 15 + wt * (55-15) + lushNoise * 12;
-                       gi = 75 + wt * (155-75) + lushNoise * 18;
-                       bi = 145 - wt * (145-35) + detailNoise * 8;
+                       ri = 20 + wt * (65-20) + lushNoise * 10;
+                       gi = 70 + wt * (110-70) + lushNoise * 12;
+                       bi = 30 + wt * (45-30) + detailNoise * 6;
                    }
                    else if (nd < 4.5) {
-                       // Rich floodplain / semi-arid — warm earth tones with green patches
+                       // Semi-arid — warm brown earth tones (grass drawn as overlay on top)
                        var ft = (nd - 1.5) / 3.0;
                        var soilNoise = fbm(c * 0.12, r * 0.12, 3, 512);
-                       // Patches of darker fertile soil vs lighter sandy soil
                        var fertileMix = soilNoise > 0.55 ? 0.3 : (soilNoise < 0.35 ? -0.15 : 0);
-                       ri = 55 + ft * (155-55) + detailNoise * 10 + fertileMix * 15;
+                       ri = 65 + ft * (155-65) + detailNoise * 10 + fertileMix * 15;
                        gi = 155 - ft * (155-118) + noiseVal * 12 + fertileMix * 20;
                        bi = 35 + ft * (65-35) + detailNoise * 6 + fertileMix * 8;
                    }
@@ -4554,8 +4553,8 @@
                '#52b438'  // lime highlight
            ];
            var DRY_SHADES = ['#5a7020', '#6a8028', '#7a9030', '#8aa038'];
-           // Place ~3000 grass clusters across the fertile zone
-           var GRASS_COUNT = 3000;
+           // Place ~4000 grass clusters across the fertile zone
+           var GRASS_COUNT = 4000;
            var grassClusters = [];
            for (var gi = 0; gi < GRASS_COUNT; gi++) {
                var gSeed = gi * 7919 + 31;
@@ -4603,15 +4602,15 @@
                    var bx = gc.x + Math.cos(angle) * dist;
                    var by = gc.y + Math.sin(angle) * dist * 0.4;
                    // Blade properties — height, lean, curve, width
-                   var bladeH = 8 + nse(bs * 7) * 16 * (0.6 + proximity * 0.4);
-                   var lean = (nse(bs * 9) - 0.5) * 1.2;
-                   var curveAmt = (nse(bs * 11) - 0.5) * 8;
-                   var bladeW = 1.0 + nse(bs * 13) * 1.5;
+                   var bladeH = 10 + nse(bs * 7) * 20 * (0.6 + proximity * 0.4);
+                   var lean = (nse(bs * 9) - 0.5) * 1.4;
+                   var curveAmt = (nse(bs * 11) - 0.5) * 10;
+                   var bladeW = 1.2 + nse(bs * 13) * 1.8;
                    // Color — progress from dark (background) to bright (foreground) as blade index increases
                    var ci = Math.floor((b / bladeCount) * (shades.length - 1) + nse(bs * 15) * 2);
                    ci = Math.max(0, Math.min(shades.length - 1, ci));
                    ctx.strokeStyle = shades[ci];
-                   ctx.globalAlpha = gc.dry ? (0.35 + nse(bs * 17) * 0.3) : (0.55 + nse(bs * 17) * 0.35);
+                   ctx.globalAlpha = gc.dry ? (0.45 + nse(bs * 17) * 0.35) : (0.65 + nse(bs * 17) * 0.30);
                    ctx.lineWidth = bladeW;
                    ctx.lineCap = 'round';
                    // Quadratic bezier blade
