@@ -4539,44 +4539,93 @@
            }
            ctx.restore();
            ctx.save();
-           // --- Grass tufts on fertile tiles ---
-           // Uses 3 color variants for natural density — dark, medium, light green
+           // --- Realistic grass system ---
+           // Dense blade clusters with bezier curves, shadow underlay, 6-shade palette
+           ctx.restore();
+           ctx.save();
+           var GRASS_SHADES = [
+               '#1a5a08', // darkest shadow green
+               '#246a12', // deep forest
+               '#2d7a18', // rich green
+               '#3a8a22', // medium green
+               '#4a9a30', // bright green
+               '#5aaa38'  // lime highlight
+           ];
+           var DRY_SHADES = ['#6a7a28', '#7a8a30', '#8a9a38']; // semi-desert scrub
            for (var r = 0; r < ROWS; r++) {
                for (var c = 0; c < COLS; c++) {
                    var type = terrain[r][c];
                    if (type !== 'floodplain' && type !== 'semi_desert') continue;
                    var seed = r * COLS + c + 200;
-                   var cx = c * tileW + tileW * 0.5, cy = r * tileH + tileH * 0.5;
-                   // Denser grass near Nile = more tufts
                    var nd = nileDist((c + 0.5) / COLS, (r + 0.5) / ROWS);
-                   var dense = type === 'floodplain' ? (nd < 1.5 ? 24 : 16) : (nd < 8 ? 5 : 3);
-                   // Three grass colors for depth
-                   var grassColors = ['#3a8a1a','#4ca02a','#2d7a10'];
-                   var bushColor = '#5a7a30';
-                   ctx.lineWidth = 1.2;
-                   for (var g = 0; g < dense; g++) {
-                       var gx = cx + (nse(seed * 7 + g * 13) - 0.5) * tileW * 0.8;
-                       var gy = cy + (nse(seed * 11 + g * 17) - 0.5) * tileH * 0.8;
-                       var gh = 3 + nse(seed * 19 + g * 23) * 6;
-                       var lean = (nse(seed * 29 + g * 31) - 0.5) * 3;
-                       var ci = g % 3;
-                       ctx.strokeStyle = grassColors[ci];
-                       ctx.globalAlpha = 0.25 + nse(seed * 37 + g * 41) * 0.3;
-                       ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(gx + lean, gy - gh); ctx.stroke();
-                       // Second shorter blade at slight angle for density
-                       if (g % 2 === 0) {
-                           ctx.strokeStyle = grassColors[(ci + 1) % 3];
-                           ctx.globalAlpha = 0.15 + nse(seed * 43 + g * 47) * 0.2;
-                           ctx.beginPath(); ctx.moveTo(gx + 2, gy); ctx.lineTo(gx + lean + 4, gy - gh * 0.6); ctx.stroke();
-                       }
+                   var cx = c * tileW + tileW * 0.5, cy = r * tileH + tileH * 0.5;
+                   // Determine grass density — very dense near Nile, sparse at edges
+                   var isDry = type === 'semi_desert' || nd > 3.0;
+                   var clusterCount;
+                   if (type === 'floodplain') {
+                       clusterCount = nd < 1.5 ? 5 : (nd < 2.5 ? 4 : 3);
+                   } else {
+                       clusterCount = nd < 8 ? 2 : 1;
                    }
-                   // Small brownish bush on semi-desert
-                   if (type === 'semi_desert' && nse(seed * 53 + 1) > 0.4) {
-                       var bx = cx + (nse(seed * 61 + 2) - 0.5) * tileW * 0.5;
-                       var by = cy + (nse(seed * 67 + 3) - 0.5) * tileH * 0.5;
-                       ctx.fillStyle = bushColor;
-                       ctx.globalAlpha = 0.2 + nse(seed * 71) * 0.15;
-                       ctx.beginPath(); ctx.arc(bx, by, 2 + nse(seed * 73) * 3, 0, Math.PI * 2); ctx.fill();
+                   for (var cl = 0; cl < clusterCount; cl++) {
+                       var clSeed = seed + cl * 997;
+                       var clx = cx + (nse(clSeed * 7) - 0.5) * tileW * 0.7;
+                       var cly = cy + (nse(clSeed * 11) - 0.5) * tileH * 0.7;
+                       var clScale = 0.6 + nse(clSeed * 13) * 0.8;
+                       // Cluster shadow — dark elliptical shadow under the grass
+                       ctx.globalAlpha = 0.12;
+                       ctx.fillStyle = '#0a2a00';
+                       ctx.beginPath();
+                       ctx.ellipse(clx, cly + 1, tileW * 0.35 * clScale, tileH * 0.2 * clScale, 0, 0, Math.PI * 2);
+                       ctx.fill();
+                       // Blade count per cluster — dense tufts
+                       var bladeCount = isDry ? Math.floor(3 + nse(clSeed * 17) * 4) : Math.floor(6 + nse(clSeed * 17) * 8);
+                       // Draw blades back-to-front (dark blades first, bright on top)
+                       for (var b = 0; b < bladeCount; b++) {
+                           var bSeed = clSeed + b * 31;
+                           // Each blade has a base position, height, angle, curve, and taper
+                           var bx = clx + (nse(bSeed * 3) - 0.5) * tileW * 0.5 * clScale;
+                           var by = cly + (nse(bSeed * 5) - 0.5) * tileH * 0.3 * clScale;
+                           var bladeH = (4 + nse(bSeed * 7) * 8) * clScale;
+                           var angle = (nse(bSeed * 9) - 0.5) * 0.9; // lean angle
+                           var curve = (nse(bSeed * 11) - 0.5) * 4; // bezier curve amount
+                           var thickness = (0.8 + nse(bSeed * 13) * 1.0) * clScale;
+                           // Color selection — layer from dark to bright across blades
+                           var shadeIdx;
+                           if (isDry) {
+                               shadeIdx = Math.floor(nse(bSeed * 15) * DRY_SHADES.length);
+                               ctx.strokeStyle = DRY_SHADES[shadeIdx];
+                           } else {
+                               // Earlier blades are darker (background), later are brighter (foreground)
+                               shadeIdx = Math.floor((b / bladeCount) * (GRASS_SHADES.length - 1) + nse(bSeed * 15) * 1.5);
+                               shadeIdx = Math.max(0, Math.min(GRASS_SHADES.length - 1, shadeIdx));
+                               ctx.strokeStyle = GRASS_SHADES[shadeIdx];
+                           }
+                           ctx.globalAlpha = isDry ? (0.3 + nse(bSeed * 17) * 0.25) : (0.45 + nse(bSeed * 17) * 0.35);
+                           ctx.lineWidth = thickness;
+                           // Draw blade as quadratic bezier — base to tip with natural curve
+                           var tipX = bx + Math.sin(angle) * bladeH;
+                           var tipY = by - Math.cos(angle) * bladeH;
+                           var cpX = bx + curve + Math.sin(angle) * bladeH * 0.4;
+                           var cpY = by - Math.cos(angle) * bladeH * 0.5;
+                           ctx.beginPath();
+                           ctx.moveTo(bx, by);
+                           ctx.quadraticCurveTo(cpX, cpY, tipX, tipY);
+                           ctx.stroke();
+                           // Second overlapping blade for density (not on every blade — looks more natural)
+                           if (b % 3 === 0 && nse(bSeed * 19) > 0.3) {
+                               var offX = (nse(bSeed * 21) - 0.5) * 2;
+                               var offAngle = angle + (nse(bSeed * 23) - 0.5) * 0.4;
+                               var tip2X = bx + offX + Math.sin(offAngle) * bladeH * 0.8;
+                               var tip2Y = by - Math.cos(offAngle) * bladeH * 0.8;
+                               ctx.lineWidth = thickness * 0.7;
+                               ctx.globalAlpha *= 0.7;
+                               ctx.beginPath();
+                               ctx.moveTo(bx + offX, by);
+                               ctx.quadraticCurveTo(bx + offX + curve * 0.5, by - bladeH * 0.35, tip2X, tip2Y);
+                               ctx.stroke();
+                           }
+                       }
                    }
                }
            }
