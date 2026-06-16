@@ -4299,6 +4299,7 @@
                    var bn = (nse(seed * 13 + 3) - 0.5) * 0.12;
                    var ri, gi, bi;
                    // Smooth color blending between terrain zones for natural transitions
+                   var tx = (c + 0.5) / COLS, ty = (r + 0.5) / ROWS;
                    var nd = nileDist(tx, ty);
                    if (nd < 0.3) { ri=12; gi=65; bi=135; }                         // deep_water core
                    else if (nd < 0.8) {                                            // water zone (deep_water->water blend at low end)
