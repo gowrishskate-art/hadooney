@@ -4255,10 +4255,10 @@
                    else if (tx > 0.88) t = 'red_sea';
                    else {
                        var nd = nileDist(tx, ty);
-                       if (nd < 0.45) t = 'deep_water';
-                       else if (nd < 0.85) t = 'water';
-                       else if (nd < 2.8) t = 'floodplain';
-                       else if (nd < 4.5) t = 'semi_desert';
+                       if (nd < 0.4) t = 'deep_water';
+                       else if (nd < 0.8) t = 'water';
+                       else if (nd < 3.5) t = 'floodplain';
+                       else if (nd < 6.0) t = 'semi_desert';
                        else t = 'desert';
                    }
                    terrain[r][c] = t;
@@ -4279,7 +4279,7 @@
                    var ri, gi, bi;
                    if (type === 'deep_water') { ri = 12; gi = 65; bi = 135; }
                    else if (type === 'water') { ri = 18; gi = 85; bi = 155; }
-                   else if (type === 'floodplain') { ri = 55; gi = 135; bi = 40; }
+                   else if (type === 'floodplain') { ri = 48; gi = 148; bi = 32; }
                    else if (type === 'semi_desert') { ri = 145; gi = 115; bi = 60; }
                    else if (type === 'desert') { ri = 195; gi = 148; bi = 90; }
                    else { ri = 22; gi = 100; bi = 165; }
@@ -4297,10 +4297,10 @@
                    if (type !== 'floodplain' && type !== 'semi_desert') continue;
                    var seed = r * COLS + c + 200;
                    var cx = c * tileW + tileW * 0.5, cy = r * tileH + tileH * 0.5;
-                   var dense = type === 'floodplain' ? 5 : 2;
-                   ctx.strokeStyle = type === 'floodplain' ? '#3a7a20' : '#7a6a30';
-                   ctx.lineWidth = 1;
-                   ctx.globalAlpha = 0.25 + nse(seed * 3) * 0.2;
+                   var dense = type === 'floodplain' ? 8 : 3;
+                   ctx.strokeStyle = type === 'floodplain' ? '#3a8a1a' : '#7a6a30';
+                   ctx.lineWidth = 1.2;
+                   ctx.globalAlpha = 0.3 + nse(seed * 3) * 0.25;
                    for (var g = 0; g < dense; g++) {
                        var gx = cx + (nse(seed * 7 + g * 13) - 0.5) * tileW * 0.7;
                        var gy = cy + (nse(seed * 11 + g * 17) - 0.5) * tileH * 0.7;
@@ -4315,10 +4315,17 @@
            for (var vi = 0; vi < villages.length; vi++) {
                var vx = villages[vi][0] * w, vy = villages[vi][1] * h;
                var vSeed = vi * 137 + 50;
-               var vs = w * 0.015;
-               ctx.globalAlpha = 0.15;
+               var vs = w * 0.018; // village scale
+               
+               // Village ground clearing — subtle sandy patch
+               ctx.globalAlpha = 0.18;
                ctx.fillStyle = '#c4956a';
-               ctx.beginPath(); ctx.arc(vx, vy, vs * 1.8, 0, Math.PI * 2); ctx.fill();
+               ctx.beginPath(); ctx.arc(vx, vy, vs * 2.0, 0, Math.PI * 2); ctx.fill();
+               // Small enclosure wall
+               ctx.strokeStyle = '#b08060';
+               ctx.lineWidth = 1;
+               ctx.globalAlpha = 0.2;
+               ctx.beginPath(); ctx.arc(vx, vy, vs * 1.5, 0, Math.PI * 2); ctx.stroke();
                ctx.globalAlpha = 1;
                for (var hi = 0; hi < 3; hi++) {
                    var angle = hi * 2.094 + vSeed * 0.01;
