@@ -6122,8 +6122,8 @@
                if (!territory) continue;
                var ownerColor = factionColors[territory.owner] || '#888888';
 
-               // Semi-transparent fill — strong enough to see ownership
-               ctx.fillStyle = ownerColor + 'aa';
+               // Solid fill — territories look like owned regions
+               ctx.fillStyle = ownerColor + 'cc';
                ctx.fill(tp.path);
 
                // Inner glow
