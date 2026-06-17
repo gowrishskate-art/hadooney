@@ -6109,7 +6109,68 @@
            if (!map || !gameState.territories) return;
            if (_territoryPaths.length === 0 || _territoryPaths[0].id === undefined) buildTerritoryPaths(eraId, w, h);
            buildTerritoryLookup();
-           // Land is invisible — polygons not drawn. Only background shows.
+
+           // Build faction color lookup
+           var factionColors = {};
+           factionColors['player'] = '#667eea';
+           gameState.opponents.forEach(function(o) { factionColors[o.id] = o.color; });
+
+           // Draw territory polygons with owner colors
+           for (var pi = 0; pi < _territoryPaths.length; pi++) {
+               var tp = _territoryPaths[pi];
+               var territory = gameState.territories[tp.id];
+               if (!territory) continue;
+               var ownerColor = factionColors[territory.owner] || '#888888';
+
+               // Semi-transparent fill
+               ctx.fillStyle = ownerColor + '40';
+               ctx.fill(tp.path);
+
+               // Border — brighter version of owner color
+               ctx.strokeStyle = ownerColor;
+               ctx.lineWidth = 2;
+               ctx.stroke(tp.path);
+           }
+
+           // Draw territory names
+           ctx.textAlign = 'center';
+           ctx.textBaseline = 'middle';
+           for (var ti = 0; ti < _territoryPaths.length; ti++) {
+               var tp2 = _territoryPaths[ti];
+               var territory2 = gameState.territories[tp2.id];
+               if (!territory2) continue;
+
+               var fontSize = Math.max(9, Math.min(w, h) / 45);
+               ctx.font = fontSize + 'px Segoe UI, sans-serif';
+
+               // Name with outline for readability
+               ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+               ctx.lineWidth = 3;
+               ctx.strokeText(tp2.name, tp2.cx, tp2.cy);
+
+               ctx.fillStyle = 'rgba(255,255,255,0.85)';
+               ctx.fillText(tp2.name, tp2.cx, tp2.cy);
+
+               // Troop count badge below name
+               var badgeY = tp2.cy + fontSize + 2;
+               var badgeText = '🛡' + territory2.troops;
+               ctx.font = Math.max(8, fontSize - 2) + 'px Segoe UI, sans-serif';
+               ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+               ctx.lineWidth = 3;
+               ctx.strokeText(badgeText, tp2.cx, badgeY);
+               ctx.fillStyle = factionColors[territory2.owner] || '#888888';
+               ctx.fillText(badgeText, tp2.cx, badgeY);
+           }
+
+           // Highlight selected territory
+           if (gameState.selectedTerritory !== undefined && gameState.selectedTerritory !== null) {
+               var selTp = _territoryPaths.find(function(p) { return p.id === gameState.selectedTerritory; });
+               if (selTp) {
+                   ctx.strokeStyle = '#ffffff';
+                   ctx.lineWidth = 3;
+                   ctx.stroke(selTp.path);
+               }
+           }
        }
 
 
