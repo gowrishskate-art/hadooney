@@ -4246,7 +4246,7 @@
 
        // Egypt top-down strategic map background — tile-based terrain system
        function drawEgyptMapBackground(w, h) {
-           var COLS = 160, ROWS = 80;
+           var COLS = 200, ROWS = 100;
            var tileW = w / COLS, tileH = h / ROWS;
            // Render terrain to small offscreen canvas, then scale up for smooth blending
            var offW = COLS, offH = ROWS;
@@ -4308,8 +4308,8 @@
                        var nd = nileDist(tx, ty);
                        if (nd < 0.4) t = 'deep_water';
                        else if (nd < 0.8) t = 'water';
-                       else if (nd < 3.5) t = 'floodplain';
-                       else if (nd < 6.0) t = 'semi_desert';
+                       else if (nd < 5.0) t = 'floodplain';
+                       else if (nd < 9.0) t = 'semi_desert';
                        else t = 'desert';
                    }
                    terrain[r][c] = t;
@@ -4388,18 +4388,18 @@
                        gi = 45 + wt * (70-45) + lushNoise * 8;
                        bi = 25 + wt * (35-25) + detailNoise * 4;
                    }
-                   else if (nd < 4.5) {
+                   else if (nd < 6.5) {
                        // Semi-arid — warm brown earth tones (grass drawn as overlay on top)
-                       var ft = (nd - 1.5) / 3.0;
+                       var ft = (nd - 1.5) / 5.0;
                        var soilNoise = fbm(c * 0.12, r * 0.12, 3, 512);
                        var fertileMix = soilNoise > 0.55 ? 0.3 : (soilNoise < 0.35 ? -0.15 : 0);
                        ri = 100 + ft * (165-100) + detailNoise * 12 + fertileMix * 15;
                        gi = 75 - ft * (75-55) + noiseVal * 1.5 + noiseVal * 8 + fertileMix * 10;
                        bi = 30 + ft * (55-30) + detailNoise * 5 + fertileMix * 6;
                    }
-                   else if (nd < 7.5) {
+                   else if (nd < 10.5) {
                        // Semi-desert — sandy with subtle rock color variation
-                       var st = (nd - 4.5) / 3.0;
+                       var st = (nd - 6.5) / 4.0;
                        var sandNoise = fbm(c * 0.08, r * 0.08, 4, 777);
                        // Sand dune color shifts between warm gold and cooler tan
                        ri = 155 + st * (200-155) + sandNoise * 18 + detailNoise * 6;
@@ -4578,8 +4578,8 @@
                var gy = 0.06 + nse(gSeed * 5) * 0.88;
                var gnd = nileDist(gx, gy);
                if (gnd < 1.2 || gy < 0.06 || gx > 0.85) continue;
-               if (gnd > 6.0 && nse(gSeed * 7) > 0.25) continue;
-               if (gnd > 4.5 && nse(gSeed * 7) > 0.45) continue;
+               if (gnd > 9.0 && nse(gSeed * 7) > 0.25) continue;
+               if (gnd > 6.5 && nse(gSeed * 7) > 0.45) continue;
                var isDry = gnd > 3.5;
                // Each "patch" generates 3-6 micro-clusters nearby
                var subCount = isDry ? 2 : Math.floor(2 + nse(gSeed * 19) * 4);
@@ -4601,7 +4601,7 @@
            for (var gi = 0; gi < grassClusters.length; gi++) {
                var gc = grassClusters[gi];
                var s = gc.seed;
-               var proximity = Math.max(0, 1 - gc.nileDist / 6.0);
+               var proximity = Math.max(0, 1 - gc.nileDist / 9.0);
                // Small radius for each micro-cluster — visible individual tufts
                var radius = (6 + proximity * 12) * (0.7 + nse(s * 11) * 0.6);
                var bladeCount = gc.dry ? Math.floor(3 + nse(s * 13) * 4) : Math.floor(6 + proximity * 10 + nse(s * 13) * 5);
@@ -4662,6 +4662,78 @@
                }
            }
            ctx.lineCap = 'butt';
+           ctx.restore();
+           // --- Desert oases — green pools with palms in deep desert ---
+           ctx.save();
+           var oases = [
+               [0.50,0.18],[0.68,0.32],[0.55,0.50],[0.78,0.60],[0.45,0.72],[0.82,0.12],
+               [0.62,0.82],[0.42,0.42],[0.74,0.48],[0.58,0.15],[0.70,0.68],[0.48,0.60]
+           ];
+           for (var oi = 0; oi < oases.length; oi++) {
+               var ocx = oases[oi][0] * w, ocy = oases[oi][1] * h;
+               var oSeed = oi * 211 + 13;
+               var oRad = w * (0.013 + nse(oSeed * 3) * 0.007);
+               // Outer vegetation ring
+               ctx.globalAlpha = 0.25;
+               ctx.fillStyle = '#4a8a28';
+               ctx.beginPath(); ctx.arc(ocx, ocy, oRad * 1.5, 0, Math.PI * 2); ctx.fill();
+               ctx.globalAlpha = 0.35;
+               ctx.fillStyle = '#3a7a20';
+               ctx.beginPath(); ctx.arc(ocx, ocy, oRad * 1.2, 0, Math.PI * 2); ctx.fill();
+               // Water pool
+               ctx.globalAlpha = 0.6;
+               ctx.fillStyle = '#1a6a90';
+               ctx.beginPath(); ctx.arc(ocx, ocy, oRad * 0.45, 0, Math.PI * 2); ctx.fill();
+               ctx.fillStyle = '#2a88b0';
+               ctx.globalAlpha = 0.5;
+               ctx.beginPath(); ctx.arc(ocx, ocy, oRad * 0.6, 0, Math.PI * 2); ctx.fill();
+               // Grass blades around pool
+               var numOG = 10 + Math.floor(nse(oSeed * 7) * 6);
+               ctx.lineCap = 'round';
+               for (var og = 0; og < numOG; og++) {
+                   var ogAng = (og / numOG) * Math.PI * 2 + nse(oSeed * 11 + og) * 0.3;
+                   var ogDist = oRad * (0.7 + nse(oSeed * 13 + og) * 0.5);
+                   var ogx = ocx + Math.cos(ogAng) * ogDist;
+                   var ogy = ocy + Math.sin(ogAng) * ogDist;
+                   var ogh = 5 + nse(oSeed * 17 + og) * 7;
+                   var ogL = (nse(oSeed * 19 + og) - 0.5) * ogh * 0.4;
+                   var shades = GRASS_SHADES;
+                   ctx.strokeStyle = shades[Math.floor(nse(oSeed * 23 + og) * shades.length)];
+                   ctx.lineWidth = 1.4 + nse(oSeed * 29 + og) * 0.8;
+                   ctx.globalAlpha = 0.5;
+                   ctx.beginPath();
+                   ctx.moveTo(ogx, ogy);
+                   ctx.quadraticCurveTo(ogx + ogL * 0.4, ogy - ogh * 0.5, ogx + ogL, ogy - ogh);
+                   ctx.stroke();
+               }
+               // Palm trees
+               var numPalms = 2 + Math.floor(nse(oSeed * 31) * 3);
+               for (var pp = 0; pp < numPalms; pp++) {
+                   var ppAng = (pp / numPalms) * Math.PI * 2 + nse(oSeed * 37 + pp) * 0.5;
+                   var ppDist = oRad * (0.85 + nse(oSeed * 41 + pp) * 0.35);
+                   var ppx = ocx + Math.cos(ppAng) * ppDist;
+                   var ppy = ocy + Math.sin(ppAng) * ppDist;
+                   var palmH = w * 0.016;
+                   ctx.globalAlpha = 0.75;
+                   ctx.fillStyle = '#8B6914';
+                   ctx.fillRect(ppx - w * 0.0015, ppy - palmH, w * 0.003, palmH);
+                   ctx.globalAlpha = 0.65;
+                   for (var fr = 0; fr < 6; fr++) {
+                       var frAng = fr * 1.047 + nse(oSeed * 43 + pp) * 0.3;
+                       var frLen = palmH * 0.9;
+                       ctx.strokeStyle = '#2d8a4e';
+                       ctx.lineWidth = 2.5;
+                       ctx.beginPath();
+                       ctx.moveTo(ppx, ppy - palmH);
+                       ctx.quadraticCurveTo(
+                           ppx + Math.cos(frAng) * frLen * 0.5, ppy - palmH - palmH * 0.2,
+                           ppx + Math.cos(frAng) * frLen, ppy - palmH + Math.abs(Math.sin(frAng)) * palmH * 0.3
+                       );
+                       ctx.stroke();
+                   }
+               }
+               ctx.lineCap = 'butt';
+           }
            ctx.restore();
            // --- Villages with houses, paths, palms, and crop fields ---
            ctx.save();
