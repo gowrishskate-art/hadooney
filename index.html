@@ -4,6 +4,8 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
+    <!-- VERSION: EGYPT-V5-20260621 -->
+    <meta http-equiv="Expires" content="0">
    <meta charset="UTF-8">
    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&display=swap" rel="stylesheet">
@@ -4279,14 +4281,14 @@
                return val / max;
            }
            var nilePts = [
-               // Main Nile — wide prominent river down the center-left
-               [0.20,1.00,0.065],[0.18,0.90,0.065],[0.16,0.80,0.068],[0.18,0.73,0.072],
-               [0.24,0.67,0.078],[0.30,0.60,0.085],[0.26,0.54,0.078],[0.24,0.48,0.072],
-               [0.22,0.42,0.068],[0.22,0.36,0.068],[0.22,0.28,0.072],[0.22,0.22,0.085],
-               [0.20,0.16,0.115],[0.22,0.10,0.135],[0.25,0.02,0.165],
-               // Thin delta branches near the top (delta fan) — keep minimal
-               [0.40,0.08,0.008],[0.55,0.06,0.009],[0.68,0.05,0.010],
-               [0.42,0.16,0.007],[0.55,0.14,0.008],[0.70,0.12,0.009]
+               // Main Nile — prominent river down center-left
+               [0.20,1.00,0.038],[0.18,0.90,0.038],[0.16,0.80,0.040],[0.18,0.73,0.042],
+               [0.24,0.67,0.045],[0.30,0.60,0.050],[0.26,0.54,0.045],[0.24,0.48,0.042],
+               [0.22,0.42,0.040],[0.22,0.36,0.040],[0.22,0.28,0.042],[0.22,0.22,0.050],
+               [0.20,0.16,0.070],[0.22,0.10,0.080],[0.25,0.02,0.100],
+               // Thin delta branches near the top
+               [0.40,0.08,0.005],[0.55,0.06,0.006],[0.68,0.05,0.006],
+               [0.42,0.16,0.004],[0.55,0.14,0.005],[0.70,0.12,0.006]
            ];
            function nileDist(tx, ty) {
                // Distance to nearest Nile waypoint, scaled by that waypoint's width
@@ -4689,17 +4691,17 @@
            // --- Nile: 3-layer depth river with delta branches ---
            // Waypoints: [y, centerX, halfWidth] defining river center and width at each altitude from Aswan to Delta
            var nw = [
-               [1.00,0.22,0.022],[0.90,0.20,0.022],[0.84,0.17,0.025],[0.78,0.16,0.025],
-               [0.72,0.20,0.030],[0.66,0.28,0.035],[0.60,0.30,0.038],[0.54,0.26,0.032],
-               [0.48,0.24,0.028],[0.42,0.22,0.025],[0.36,0.22,0.025],[0.30,0.22,0.030],
-               [0.26,0.22,0.030],[0.22,0.23,0.040],[0.16,0.21,0.070],[0.10,0.18,0.100],
-               [0.06,0.16,0.120],[0.03,0.15,0.140],[0.02,0.14,0.140],[0.02,0.50,0.120]
+               [1.00,0.22,0.018],[0.90,0.20,0.018],[0.84,0.17,0.020],[0.78,0.16,0.020],
+               [0.72,0.20,0.022],[0.66,0.28,0.025],[0.60,0.30,0.028],[0.54,0.26,0.024],
+               [0.48,0.24,0.022],[0.42,0.22,0.020],[0.36,0.22,0.020],[0.30,0.22,0.022],
+               [0.26,0.22,0.025],[0.22,0.23,0.030],[0.16,0.21,0.050],[0.10,0.18,0.070],
+               [0.06,0.16,0.080],[0.03,0.15,0.090],[0.02,0.14,0.090]
            ];
-           // Delta branch channels
+           // Delta branch channels — thin
            var deltaBranches = [
-               [[0.02,0.36,0.100],[0.04,0.28,0.050],[0.08,0.22,0.025],[0.14,0.18,0.012]],
-               [[0.02,0.25,0.100],[0.04,0.20,0.040],[0.08,0.16,0.020]],
-               [[0.02,0.14,0.100],[0.04,0.12,0.035],[0.08,0.12,0.018]]
+               [[0.02,0.36,0.060],[0.04,0.28,0.030],[0.08,0.22,0.015],[0.14,0.18,0.008]],
+               [[0.02,0.25,0.060],[0.04,0.20,0.025],[0.08,0.16,0.012]],
+               [[0.02,0.14,0.060],[0.04,0.12,0.020],[0.08,0.12,0.010]]
            ];
            // Reed bank vegetation along river edges (drawn before water layers so they sit under shallow water)
            ctx.save();
@@ -6036,8 +6038,8 @@
                var ownerColor = factionColors[territory.owner] || '#888888';
 
                if (isEgypt) {
-                   // Egypt: very subtle tint, no thick borders — let painted terrain shine
-                   ctx.fillStyle = ownerColor + '28';
+                   // Egypt: clean semi-transparent owner tint over green terrain
+                   ctx.fillStyle = ownerColor + '38';
                    ctx.fill(tp.path);
                } else {
                    // Other eras: original style
@@ -6050,14 +6052,19 @@
            }
 
            if (isEgypt) {
-               // Egypt: thin dashed antique-style borders only
-               ctx.strokeStyle = 'rgba(80,60,30,0.25)';
-               ctx.lineWidth = 0.8;
-               ctx.setLineDash([4, 3]);
+               // Egypt: clean, neat solid borders — Politopia style
+               ctx.strokeStyle = 'rgba(40,30,15,0.5)';
+               ctx.lineWidth = 1.5;
+               ctx.setLineDash([]);
                for (var bi = 0; bi < _territoryPaths.length; bi++) {
                    ctx.stroke(_territoryPaths[bi].path);
                }
-               ctx.setLineDash([]);
+               // Inner highlight line for depth
+               ctx.strokeStyle = 'rgba(255,250,230,0.15)';
+               ctx.lineWidth = 0.5;
+               for (var bi2 = 0; bi2 < _territoryPaths.length; bi2++) {
+                   ctx.stroke(_territoryPaths[bi2].path);
+               }
            } else {
                // Other eras: dark separator borders
                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
