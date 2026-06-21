@@ -6068,26 +6068,6 @@
                }
            }
 
-           // Draw territory names
-           ctx.textAlign = 'center';
-           ctx.textBaseline = 'middle';
-           for (var ti = 0; ti < _territoryPaths.length; ti++) {
-               var tp2 = _territoryPaths[ti];
-               var territory2 = gameState.territories[tp2.id];
-               if (!territory2) continue;
-
-               var fontSize = Math.max(9, Math.min(w, h) / 45);
-               ctx.font = fontSize + 'px Segoe UI, sans-serif';
-
-               // Name with outline for readability
-               ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-               ctx.lineWidth = 3;
-               ctx.strokeText(tp2.name, tp2.cx, tp2.cy);
-
-               ctx.fillStyle = 'rgba(255,255,255,0.85)';
-               ctx.fillText(tp2.name, tp2.cx, tp2.cy);
-           }
-
            // Highlight selected territory
            if (gameState.selectedTerritory !== undefined && gameState.selectedTerritory !== null) {
                var selTp = _territoryPaths.find(function(p) { return p.id === gameState.selectedTerritory; });
