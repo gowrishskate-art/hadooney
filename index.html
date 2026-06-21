@@ -2052,7 +2052,11 @@
                    // Row 5: Southern Egypt / Nubia (y: 0.66–0.98)
                    {id:37,name:'Aswan',poly:[[0.02,0.60],[0.04,0.66],[0.14,0.62],[0.16,0.72],[0.14,0.92],[0.04,0.98],[0.02,0.90]],terrain:'river',adj:[30,31,38]},
                    {id:38,name:'Philae',poly:[[0.16,0.62],[0.30,0.62],[0.32,0.72],[0.30,0.92],[0.18,0.98],[0.14,0.92],[0.14,0.72]],terrain:'plains',adj:[31,32,37,39]},
-                   {id:39,name:'Abu Simbel',poly:[[0.30,0.62],[0.50,0.62],[0.52,0.72],[0.50,0.92],[0.34,0.98],[0.30,0.92],[0.32,0.72]],terrain:'mountain',adj:[32,33,34,35,36,38]}
+                   {id:39,name:'Abu Simbel',poly:[[0.30,0.62],[0.50,0.62],[0.52,0.72],[0.50,0.92],[0.34,0.98],[0.30,0.92],[0.32,0.72]],terrain:'mountain',adj:[32,33,34,35,36,38,40]},
+                   // Row 5 East: Filling the empty right side
+                   {id:40,name:'Wadi Allaqi',poly:[[0.50,0.62],[0.68,0.62],[0.70,0.72],[0.68,0.92],[0.52,0.98],[0.50,0.92],[0.52,0.72]],terrain:'desert',adj:[34,35,39,41,42]},
+                   {id:41,name:'Gold Mines',poly:[[0.68,0.52],[0.84,0.52],[0.86,0.62],[0.82,0.72],[0.70,0.72],[0.68,0.62]],terrain:'mountain',adj:[35,36,40,42]},
+                   {id:42,name:'Berenice',poly:[[0.84,0.52],[0.98,0.52],[0.98,0.98],[0.52,0.98],[0.68,0.92],[0.82,0.72],[0.86,0.62]],terrain:'desert',adj:[29,36,40,41]}
                ]
            },
            rome: {
@@ -4271,10 +4275,10 @@
                return val / max;
            }
            var nilePts = [
-               [0.20,1.00,0.018],[0.18,0.90,0.018],[0.16,0.80,0.020],[0.18,0.73,0.022],
-               [0.24,0.67,0.025],[0.30,0.60,0.030],[0.26,0.54,0.025],[0.24,0.48,0.022],
-               [0.22,0.42,0.020],[0.22,0.36,0.020],[0.22,0.28,0.022],[0.22,0.22,0.030],
-               [0.20,0.16,0.045],[0.22,0.10,0.055],[0.25,0.02,0.065]
+               [0.20,1.00,0.028],[0.18,0.90,0.028],[0.16,0.80,0.030],[0.18,0.73,0.033],
+               [0.24,0.67,0.038],[0.30,0.60,0.045],[0.26,0.54,0.038],[0.24,0.48,0.033],
+               [0.22,0.42,0.030],[0.22,0.36,0.030],[0.22,0.28,0.033],[0.22,0.22,0.045],
+               [0.20,0.16,0.065],[0.22,0.10,0.080],[0.25,0.02,0.095]
            ];
            function nileDist(tx, ty) {
                // Distance to nearest Nile waypoint, scaled by that waypoint's width
@@ -4301,29 +4305,29 @@
                    if (nd < 0.3) {
                        ri=8 + noiseVal * 8; gi=55 + noiseVal * 15; bi=120 + noiseVal * 20;
                    }
-                   else if (nd < 0.8) {
-                       var wt = (nd - 0.3) / 0.5;
+                   else if (nd < 1.0) {
+                       var wt = (nd - 0.3) / 0.7;
                        ri = 8 + wt * (15-8) + detailNoise * 6;
                        gi = 55 + wt * (75-55) + noiseVal * 10;
                        bi = 120 + wt * (145-120) + detailNoise * 10;
                    }
-                   else if (nd < 1.5) {
-                       var wt = (nd - 0.8) / 0.7;
+                   else if (nd < 2.5) {
+                       var wt = (nd - 1.0) / 1.5;
                        var lushNoise = fbm(px * 0.012, py * 0.012, 3, 256);
                        ri = 55 + wt * (110-55) + lushNoise * 10;
                        gi = 45 + wt * (70-45) + lushNoise * 8;
                        bi = 25 + wt * (35-25) + detailNoise * 4;
                    }
-                   else if (nd < 6.5) {
-                       var ft = (nd - 1.5) / 5.0;
+                   else if (nd < 10.0) {
+                       var ft = (nd - 2.5) / 7.5;
                        var soilNoise = fbm(px * 0.006, py * 0.006, 3, 512);
                        var fertileMix = soilNoise > 0.55 ? 0.3 : (soilNoise < 0.35 ? -0.15 : 0);
                        ri = 100 + ft * (165-100) + detailNoise * 12 + fertileMix * 15;
                        gi = 75 - ft * (75-55) + noiseVal * 1.5 + noiseVal * 8 + fertileMix * 10;
                        bi = 30 + ft * (55-30) + detailNoise * 5 + fertileMix * 6;
                    }
-                   else if (nd < 10.5) {
-                       var st = (nd - 6.5) / 4.0;
+                   else if (nd < 14.0) {
+                       var st = (nd - 10.0) / 4.0;
                        var sandNoise = fbm(px * 0.004, py * 0.004, 4, 777);
                        ri = 155 + st * (200-155) + sandNoise * 18 + detailNoise * 6;
                        gi = 118 + st * (155-118) + sandNoise * 12 + detailNoise * 4;
