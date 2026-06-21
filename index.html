@@ -6065,16 +6065,6 @@
 
                ctx.fillStyle = 'rgba(255,255,255,0.85)';
                ctx.fillText(tp2.name, tp2.cx, tp2.cy);
-
-               // Troop count badge below name
-               var badgeY = tp2.cy + fontSize + 2;
-               var badgeText = '🛡' + territory2.troops;
-               ctx.font = Math.max(8, fontSize - 2) + 'px Segoe UI, sans-serif';
-               ctx.strokeStyle = 'rgba(0,0,0,0.7)';
-               ctx.lineWidth = 3;
-               ctx.strokeText(badgeText, tp2.cx, badgeY);
-               ctx.fillStyle = factionColors[territory2.owner] || '#888888';
-               ctx.fillText(badgeText, tp2.cx, badgeY);
            }
 
            // Highlight selected territory
