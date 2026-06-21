@@ -6023,6 +6023,8 @@
            factionColors['player'] = '#667eea';
            gameState.opponents.forEach(function(o) { factionColors[o.id] = o.color; });
 
+           var isEgypt = (eraId === 'egypt');
+
            // Draw territory polygons with owner colors
            for (var pi = 0; pi < _territoryPaths.length; pi++) {
                var tp = _territoryPaths[pi];
@@ -6030,21 +6032,36 @@
                if (!territory) continue;
                var ownerColor = factionColors[territory.owner] || '#888888';
 
-               // Light fill — territory shows as colored tint over painted terrain
-               ctx.fillStyle = ownerColor + '66';
-               ctx.fill(tp.path);
-
-               // Inner glow
-               ctx.strokeStyle = ownerColor;
-               ctx.lineWidth = 2.5;
-               ctx.stroke(tp.path);
+               if (isEgypt) {
+                   // Egypt: very subtle tint, no thick borders — let painted terrain shine
+                   ctx.fillStyle = ownerColor + '28';
+                   ctx.fill(tp.path);
+               } else {
+                   // Other eras: original style
+                   ctx.fillStyle = ownerColor + '66';
+                   ctx.fill(tp.path);
+                   ctx.strokeStyle = ownerColor;
+                   ctx.lineWidth = 2.5;
+                   ctx.stroke(tp.path);
+               }
            }
 
-           // Dark separator borders between territories
-           ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-           ctx.lineWidth = 1;
-           for (var bi = 0; bi < _territoryPaths.length; bi++) {
-               ctx.stroke(_territoryPaths[bi].path);
+           if (isEgypt) {
+               // Egypt: thin dashed antique-style borders only
+               ctx.strokeStyle = 'rgba(80,60,30,0.25)';
+               ctx.lineWidth = 0.8;
+               ctx.setLineDash([4, 3]);
+               for (var bi = 0; bi < _territoryPaths.length; bi++) {
+                   ctx.stroke(_territoryPaths[bi].path);
+               }
+               ctx.setLineDash([]);
+           } else {
+               // Other eras: dark separator borders
+               ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+               ctx.lineWidth = 1;
+               for (var bi = 0; bi < _territoryPaths.length; bi++) {
+                   ctx.stroke(_territoryPaths[bi].path);
+               }
            }
 
            // Draw territory names
