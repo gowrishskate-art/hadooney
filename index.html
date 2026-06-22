@@ -980,83 +980,82 @@
   display: block;
 }
 
-/* Floating header bar — pill shape, centered at top */
+/* Floating header bar — ultra-minimal, translucent */
 .game-header {
   position: fixed;
-  top: 6px;
+  top: 4px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  border-radius: 12px;
-  max-width: 85vw;
-  background: rgba(10, 10, 26, 0.85);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  padding: 4px 12px;
+  border-radius: 8px;
+  max-width: 90vw;
+  background: rgba(8, 8, 20, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 2px 8px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition: all 0.3s ease;
-  font-size: 0.75rem;
+  gap: 4px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+  font-size: 0.68rem;
 }
 
 .game-header:hover {
-  background: rgba(10, 10, 26, 0.92);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: rgba(8, 8, 20, 0.75);
 }
 
 .game-header .stat {
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-size: 0.72rem;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 0.6rem;
 }
 
 .game-header .turn-indicator {
-  padding: 3px 8px;
-  border-radius: 8px;
-  font-size: 0.72rem;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-size: 0.6rem;
 }
 
 .game-header .game-btn {
-  padding: 3px 6px;
-  font-size: 0.7rem;
+  padding: 1px 4px;
+  font-size: 0.58rem;
 }
 
-/* Floating bottom controls — compact pill */
+/* Floating bottom controls — ultra-compact */
 .game-controls {
   position: fixed;
-  bottom: 8px;
+  bottom: 4px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
-  border-radius: 12px;
-  max-width: 95vw;
-  background: rgba(10, 10, 26, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 6px 12px;
+  border-radius: 8px;
+  max-width: 98vw;
+  background: rgba(8, 8, 20, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 3px 8px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: all 0.3s ease;
+  gap: 4px;
+  box-shadow: 0 -1px 6px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
   overflow-x: auto;
 }
 
 .game-controls:hover {
-  background: rgba(10, 10, 26, 0.93);
+  background: rgba(8, 8, 20, 0.75);
 }
 
 .game-controls .game-btn {
-  padding: 5px 8px;
-  border-radius: 8px;
-  font-size: 0.68rem;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 0.58rem;
   white-space: nowrap;
   border: none;
   cursor: pointer;
-  font-weight: bold;
-  transition: transform 0.1s;
+  font-weight: 600;
+  transition: transform 0.08s;
 }
 
 .game-controls .game-btn:active {
@@ -6051,19 +6050,8 @@
            }
 
            if (isEgypt) {
-               // Egypt: clean, neat solid borders — Politopia style
-               ctx.strokeStyle = 'rgba(40,30,15,0.5)';
-               ctx.lineWidth = 1.5;
-               ctx.setLineDash([]);
-               for (var bi = 0; bi < _territoryPaths.length; bi++) {
-                   ctx.stroke(_territoryPaths[bi].path);
-               }
-               // Inner highlight line for depth
-               ctx.strokeStyle = 'rgba(255,250,230,0.15)';
-               ctx.lineWidth = 0.5;
-               for (var bi2 = 0; bi2 < _territoryPaths.length; bi2++) {
-                   ctx.stroke(_territoryPaths[bi2].path);
-               }
+               // Egypt: NO territory borders — seamless continuous green landmass
+               // Only highlight selected territory
            } else {
                // Other eras: dark separator borders
                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
