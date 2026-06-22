@@ -6038,9 +6038,8 @@
                var ownerColor = factionColors[territory.owner] || '#888888';
 
                if (isEgypt) {
-                   // Egypt: clean semi-transparent owner tint over green terrain
-                   ctx.fillStyle = ownerColor + '38';
-                   ctx.fill(tp.path);
+                   // Egypt: NO colored tile fills — let painted green terrain shine through
+                   // Ownership shown by army icons + flags, not ugly colored polygons
                } else {
                    // Other eras: original style
                    ctx.fillStyle = ownerColor + '66';
@@ -6091,8 +6090,8 @@
            const dark = ['void','shadow','cyber','quantum','star'].includes(eraId);
            const fiery = ['dragon','ember'].includes(eraId);
            const icy = ['frost'].includes(eraId);
-           const sandy = ['egypt','ottoman'].includes(eraId);
-           const green = ['rome','viking','medieval','british','ming','edo'].includes(eraId);
+           const sandy = ['ottoman'].includes(eraId);
+           const green = ['egypt','rome','viking','medieval','british','ming','edo'].includes(eraId);
            const jungle = ['aztec'].includes(eraId);
            const grime = ['industrial'].includes(eraId);
            const electric = ['thunder'].includes(eraId);
@@ -6288,8 +6287,8 @@
            const dark = ['void','shadow','cyber','quantum','star'].includes(eraId);
            const fiery = ['dragon','ember'].includes(eraId);
            const icy = ['frost'].includes(eraId);
-           const sandy = ['egypt','ottoman'].includes(eraId);
-           const green = ['rome','viking','medieval','british','ming','edo'].includes(eraId);
+           const sandy = ['ottoman'].includes(eraId);
+           const green = ['egypt','rome','viking','medieval','british','ming','edo'].includes(eraId);
            const jungle = ['aztec'].includes(eraId);
            const grime = ['industrial'].includes(eraId);
            const electric = ['thunder'].includes(eraId);
