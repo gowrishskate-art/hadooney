@@ -4253,11 +4253,10 @@
            frost:     { ground: '#c0d8e8', ground2: '#a0c0d8', sky: '#e0f0ff', accent: '#0984e3', hills: true }
        };
 
-       // Egypt top-down strategic map background — tile-based terrain system
+       // Egypt top-down strategic map background — geographically accurate
        function drawEgyptMapBackground(w, h) {
            // Render terrain directly to full-resolution canvas using pixel-level noise
-           // No offscreen tile scaling — smooth continuous land with no grid artifacts
-           // Multi-octave value noise for natural terrain variation
+           // Real-world Egypt: 95% desert, green only along Nile Valley & Delta
            function nse(s) { return ((s * 9301 + 49297) % 233280) / 233280; }
            function smoothNoise(x, y, seed) {
                var ix = Math.floor(x), iy = Math.floor(y);
@@ -4279,19 +4278,18 @@
                }
                return val / max;
            }
+           // Geographically accurate Nile — main channel + Delta distributaries
            var nilePts = [
-               // Main Nile — BIG prominent river down center-left
-               [0.20,1.00,0.060],[0.18,0.90,0.060],[0.16,0.80,0.065],[0.18,0.73,0.068],
-               [0.24,0.67,0.072],[0.30,0.60,0.080],[0.26,0.54,0.072],[0.24,0.48,0.068],
-               [0.22,0.42,0.065],[0.22,0.36,0.065],[0.22,0.28,0.068],[0.22,0.22,0.080],
-               [0.20,0.16,0.110],[0.22,0.10,0.130],[0.25,0.02,0.160],
-               // Delta branches near the top
-               [0.40,0.08,0.010],[0.55,0.06,0.012],[0.68,0.05,0.012],
-               [0.42,0.16,0.008],[0.55,0.14,0.010],[0.70,0.12,0.012]
+               // Main Nile: Aswan (south) → Cairo (north)
+               [0.52, 0.92, 0.025], [0.51, 0.85, 0.026], [0.50, 0.78, 0.028],
+               [0.50, 0.70, 0.030], [0.51, 0.62, 0.032], [0.53, 0.54, 0.034],
+               [0.54, 0.46, 0.036], [0.55, 0.38, 0.038], [0.57, 0.30, 0.040],
+               [0.58, 0.22, 0.045], [0.59, 0.14, 0.055], [0.60, 0.06, 0.080],
+               // Delta branches: Rosetta (west) + Damietta (east)
+               [0.55, 0.10, 0.025], [0.50, 0.06, 0.030], [0.45, 0.03, 0.025],  // Rosetta branch
+               [0.63, 0.10, 0.025], [0.68, 0.06, 0.030], [0.72, 0.03, 0.025]   // Damietta branch
            ];
            function nileDist(tx, ty) {
-               // Distance to nearest Nile waypoint, scaled by that waypoint's width
-               // No y-filter — covers entire map
                var minD = 999;
                for (var i = 0; i < nilePts.length; i++) {
                    var dx = tx - nilePts[i][0], dy = ty - nilePts[i][1];
@@ -4299,6 +4297,14 @@
                    if (d < minD) minD = d;
                }
                return minD;
+           }
+           // Mediterranean Sea (top 8% of map) and Red Sea (right edge)
+           function seaDist(tx, ty) {
+               // Mediterranean at top (y < 0.08)
+               var medD = ty < 0.08 ? ty / 0.08 : 999;
+               // Red Sea at right (x > 0.88, y > 0.2)
+               var redD = (tx > 0.88 && ty > 0.2) ? (tx - 0.88) / 0.12 : 999;
+               return Math.min(medD, redD);
            }
            // Full-resolution pixel render — sample every 2 pixels for performance
            var imgData = ctx.createImageData(w, h);
@@ -4308,71 +4314,89 @@
                for (var px = 0; px < w; px += step) {
                    var nx = px / w, ny = py / h;
                    var nd = nileDist(nx, ny);
+                   var sd = seaDist(nx, ny);
                    var noiseVal = fbm(px * 0.008, py * 0.008, 4, 42);
                    var detailNoise = fbm(px * 0.025, py * 0.025, 3, 137);
                    var ri, gi, bi;
-                   if (nd < 0.35) {
-                       // Deep Nile — rich sapphire blue with depth
-                       ri=8 + noiseVal * 5; gi=35 + noiseVal * 12; bi=145 + noiseVal * 35;
+                   
+                   // MEDITERRANEAN SEA (top)
+                   if (sd < 1.0 && ny < 0.05) {
+                       // Deep Mediterranean blue
+                       ri = 10 + noiseVal * 10; gi = 50 + noiseVal * 30; bi = 120 + noiseVal * 50;
                    }
-                   else if (nd < 1.3) {
-                       var wt = (nd - 0.35) / 0.95;
-                       // Shallow water → wet shoreline transition - emerald
-                       ri = 25 + wt * (50-25) + detailNoise * 8;
-                       gi = 95 + wt * (120-95) + noiseVal * 12;
-                       bi = 155 + wt * (160-155) + detailNoise * 10;
+                   // RED SEA (right edge)
+                   else if (sd < 1.0 && nx > 0.92 && ny > 0.25) {
+                       // Deep Red Sea blue-green
+                       ri = 5 + noiseVal * 8; gi = 40 + noiseVal * 20; bi = 100 + noiseVal * 40;
                    }
-                   else if (nd < 2.5) {
-                       // Lush floodplain — vibrant emerald with gold undertones
+                   // NILE RIVER (main channel + Delta)
+                   else if (nd < 0.35) {
+                       // Deep Nile — rich dark blue
+                       ri = 5 + noiseVal * 5; gi = 25 + noiseVal * 10; bi = 110 + noiseVal * 30;
+                   }
+                   else if (nd < 0.8) {
+                       // Shallow Nile / banks — emerald transition
+                       var wt = (nd - 0.35) / 0.45;
+                       ri = 20 + wt * 30 + detailNoise * 6;
+                       gi = 80 + wt * 40 + noiseVal * 10;
+                       bi = 130 + wt * 20 + detailNoise * 8;
+                   }
+                   // NILE FLOODPLAIN & DELTA — narrow green strip along river
+                   else if (nd < 2.0 && ny > 0.05) {
+                       // Lush agricultural land — vibrant green
                        var lushNoise = fbm(px * 0.012, py * 0.012, 3, 256);
-                       ri = 45 + lushNoise * 20;
-                       gi = 120 + lushNoise * 30;
-                       bi = 35 + lushNoise * 15;
+                       var deltaFactor = (ny < 0.15) ? 1.2 : 1.0; // Delta wider
+                       var stripWidth = 2.0 * deltaFactor;
+                       if (nd < stripWidth) {
+                           ri = 30 + lushNoise * 15;
+                           gi = 100 + lushNoise * 40;
+                           bi = 25 + lushNoise * 10;
+                       } else {
+                           // DESERT — sand dunes
+                           var desertNoise = fbm(px * 0.004, py * 0.004, 5, 999);
+                           var duneNoise = fbm(px * 0.015, py * 0.015, 3, 777);
+                           // Warm Sahara sand tones with dune variation
+                           ri = 195 + desertNoise * 25 + duneNoise * 15;
+                           gi = 165 + desertNoise * 20 + duneNoise * 10;
+                           bi = 105 + desertNoise * 15 + duneNoise * 5;
+                           // Sun shading on dunes
+                           var elevHere = fbm(px * 0.003, py * 0.003, 4, 1234);
+                           var elevRight = fbm((px+6) * 0.003, py * 0.003, 4, 1234);
+                           var elevDown = fbm(px * 0.003, (py+6) * 0.003, 4, 1234);
+                           var slopeX = (elevRight - elevHere) * 0.8;
+                           var slopeY = (elevDown - elevHere) * 0.8;
+                           var sunDot = slopeX * 0.81 + slopeY * (-0.58);
+                           var lightFactor = 1.0 + sunDot * 0.25;
+                           lightFactor = Math.max(0.8, Math.min(1.15, lightFactor));
+                           ri *= lightFactor; gi *= lightFactor; bi *= lightFactor;
+                           // Warm golden tint on sun-facing dunes
+                           if (sunDot > 0.05) { ri += sunDot * 12; gi += sunDot * 6; }
+                           if (sunDot < -0.05) { ri -= Math.abs(sunDot) * 8; bi += Math.abs(sunDot) * 4; }
+                       }
                    }
-                   else if (nd < 6.0) {
-                       // Rich grassland — deep saturated greens with golden hour warmth
-                       var ft = (nd - 2.5) / 3.5;
-                       var grassNoise = fbm(px * 0.008, py * 0.008, 3, 512);
-                       ri = 52 + ft * (65-52) + detailNoise * 12;
-                       gi = 122 + ft * (118-122) + grassNoise * 25;
-                       bi = 36 + ft * (42-36) + detailNoise * 6;
-                   }
-                   else if (nd < 14.0) {
-                       // Distant grass — slightly drier natural greens
-                       var ft2 = (nd - 6.0) / 8.0;
-                       ri = 65 + ft2 * (80-65) + detailNoise * 10;
-                       gi = 118 + ft2 * (115-118) + grassNoise * 20;
-                       bi = 42 + ft2 * (50-42) + detailNoise * 5;
-                   }
+                   // DESERT — 95% of Egypt
                    else {
-                       // Far grassland — warm natural tones
-                       var gg = fbm(px * 0.005, py * 0.005, 4, 888);
-                       ri = 80 + gg * 25 + detailNoise * 8;
-                       gi = 112 + gg * 20 + detailNoise * 5;
-                       bi = 50 + gg * 15 + detailNoise * 3;
-                   }
-                   // Sun shading — golden-hour directional light from upper-right
-                   if (nd > 1.3) {
-                       var elevHere = fbm(px * 0.005, py * 0.005, 4, 1234);
-                       var elevRight = fbm((px+4) * 0.005, py * 0.005, 4, 1234);
-                       var elevDown = fbm(px * 0.005, (py+4) * 0.005, 4, 1234);
-                       var slopeX = (elevRight - elevHere) * 0.5;
-                       var slopeY = (elevDown - elevHere) * 0.5;
+                       var desertNoise = fbm(px * 0.004, py * 0.004, 5, 999);
+                       var duneNoise = fbm(px * 0.015, py * 0.015, 3, 777);
+                       // Warm Sahara sand tones with dune variation
+                       ri = 195 + desertNoise * 25 + duneNoise * 15;
+                       gi = 165 + desertNoise * 20 + duneNoise * 10;
+                       bi = 105 + desertNoise * 15 + duneNoise * 5;
+                       // Sun shading on dunes
+                       var elevHere = fbm(px * 0.003, py * 0.003, 4, 1234);
+                       var elevRight = fbm((px+6) * 0.003, py * 0.003, 4, 1234);
+                       var elevDown = fbm(px * 0.003, (py+6) * 0.003, 4, 1234);
+                       var slopeX = (elevRight - elevHere) * 0.8;
+                       var slopeY = (elevDown - elevHere) * 0.8;
                        var sunDot = slopeX * 0.81 + slopeY * (-0.58);
-                       var lightFactor = 1.0 + sunDot * 0.35;
-                       lightFactor = Math.max(0.72, Math.min(1.18, lightFactor));
+                       var lightFactor = 1.0 + sunDot * 0.25;
+                       lightFactor = Math.max(0.8, Math.min(1.15, lightFactor));
                        ri *= lightFactor; gi *= lightFactor; bi *= lightFactor;
-                       // Warm golden tint on sun-facing slopes
-                       if (sunDot > 0.05) {
-                           ri += sunDot * 18;
-                           gi += sunDot * 8;
-                       }
-                       // Cool blue tint in shadows
-                       if (sunDot < -0.05) {
-                           bi += Math.abs(sunDot) * 12;
-                           ri -= Math.abs(sunDot) * 4;
-                       }
+                       // Warm golden tint on sun-facing dunes
+                       if (sunDot > 0.05) { ri += sunDot * 12; gi += sunDot * 6; }
+                       if (sunDot < -0.05) { ri -= Math.abs(sunDot) * 8; bi += Math.abs(sunDot) * 4; }
                    }
+                   
                    ri = Math.max(0, Math.min(255, Math.round(ri)));
                    gi = Math.max(0, Math.min(255, Math.round(gi)));
                    bi = Math.max(0, Math.min(255, Math.round(bi)));
@@ -4391,304 +4415,47 @@
            // REMOVED: Realistic grass system with individual blades (PATCH_COUNT = 600)
            // REMOVED: Desert oases — green pools with palms in deep desert
            // REMOVED: River sandbar islands, silt deposits, irrigation canals
-           var villages = [
-               [0.11,0.07],[0.22,0.07],[0.37,0.07],[0.10,0.28],[0.33,0.28],[0.48,0.28],
-               [0.09,0.42],[0.21,0.42],[0.33,0.42],[0.09,0.56],[0.21,0.56],[0.48,0.56],
-               [0.09,0.78],[0.23,0.78],[0.41,0.78],
-               // Additional villages for more realistic coverage
-               [0.16,0.16],[0.28,0.42],[0.16,0.50],[0.34,0.68],[0.15,0.88]
+           // Real-world Egyptian cities along the Nile (south to north)
+           var cities = [
+               [0.52, 0.88, 'Aswan'],
+               [0.50, 0.75, 'Luxor'],
+               [0.53, 0.60, 'Qena'],
+               [0.54, 0.48, 'Asyut'],
+               [0.55, 0.38, 'Minya'],
+               [0.56, 0.28, 'Beni Suef'],
+               [0.58, 0.20, 'Cairo/Giza'],
+               [0.52, 0.10, 'Rosetta'],
+               [0.68, 0.10, 'Damietta'],
+               [0.60, 0.04, 'Alexandria'],
            ];
+           // Draw cities as simple clean markers (no dots!)
            ctx.save();
-           // --- Realistic grass system ---
-           // Sparse grass patches with visible bare earth between them
-           var GRASS_SHADES = [
-               '#145a04', // deepest shadow
-               '#1a6a0a', // dark forest
-               '#227a14', // deep green
-               '#2d8a1c', // rich green
-               '#389828', // medium green
-               '#44a630', // bright green
-               '#52b438'  // lime highlight
-           ];
-           var DRY_SHADES = ['#5a7020', '#6a8028', '#7a9030', '#8aa038'];
-           // Place grass PATCHES — discrete areas of dense grass with bare earth between
-           var PATCH_COUNT = 600;
-           var grassClusters = [];
-           for (var gi = 0; gi < PATCH_COUNT; gi++) {
-               var gSeed = gi * 7919 + 31;
-               var gx = 0.08 + nse(gSeed * 3) * 0.38;
-               var gy = 0.06 + nse(gSeed * 5) * 0.88;
-               var gnd = nileDist(gx, gy);
-               if (gnd < 1.2 || gy < 0.06 || gx > 0.85) continue;
-               if (gnd > 9.0 && nse(gSeed * 7) > 0.25) continue;
-               if (gnd > 6.5 && nse(gSeed * 7) > 0.45) continue;
-               var isDry = gnd > 3.5;
-               // Each "patch" generates 3-6 micro-clusters nearby
-               var subCount = isDry ? 2 : Math.floor(2 + nse(gSeed * 19) * 4);
-               for (var sc = 0; sc < subCount; sc++) {
-                   var scSeed = gSeed + sc * 431;
-                   var sx = gx + (nse(scSeed * 23) - 0.5) * 0.025;
-                   var sy = gy + (nse(scSeed * 29) - 0.5) * 0.03;
-                   var sd = nileDist(sx, sy);
-                   if (sd < 1.0) continue;
-                   grassClusters.push({
-                       x: sx * w, y: sy * h,
-                       seed: scSeed, dry: isDry || sd > 3.5,
-                       nileDist: sd
-                   });
-               }
-           }
-           grassClusters.sort(function(a, b) { return a.y - b.y; });
-           // Draw each micro-cluster
-           for (var gi = 0; gi < grassClusters.length; gi++) {
-               var gc = grassClusters[gi];
-               var s = gc.seed;
-               var proximity = Math.max(0, 1 - gc.nileDist / 9.0);
-               // Small radius for each micro-cluster — visible individual tufts
-               var radius = (6 + proximity * 12) * (0.7 + nse(s * 11) * 0.6);
-               var bladeCount = gc.dry ? Math.floor(3 + nse(s * 13) * 4) : Math.floor(6 + proximity * 10 + nse(s * 13) * 5);
-               // Subtle shadow under cluster
-               ctx.globalAlpha = 0.08;
-               ctx.fillStyle = '#0a2800';
-               ctx.beginPath();
-               ctx.ellipse(gc.x, gc.y + 1, radius * 0.9, radius * 0.4, nse(s * 17) * 0.3, 0, Math.PI * 2);
-               ctx.fill();
-               // Blades
-               var shades = gc.dry ? DRY_SHADES : GRASS_SHADES;
-               for (var b = 0; b < bladeCount; b++) {
-                   var bs = s + b * 53;
-                   var angle = nse(bs * 3) * Math.PI * 2;
-                   var dist = nse(bs * 5) * radius * 0.6;
-                   var bx = gc.x + Math.cos(angle) * dist;
-                   var by = gc.y + Math.sin(angle) * dist * 0.35;
-                   // Blades: 16-35px tall, curved, 2-4px wide, filled for solid appearance
-                   var bladeH = 16 + nse(bs * 7) * 19 * (0.6 + proximity * 0.4);
-                   var lean = (nse(bs * 9) - 0.5) * 1.2;
-                   var curveAmt = (nse(bs * 11) - 0.5) * 10;
-                   var bladeW = 2.0 + nse(bs * 13) * 2.0;
-                   // Color layering
-                   var ci = Math.floor((b / bladeCount) * (shades.length - 1) + nse(bs * 15) * 1.5);
-                   ci = Math.max(0, Math.min(shades.length - 1, ci));
-                   ctx.strokeStyle = shades[ci];
-                   ctx.globalAlpha = gc.dry ? (0.5 + nse(bs * 17) * 0.3) : (0.7 + nse(bs * 17) * 0.25);
-                   ctx.lineWidth = bladeW;
-                   ctx.lineCap = 'round';
-                   // Curved blade
-                   var tipX = bx + lean * bladeH * 0.3;
-                   var tipY = by - bladeH;
-                   var cpX = bx + curveAmt + lean * bladeH * 0.15;
-                   var cpY = by - bladeH * 0.55;
-                   ctx.beginPath();
-                   ctx.moveTo(bx, by);
-                   ctx.quadraticCurveTo(cpX, cpY, tipX, tipY);
-                   ctx.stroke();
-                   // Companion blade
-                   if (nse(bs * 19) > 0.3) {
-                       var compX = bx + (nse(bs * 21) - 0.5) * 3;
-                       var compLean = lean + (nse(bs * 23) - 0.5) * 0.5;
-                       var compH = bladeH * (0.5 + nse(bs * 25) * 0.35);
-                       var compCi = Math.min(shades.length - 1, ci + 1);
-                       ctx.strokeStyle = shades[compCi];
-                       ctx.globalAlpha *= 0.6;
-                       ctx.lineWidth = bladeW * 0.6;
-                       ctx.beginPath();
-                       ctx.moveTo(compX, by + 1);
-                       ctx.quadraticCurveTo(
-                           compX + curveAmt * 0.4 + compLean * compH * 0.15,
-                           by - compH * 0.5,
-                           compX + compLean * compH * 0.3,
-                           by - compH
-                       );
-                       ctx.stroke();
-                   }
-               }
-           }
-           ctx.lineCap = 'butt';
-           ctx.restore();
-           // --- Desert oases — green pools with palms in deep desert ---
-           ctx.save();
-           var oases = [
-               [0.50,0.18],[0.68,0.32],[0.55,0.50],[0.78,0.60],[0.45,0.72],[0.82,0.12],
-               [0.62,0.82],[0.42,0.42],[0.74,0.48],[0.58,0.15],[0.70,0.68],[0.48,0.60]
-           ];
-           for (var oi = 0; oi < oases.length; oi++) {
-               var ocx = oases[oi][0] * w, ocy = oases[oi][1] * h;
-               var oSeed = oi * 211 + 13;
-               var oRad = w * (0.013 + nse(oSeed * 3) * 0.007);
-               // Outer vegetation ring
-               ctx.globalAlpha = 0.25;
-               ctx.fillStyle = '#4a8a28';
-               ctx.beginPath(); ctx.arc(ocx, ocy, oRad * 1.5, 0, Math.PI * 2); ctx.fill();
-               ctx.globalAlpha = 0.35;
-               ctx.fillStyle = '#3a7a20';
-               ctx.beginPath(); ctx.arc(ocx, ocy, oRad * 1.2, 0, Math.PI * 2); ctx.fill();
-               // Water pool
-               ctx.globalAlpha = 0.6;
-               ctx.fillStyle = '#1a6a90';
-               ctx.beginPath(); ctx.arc(ocx, ocy, oRad * 0.45, 0, Math.PI * 2); ctx.fill();
-               ctx.fillStyle = '#2a88b0';
-               ctx.globalAlpha = 0.5;
-               ctx.beginPath(); ctx.arc(ocx, ocy, oRad * 0.6, 0, Math.PI * 2); ctx.fill();
-               // Grass blades around pool
-               var numOG = 10 + Math.floor(nse(oSeed * 7) * 6);
-               ctx.lineCap = 'round';
-               for (var og = 0; og < numOG; og++) {
-                   var ogAng = (og / numOG) * Math.PI * 2 + nse(oSeed * 11 + og) * 0.3;
-                   var ogDist = oRad * (0.7 + nse(oSeed * 13 + og) * 0.5);
-                   var ogx = ocx + Math.cos(ogAng) * ogDist;
-                   var ogy = ocy + Math.sin(ogAng) * ogDist;
-                   var ogh = 5 + nse(oSeed * 17 + og) * 7;
-                   var ogL = (nse(oSeed * 19 + og) - 0.5) * ogh * 0.4;
-                   var shades = GRASS_SHADES;
-                   ctx.strokeStyle = shades[Math.floor(nse(oSeed * 23 + og) * shades.length)];
-                   ctx.lineWidth = 1.4 + nse(oSeed * 29 + og) * 0.8;
-                   ctx.globalAlpha = 0.5;
-                   ctx.beginPath();
-                   ctx.moveTo(ogx, ogy);
-                   ctx.quadraticCurveTo(ogx + ogL * 0.4, ogy - ogh * 0.5, ogx + ogL, ogy - ogh);
-                   ctx.stroke();
-               }
-               // Palm trees
-               var numPalms = 2 + Math.floor(nse(oSeed * 31) * 3);
-               for (var pp = 0; pp < numPalms; pp++) {
-                   var ppAng = (pp / numPalms) * Math.PI * 2 + nse(oSeed * 37 + pp) * 0.5;
-                   var ppDist = oRad * (0.85 + nse(oSeed * 41 + pp) * 0.35);
-                   var ppx = ocx + Math.cos(ppAng) * ppDist;
-                   var ppy = ocy + Math.sin(ppAng) * ppDist;
-                   var palmH = w * 0.016;
-                   ctx.globalAlpha = 0.75;
-                   ctx.fillStyle = '#8B6914';
-                   ctx.fillRect(ppx - w * 0.0015, ppy - palmH, w * 0.003, palmH);
-                   ctx.globalAlpha = 0.65;
-                   for (var fr = 0; fr < 6; fr++) {
-                       var frAng = fr * 1.047 + nse(oSeed * 43 + pp) * 0.3;
-                       var frLen = palmH * 0.9;
-                       ctx.strokeStyle = '#2d8a4e';
-                       ctx.lineWidth = 2.5;
-                       ctx.beginPath();
-                       ctx.moveTo(ppx, ppy - palmH);
-                       ctx.quadraticCurveTo(
-                           ppx + Math.cos(frAng) * frLen * 0.5, ppy - palmH - palmH * 0.2,
-                           ppx + Math.cos(frAng) * frLen, ppy - palmH + Math.abs(Math.sin(frAng)) * palmH * 0.3
-                       );
-                       ctx.stroke();
-                   }
-               }
-               ctx.lineCap = 'butt';
-           }
-           ctx.restore();
-           // --- Villages with houses, paths, palms, and crop fields ---
-           ctx.save();
-           // Crop field patches near village positions (drawn FIRST so houses sit on top)
-           for (var fi = 0; fi < villages.length; fi++) {
-               var fvx = villages[fi][0] * w, fvy = villages[fi][1] * h;
-               var fSeed = fi * 137 + 50;
-               var fs = w * 0.025;
-               // Irregular crop field patches — gold/brown rectangles scattered around village
-               ctx.globalAlpha = 0.12;
-               for (var cf = 0; cf < 4; cf++) {
-                   var fangle = cf * 1.57 + nse(fSeed * 7 + cf) * 1.0;
-                   var fdist = fs * (0.8 + nse(fSeed * 11 + cf) * 0.6);
-                   var fcx = fvx + Math.cos(fangle) * fdist;
-                   var fcy = fvy + Math.sin(fangle) * fdist;
-                   var fw = fs * (0.4 + nse(fSeed * 13 + cf * 3) * 0.3);
-                   var fh = fs * (0.3 + nse(fSeed * 17 + cf * 5) * 0.2);
-                   var cropColor = nse(fSeed * 19 + cf * 7) > 0.5 ? '#8a7a40' : '#7a6a30';
-                   ctx.fillStyle = cropColor;
-                   ctx.save();
-                   ctx.translate(fcx, fcy);
-                   ctx.rotate(nse(fSeed * 23 + cf * 9) * 0.4 - 0.2);
-                   ctx.fillRect(-fw/2, -fh/2, fw, fh);
-                   ctx.restore();
-               }
-           }
            ctx.globalAlpha = 1;
-           for (var vi = 0; vi < villages.length; vi++) {
-               var vx = villages[vi][0] * w, vy = villages[vi][1] * h;
-               var vSeed = vi * 137 + 50;
-               var vs = w * 0.022; // village scale (bigger)
-               
-               // Village ground clearing — subtle green patch
-               ctx.globalAlpha = 0.15;
-               ctx.fillStyle = '#5a9a40';
-               ctx.beginPath(); ctx.arc(vx, vy, vs * 2.2, 0, Math.PI * 2); ctx.fill();
-               // Enclosure wall
-               ctx.strokeStyle = '#4a7a28';
-               ctx.lineWidth = 1;
-               ctx.globalAlpha = 0.25;
-               ctx.beginPath(); ctx.arc(vx, vy, vs * 1.6, 0, Math.PI * 2); ctx.stroke();
-               ctx.globalAlpha = 1;
-               // 4-5 houses per village in cluster
-               var numHouses = 4 + (nse(vSeed * 3) > 0.5 ? 1 : 0);
-               for (var hi = 0; hi < numHouses; hi++) {
-                   var angle = hi * 1.57 + vSeed * 0.01 + nse(vSeed * 5 + hi) * 0.3;
-                   var dist = vs * (0.3 + nse(vSeed * 7 + hi * 11) * 0.4);
-                   var hx = vx + Math.cos(angle) * dist;
-                   var hy = vy + Math.sin(angle) * dist;
-                   var hw = w * 0.007 + nse(vSeed * 13 + hi * 17) * w * 0.003;
-                   var hh = hw * 0.7;
-                   // Limestone/mudbrick wall — warm light tone
-                   ctx.fillStyle = '#e8d8b8';
-                   ctx.fillRect(hx - hw / 2, hy - hh, hw, hh);
-                   // Green thatch/palm roof
-                   ctx.fillStyle = '#3a7a20';
-                   ctx.fillRect(hx - hw / 2 - 1, hy - hh - 1, hw + 2, hh * 0.25);
-                   // Door
-                   ctx.fillStyle = '#5a3a1a';
-                   ctx.fillRect(hx - hw * 0.15, hy - hh * 0.4, hw * 0.3, hh * 0.4);
-                   // Window
-                   ctx.fillStyle = '#3a2a1a';
-                   ctx.fillRect(hx - hw * 0.4, hy - hh * 0.65, hw * 0.25, hh * 0.2);
-                   // Limestone texture lines
-                   ctx.strokeStyle = '#c8b898';
-                   ctx.lineWidth = 0.4;
-                   for (var br = 1; br < 3; br++) {
-                       var bry = hy - hh + br * hh / 3;
-                       ctx.beginPath(); ctx.moveTo(hx - hw / 2, bry); ctx.lineTo(hx + hw / 2, bry); ctx.stroke();
-                       }
-                       }
-                       // Small garden patchesaround village (green vegetable plots)
-               ctx.globalAlpha = 0.12;
-               for (var gi = 0; gi < 4; gi++) {
-                   var gAngle = gi * 1.57 + nse(vSeed * 41 + gi) * 0.5;
-                   var gDist = vs * (0.8 + nse(vSeed * 43 + gi * 7) * 0.6);
-                   var gx = vx + Math.cos(gAngle) * gDist;
-                   var gy = vy + Math.sin(gAngle) * gDist;
-                   var gr = vs * (0.1 + nse(vSeed * 47 + gi * 11) * 0.08);
-                   ctx.fillStyle = nse(vSeed * 53 + gi * 13) > 0.5 ? '#4a8a30' : '#3a7a20';
-                   ctx.beginPath(); ctx.arc(gx, gy, gr, 0, Math.PI * 2); ctx.fill();
-               }
-               // Central well — small dark circle at village center
+           for (var ci2 = 0; ci2 < cities.length; ci2++) {
+               var cx2 = cities[ci2][0] * w, cy2 = cities[ci2][1] * h;
+               var cs = w * 0.015;
+               // City shadow
                ctx.globalAlpha = 0.2;
-               ctx.fillStyle = '#3a4a20';
-               ctx.beginPath(); ctx.arc(vx, vy, vs * 0.15, 0, Math.PI * 2); ctx.fill();
-               ctx.fillStyle = '#3a6aa0';
-               ctx.globalAlpha = 0.08;
-               ctx.beginPath(); ctx.arc(vx, vy, vs * 0.1, 0, Math.PI * 2); ctx.fill();
+               ctx.fillStyle = '#000000';
+               ctx.beginPath(); ctx.arc(cx2 + 2, cy2 + 2, cs, 0, Math.PI * 2); ctx.fill();
+               // City building cluster — solid block, not individual dots
+               ctx.globalAlpha = 0.9;
+               ctx.fillStyle = '#d4c4a0'; // sandstone buildings
+               ctx.beginPath(); ctx.arc(cx2, cy2, cs, 0, Math.PI * 2); ctx.fill();
+               // City roof details — simple rectangles, not dots
+               ctx.fillStyle = '#b8a880';
+               ctx.fillRect(cx2 - cs * 0.5, cy2 - cs * 0.3, cs * 0.4, cs * 0.3);
+               ctx.fillRect(cx2 + cs * 0.1, cy2 - cs * 0.2, cs * 0.35, cs * 0.25);
+               ctx.fillRect(cx2 - cs * 0.3, cy2 + cs * 0.1, cs * 0.3, cs * 0.25);
+               // City label
+               ctx.globalAlpha = 0.7;
+               ctx.fillStyle = '#ffffff';
+               ctx.font = 'bold ' + Math.round(w * 0.012) + 'px sans-serif';
+               ctx.textAlign = 'center';
+               ctx.fillText(cities[ci2][2], cx2, cy2 - cs - 2);
                ctx.globalAlpha = 1;
-               // 2 palm trees per village
-               for (var pi = 0; pi < 2; pi++) {
-                   var palmAngle = pi * 3.14 + vSeed * 0.01 + nse(vSeed * 31 + pi) * 0.5;
-                   var palmDist = vs * (1.2 + nse(vSeed * 37 + pi) * 0.5);
-                   var palmX = vx + Math.cos(palmAngle) * palmDist;
-                   var palmY = vy + Math.sin(palmAngle) * palmDist;
-                   palmY = Math.min(palmY, vy + vs * 0.3); // don't go too far down
-                   // Trunk — dark green/brown
-                   ctx.fillStyle = '#3a4a20';
-                   ctx.fillRect(palmX - w * 0.002, palmY, w * 0.004, vs * 0.7);
-                   // Fronds
-                   ctx.fillStyle = '#2d8a4e';
-                   ctx.globalAlpha = 0.5;
-                   for (var fr = 0; fr < 5; fr++) {
-                       var ang = fr * 1.256 + vSeed * 0.01 + pi * 0.5;
-                       ctx.beginPath(); ctx.moveTo(palmX, palmY);
-                       ctx.lineTo(palmX + Math.cos(ang) * vs * 0.7, palmY + Math.sin(ang) * vs * 0.6);
-                       ctx.lineTo(palmX + Math.cos(ang + 0.2) * vs * 0.35, palmY + Math.sin(ang + 0.2) * vs * 0.3);
-                       ctx.closePath(); ctx.fill();
-                   }
-                   ctx.globalAlpha = 1;
-               }
            }
+           ctx.restore();
            // --- Nile: 3-layer depth river with delta branches ---
            // Waypoints: [y, centerX, halfWidth] defining river center and width at each altitude from Aswan to Delta
            var nw = [
@@ -4852,41 +4619,7 @@
            ctx.globalAlpha = 1;
            ctx.fillRect(0, 0, w, h);
            ctx.restore();
-           // --- Dense tree forests ---
-           ctx.save();
-           var FOREST_CLUSTERS = 35;
-           for (var fc = 0; fc < FOREST_CLUSTERS; fc++) {
-               var fcSeed = fc * 491 + 7;
-               var fcx = 0.06 + nse(fcSeed * 3) * 0.84;
-               var fcy = 0.06 + nse(fcSeed * 5) * 0.86;
-               var fcnd = nileDist(fcx, fcy);
-               if (fcnd < 1.5) continue;
-               var treeCount = 5 + Math.floor(nse(fcSeed * 7) * 6);
-               var clusterSpread = w * (0.02 + nse(fcSeed * 11) * 0.015);
-               for (var t = 0; t < treeCount; t++) {
-                   var tSeed = fcSeed + t * 83;
-                   var tax = fcx + (nse(tSeed * 3) - 0.5) * clusterSpread * 2 / w;
-                   var tay = fcy + (nse(tSeed * 5) - 0.5) * clusterSpread * 2 / w;
-                   var tx = tax * w, ty = tay * h;
-                   var tSize = w * (0.005 + nse(tSeed * 7) * 0.004);
-                   // Tree shadow
-                   ctx.globalAlpha = 0.15;
-                   ctx.fillStyle = '#0a1a00';
-                   ctx.beginPath(); ctx.ellipse(tx + tSize * 0.3, ty + tSize * 0.15, tSize * 1.0, tSize * 0.4, 0.3, 0, Math.PI * 2); ctx.fill();
-                   // Tree canopy — layered green circles
-                   ctx.globalAlpha = 0.7;
-                   ctx.fillStyle = '#1a4a0e';
-                   ctx.beginPath(); ctx.arc(tx, ty, tSize, 0, Math.PI * 2); ctx.fill();
-                   ctx.fillStyle = '#2d6a1a';
-                   ctx.globalAlpha = 0.6;
-                   ctx.beginPath(); ctx.arc(tx - tSize * 0.2, ty - tSize * 0.2, tSize * 0.7, 0, Math.PI * 2); ctx.fill();
-                   // Highlight
-                   ctx.fillStyle = '#4a9a2a';
-                   ctx.globalAlpha = 0.4;
-                   ctx.beginPath(); ctx.arc(tx - tSize * 0.3, ty - tSize * 0.3, tSize * 0.35, 0, Math.PI * 2); ctx.fill();
-               }
-           }
-           ctx.restore();
+           // REMOVED: Forest cluster dots
            // --- Atmospheric depth haze on far edges ---
            ctx.save();
            ctx.globalAlpha = 0.06;
