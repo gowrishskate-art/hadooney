@@ -4408,7 +4408,80 @@
            }
            ctx.restore();
 
-           // 6. Golden tint + vignette
+           // 6. Grass patches scattered across the land (sparse, natural)
+           ctx.save();
+           var grassColors = ['#3a6a20', '#4a7a28', '#2a5a18', '#5a8a30'];
+           for (var gp = 0; gp < 180; gp++) {
+               var gs = gp * 31337 + 17;
+               var gx = ((gs * 2654435761) % 1000) / 1000 * w;
+               var gy = (((gs * 40503) % 1000) / 1000) * h;
+               // Distance from river center — denser near Nile, sparse far away
+               var gT = gy / h;
+               var gIdx = Math.min(nw.length - 2, Math.floor(gT * (nw.length - 1)));
+               var gFrac = (gT * (nw.length - 1)) - gIdx;
+               var rn0 = nw[gIdx], rn1 = nw[gIdx + 1] || nw[gIdx];
+               var riverCx = (rn0[1] + (rn1[1] - rn0[1]) * gFrac) * w;
+               var distFromRiver = Math.abs(gx - riverCx) / w;
+               // Fade out grass far from river
+               if (distFromRiver > 0.15 && ((gs * 7919) % 100) / 100 > 0.3) continue;
+               var gSize = w * (0.008 + ((gs * 6271) % 100) / 100 * 0.012);
+               ctx.globalAlpha = 0.15 + ((gs * 4253) % 100) / 100 * 0.15;
+               ctx.fillStyle = grassColors[gs % grassColors.length];
+               ctx.beginPath();
+               ctx.ellipse(gx, gy, gSize, gSize * 0.7, (gs * 0.1) % Math.PI, 0, Math.PI * 2);
+               ctx.fill();
+           }
+           ctx.restore();
+
+           // 7. Villages along the Nile (white mud-brick houses with thatch roofs)
+           ctx.save();
+           var villagePositions = [
+               [0.95, 0.50], [0.85, 0.49], [0.75, 0.50], [0.65, 0.51],
+               [0.55, 0.49], [0.45, 0.50], [0.35, 0.49], [0.25, 0.50],
+               [0.18, 0.48], [0.12, 0.45], [0.08, 0.40]
+           ];
+           for (var vi = 0; vi < villagePositions.length; vi++) {
+               var vy = villagePositions[vi][0] * h;
+               var vx = villagePositions[vi][1] * w;
+               var vs = Math.max(3, w * 0.012); // village size
+               // Offset village to sit beside the river, not on it
+               var vOff = (vi % 2 === 0 ? 1 : -1) * vs * 1.5;
+               // Find river center at this y
+               var vT = villagePositions[vi][0];
+               var vIdx = Math.min(nw.length - 2, Math.floor(vT * (nw.length - 1)));
+               var vFrac = (vT * (nw.length - 1)) - vIdx;
+               var vn0 = nw[vIdx], vn1 = nw[vIdx + 1] || nw[vIdx];
+               var vCx = (vn0[1] + (vn1[1] - vn0[1]) * vFrac) * w;
+               var vHW = (vn0[2] + (vn1[2] - vn0[2]) * vFrac) * w;
+               vx = vCx + vOff;
+               vy = (vn0[0] + (vn1[0] - vn0[0]) * vFrac) * h;
+
+               // 3-4 small houses per village
+               for (var hi = 0; hi < 4; hi++) {
+                   var hs = vs * 0.6;
+                   var hox = (hi % 2 - 0.5) * vs * 1.2;
+                   var hoy = (Math.floor(hi / 2) - 0.5) * vs * 1.0;
+                   // Thatch roof (brown-green)
+                   ctx.fillStyle = '#8a6a2a';
+                   ctx.beginPath();
+                   ctx.moveTo(vx + hox - hs * 0.6, vy + hoy + hs * 0.2);
+                   ctx.lineTo(vx + hox, vy + hoy - hs * 0.4);
+                   ctx.lineTo(vx + hox + hs * 0.6, vy + hoy + hs * 0.2);
+                   ctx.closePath();
+                   ctx.fill();
+                   // Mud-brick wall (tan/white)
+                   ctx.fillStyle = '#e0d0a8';
+                   ctx.fillRect(vx + hox - hs * 0.45, vy + hoy + hs * 0.2, hs * 0.9, hs * 0.6);
+               }
+               // Palm tree next to village
+               ctx.fillStyle = '#3a5a18';
+               ctx.beginPath();
+               ctx.arc(vx + vs * 1.8, vy + vs * 0.5, vs * 0.5, 0, Math.PI * 2);
+               ctx.fill();
+           }
+           ctx.restore();
+
+           // 8. Golden tint + vignette
            ctx.save();
            ctx.globalAlpha = 0.06;
            ctx.fillStyle = '#ffdd88';
