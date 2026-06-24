@@ -4329,6 +4329,19 @@
            ctx.fill();
            ctx.restore();
 
+           // 2b. Nile Valley vegetation — thin green strip along river (fertile floodplain)
+           ctx.save();
+           ctx.globalAlpha = 0.35;
+           ctx.fillStyle = '#1a5c1a';
+           nileOutline(ctx, nw, 2.2, w, h);
+           ctx.fill();
+           // Thinner brighter strip at water's edge
+           ctx.globalAlpha = 0.25;
+           ctx.fillStyle = '#2a7a2a';
+           nileOutline(ctx, nw, 1.15, w, h);
+           ctx.fill();
+           ctx.restore();
+
            // 3. River water — 5 depth layers (light edges → dark center)
            var depthLayers = [
                { scale: 1.0,  color: '#3a90cc' },
