@@ -4419,8 +4419,8 @@
                '#2a7a1a', '#3a8a24', '#1a4a0a', '#5a9a30'
            ];
            
-           // Grass clumps along floodplain (near river)
-           for (var gc = 0; gc < 1200; gc++) {
+           // Grass clumps along floodplain (near river) — natural spacing, not too dense
+           for (var gc = 0; gc < 400; gc++) {
                var gs = gc * 13331 + 43;
                var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                var gy = (((gs * 65521) % 10000) / 10000) * h;
@@ -4434,20 +4434,20 @@
                var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
                var distFromRiver = Math.abs(gx - riverCx) - riverHW;
                
-               // Skip if in water
-               if (distFromRiver < 0) continue;
+               // Skip if in water or mud bank
+               if (distFromRiver < riverHW * 0.8) continue;
                
                // Density falls off with distance from river
-               var density = Math.max(0, 1 - distFromRiver / (w * 0.22));
+               var density = Math.max(0, 1 - distFromRiver / (w * 0.18));
                // Noise-based patchiness
                var patchNoise = gfBm(gx * 0.006, gy * 0.006, 4, 888);
                density *= (0.3 + patchNoise * 0.7);
                
-               if (density < 0.10) continue;
+               if (density < 0.18) continue;
                
-               // Each clump: 6-12 blades
-               var bladeCount = 6 + Math.floor(density * 6 + ((gs * 7919) % 100) / 100 * 6);
-               var clumpR = w * 0.008;
+               // Each clump: 5-9 blades (sparser than before)
+               var bladeCount = 5 + Math.floor(density * 4 + ((gs * 7919) % 100) / 100 * 4);
+               var clumpR = w * 0.01; // slightly larger clump radius for natural spread
                
                for (var bi = 0; bi < bladeCount; bi++) {
                    var bs = bi * 37 + gs;
@@ -4455,11 +4455,11 @@
                    var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
                    
                    // Blade properties
-                   var bh = w * (0.010 + ((bs * 4253) % 100) / 100 * 0.015); // 1%-2.5% width
-                   var bw = w * 0.0012; // thicker blade
+                   var bh = w * (0.010 + ((bs * 4253) % 100) / 100 * 0.012); // 1%-2.2% width
+                   var bw = w * 0.001;
                    var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.6 - Math.PI * 0.3;
                    
-                   ctx.globalAlpha = 0.25 + density * 0.4;
+                   ctx.globalAlpha = 0.2 + density * 0.35;
                    ctx.strokeStyle = bladeColors[bs % bladeColors.length];
                    ctx.lineWidth = Math.max(1, Math.floor(bw));
                    
@@ -4474,7 +4474,7 @@
            }
            
            // Sparse desert grass clumps (very rare)
-           for (var gc = 0; gc < 80; gc++) {
+           for (var gc = 0; gc < 50; gc++) {
                var gs = gc * 24593 + 71;
                var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                var gy = (((gs * 65521) % 10000) / 10000) * h;
@@ -4532,8 +4532,6 @@
                var vy = villagePositions[vi][0] * h;
                var vx = villagePositions[vi][1] * w;
                var vs = Math.max(3, w * 0.012); // village size
-               // Offset village to sit beside the river, not on it
-               var vOff = (vi % 2 === 0 ? 1 : -1) * vs * 1.5;
                // Find river center at this y
                var vT = villagePositions[vi][0];
                var vIdx = Math.min(nw.length - 2, Math.floor(vT * (nw.length - 1)));
@@ -4541,6 +4539,9 @@
                var vn0 = nw[vIdx], vn1 = nw[vIdx + 1] || nw[vIdx];
                var vCx = (vn0[1] + (vn1[1] - vn0[1]) * vFrac) * w;
                var vHW = (vn0[2] + (vn1[2] - vn0[2]) * vFrac) * w;
+               // Offset village onto LAND: river half-width + mud bank (1.8x) + village radius + gap
+               var landOffset = vHW * 1.8 + vs * 2.5;
+               var vOff = (vi % 2 === 0 ? 1 : -1) * landOffset;
                vx = vCx + vOff;
                vy = (vn0[0] + (vn1[0] - vn0[0]) * vFrac) * h;
 
