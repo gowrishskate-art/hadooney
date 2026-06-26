@@ -4329,19 +4329,6 @@
            ctx.fill();
            ctx.restore();
 
-           // 2b. Nile Valley vegetation — thin green strip along river (fertile floodplain)
-           ctx.save();
-           ctx.globalAlpha = 0.35;
-           ctx.fillStyle = '#1a5c1a';
-           nileOutline(ctx, nw, 2.2, w, h);
-           ctx.fill();
-           // Thinner brighter strip at water's edge
-           ctx.globalAlpha = 0.25;
-           ctx.fillStyle = '#2a7a2a';
-           nileOutline(ctx, nw, 1.15, w, h);
-           ctx.fill();
-           ctx.restore();
-
            // 3. River water — 5 depth layers (light edges → dark center)
            var depthLayers = [
                { scale: 1.0,  color: '#3a90cc' },
@@ -4408,29 +4395,130 @@
            }
            ctx.restore();
 
-           // 6. Grass patches scattered across the land (sparse, natural)
+           // 6. REALISTIC GRASS — individual blades, noise-driven, like real world
            ctx.save();
-           var grassColors = ['#3a6a20', '#4a7a28', '#2a5a18', '#5a8a30'];
-           for (var gp = 0; gp < 180; gp++) {
-               var gs = gp * 31337 + 17;
-               var gx = ((gs * 2654435761) % 1000) / 1000 * w;
-               var gy = (((gs * 40503) % 1000) / 1000) * h;
-               // Distance from river center — denser near Nile, sparse far away
+           
+           // Noise function for grass clumping
+           function gnse(x, y, s) {
+               var n = Math.sin(x * 12.9898 + y * 78.233 + s) * 43758.5453;
+               return n - Math.floor(n);
+           }
+           // FBM noise for natural clumping
+           function gfBm(x, y, oct, seed) {
+               var v = 0, a = 0.5, f = 1;
+               for (var o = 0; o < oct; o++) {
+                   v += a * gnse(x * f, y * f, seed + o);
+                   f *= 2; a *= 0.5;
+               }
+               return v;
+           }
+           
+           // Draw individual grass blades in clumps
+           var bladeColors = [
+               '#2a6a1a', '#3a7a20', '#1a5a10', '#4a8a28',
+               '#2a7a1a', '#3a8a24', '#1a4a0a', '#5a9a30'
+           ];
+           
+           // Grass clumps along floodplain (near river)
+           for (var gc = 0; gc < 600; gc++) {
+               var gs = gc * 13331 + 43;
+               var gx = ((gs * 2654435761) % 10000) / 10000 * w;
+               var gy = (((gs * 65521) % 10000) / 10000) * h;
+               
+               // Distance from river
                var gT = gy / h;
                var gIdx = Math.min(nw.length - 2, Math.floor(gT * (nw.length - 1)));
                var gFrac = (gT * (nw.length - 1)) - gIdx;
                var rn0 = nw[gIdx], rn1 = nw[gIdx + 1] || nw[gIdx];
                var riverCx = (rn0[1] + (rn1[1] - rn0[1]) * gFrac) * w;
-               var distFromRiver = Math.abs(gx - riverCx) / w;
-               // Fade out grass far from river
-               if (distFromRiver > 0.15 && ((gs * 7919) % 100) / 100 > 0.3) continue;
-               var gSize = w * (0.008 + ((gs * 6271) % 100) / 100 * 0.012);
-               ctx.globalAlpha = 0.15 + ((gs * 4253) % 100) / 100 * 0.15;
-               ctx.fillStyle = grassColors[gs % grassColors.length];
-               ctx.beginPath();
-               ctx.ellipse(gx, gy, gSize, gSize * 0.7, (gs * 0.1) % Math.PI, 0, Math.PI * 2);
-               ctx.fill();
+               var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
+               var distFromRiver = Math.abs(gx - riverCx) - riverHW;
+               
+               // Skip if in water
+               if (distFromRiver < 0) continue;
+               
+               // Density falls off with distance from river
+               var density = Math.max(0, 1 - distFromRiver / (w * 0.22));
+               // Noise-based patchiness
+               var patchNoise = gfBm(gx * 0.006, gy * 0.006, 4, 888);
+               density *= (0.3 + patchNoise * 0.7);
+               
+               if (density < 0.15) continue;
+               
+               // Each clump: 4-8 blades
+               var bladeCount = 4 + Math.floor(density * 4 + ((gs * 7919) % 100) / 100 * 4);
+               var clumpR = w * 0.008;
+               
+               for (var bi = 0; bi < bladeCount; bi++) {
+                   var bs = bi * 37 + gs;
+                   var bx = gx + (Math.sin(bs * 0.5) * ((bs * 104729) % 100) / 100) * clumpR;
+                   var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
+                   
+                   // Blade properties
+                   var bh = w * (0.006 + ((bs * 4253) % 100) / 100 * 0.010); // 0.6%-1.6% width
+                   var bw = w * 0.0008; // thin blade
+                   var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.6 - Math.PI * 0.3;
+                   
+                   ctx.globalAlpha = 0.25 + density * 0.4;
+                   ctx.strokeStyle = bladeColors[bs % bladeColors.length];
+                   ctx.lineWidth = Math.max(1, Math.floor(bw));
+                   
+                   ctx.beginPath();
+                   ctx.moveTo(bx, by);
+                   ctx.lineTo(
+                       bx + Math.sin(angle) * bh,
+                       by - Math.cos(angle) * bh
+                   );
+                   ctx.stroke();
+               }
            }
+           
+           // Sparse desert grass clumps (very rare)
+           for (var gc = 0; gc < 80; gc++) {
+               var gs = gc * 24593 + 71;
+               var gx = ((gs * 2654435761) % 10000) / 10000 * w;
+               var gy = (((gs * 65521) % 10000) / 10000) * h;
+               
+               var gT = gy / h;
+               var gIdx = Math.min(nw.length - 2, Math.floor(gT * (nw.length - 1)));
+               var gFrac = (gT * (nw.length - 1)) - gIdx;
+               var rn0 = nw[gIdx], rn1 = nw[gIdx + 1] || nw[gIdx];
+               var riverCx = (rn0[1] + (rn1[1] - rn0[1]) * gFrac) * w;
+               var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
+               var distFromRiver = Math.abs(gx - riverCx) - riverHW;
+               
+               // Only far from river (>25% of width)
+               if (distFromRiver < w * 0.25) continue;
+               
+               var sparseNoise = gfBm(gx * 0.01, gy * 0.01, 3, 555);
+               if (sparseNoise < 0.55) continue;
+               
+               var bladeCount = 2 + Math.floor(sparseNoise * 3);
+               var clumpR = w * 0.01;
+               
+               for (var bi = 0; bi < bladeCount; bi++) {
+                   var bs = bi * 37 + gs;
+                   var bx = gx + (Math.sin(bs * 0.5) * ((bs * 104729) % 100) / 100) * clumpR;
+                   var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
+                   
+                   var bh = w * (0.005 + ((bs * 4253) % 100) / 100 * 0.008);
+                   var bw = w * 0.0007;
+                   var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.5 - Math.PI * 0.25;
+                   
+                   ctx.globalAlpha = 0.12;
+                   ctx.strokeStyle = bladeColors[bs % bladeColors.length];
+                   ctx.lineWidth = Math.max(1, Math.floor(bw));
+                   
+                   ctx.beginPath();
+                   ctx.moveTo(bx, by);
+                   ctx.lineTo(
+                       bx + Math.sin(angle) * bh,
+                       by - Math.cos(angle) * bh
+                   );
+                   ctx.stroke();
+               }
+           }
+           
            ctx.restore();
 
            // 7. Villages along the Nile (white mud-brick houses with thatch roofs)
