@@ -4420,7 +4420,7 @@
            ];
            
            // Grass clumps along floodplain (near river)
-           for (var gc = 0; gc < 600; gc++) {
+           for (var gc = 0; gc < 1200; gc++) {
                var gs = gc * 13331 + 43;
                var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                var gy = (((gs * 65521) % 10000) / 10000) * h;
@@ -4443,10 +4443,10 @@
                var patchNoise = gfBm(gx * 0.006, gy * 0.006, 4, 888);
                density *= (0.3 + patchNoise * 0.7);
                
-               if (density < 0.15) continue;
+               if (density < 0.10) continue;
                
-               // Each clump: 4-8 blades
-               var bladeCount = 4 + Math.floor(density * 4 + ((gs * 7919) % 100) / 100 * 4);
+               // Each clump: 6-12 blades
+               var bladeCount = 6 + Math.floor(density * 6 + ((gs * 7919) % 100) / 100 * 6);
                var clumpR = w * 0.008;
                
                for (var bi = 0; bi < bladeCount; bi++) {
@@ -4455,8 +4455,8 @@
                    var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
                    
                    // Blade properties
-                   var bh = w * (0.006 + ((bs * 4253) % 100) / 100 * 0.010); // 0.6%-1.6% width
-                   var bw = w * 0.0008; // thin blade
+                   var bh = w * (0.010 + ((bs * 4253) % 100) / 100 * 0.015); // 1%-2.5% width
+                   var bw = w * 0.0012; // thicker blade
                    var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.6 - Math.PI * 0.3;
                    
                    ctx.globalAlpha = 0.25 + density * 0.4;
