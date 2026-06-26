@@ -5781,20 +5781,9 @@
            }
 
            if (isEgypt) {
-               // Egypt: Subtle territory ownership tints — like Polytopia
-               // Tiles exist for gameplay but blend seamlessly into terrain
-               for (var pi = 0; pi < _territoryPaths.length; pi++) {
-                   var tp = _territoryPaths[pi];
-                   var territory = gameState.territories[tp.id];
-                   if (!territory) continue;
-                   var ownerColor = factionColors[territory.owner] || '#888888';
-                   
-                   // Very subtle tint on each territory tile
-                   ctx.fillStyle = ownerColor + '15'; // 8% opacity
-                   ctx.fill(tp.path);
-               }
-               // NO hard borders — seamless landmass
-               // Only highlight selected territory
+               // Egypt: Tiles exist for gameplay but are COMPLETELY INVISIBLE
+               // Like Polytopia — no visual tiles, just seamless terrain
+               // Ownership shown by army icons only
            } else {
                // Other eras: dark separator borders
                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
