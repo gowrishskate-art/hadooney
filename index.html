@@ -3001,8 +3001,8 @@
            endMessage: '',
            territories: [],
            // Camera system for pannable 3D map (Polytopia-style)
-           cameraX: 0, cameraY: 0, cameraZoom: 1,
-           cameraTargetX: 0, cameraTargetY: 0, cameraTargetZoom: 1,
+           cameraX: 0, cameraY: 0, cameraZoom: 0.33,
+           cameraTargetX: 0, cameraTargetY: 0, cameraTargetZoom: 0.33,
            cameraSmoothing: 0.15
        };
 
@@ -4310,8 +4310,8 @@
        var _voidStars = [];
 
        function initWorldCanvas(w, h) {
-                  // World is 1.5x screen size - small enough to see void around it when zoomed out
-                  var scale = 1.5;
+                  // World is 4x screen size - large enough to see void around it when zoomed out to 0.25
+                  var scale = 4.0;
                   _worldW = Math.round(w * scale);
                   _worldH = Math.round(h * scale);
                   if (!_worldCanvas || _worldCanvas.width !== _worldW || _worldCanvas.height !== _worldH) {
@@ -4341,8 +4341,8 @@
                   gameState.cameraY += (gameState.cameraTargetY - gameState.cameraY) * s;
                   gameState.cameraZoom += (gameState.cameraTargetZoom - gameState.cameraZoom) * s;
            
-                  // Clamp zoom: 0.3 (see whole world in void) to 3 (close detail)
-                  if (gameState.cameraZoom < 0.3) { gameState.cameraZoom = 0.3; gameState.cameraTargetZoom = 0.3; }
+                  // Clamp zoom: 0.25 (see void around world) to 3 (close detail)
+                  if (gameState.cameraZoom < 0.25) { gameState.cameraZoom = 0.25; gameState.cameraTargetZoom = 0.25; }
                   if (gameState.cameraZoom > 3) { gameState.cameraZoom = 3; gameState.cameraTargetZoom = 3; }
            
                   // Clamp pan to world bounds (allow seeing void around world at low zoom)
@@ -5730,7 +5730,7 @@
            gs.cameraY += (gs.cameraTargetY - gs.cameraY) * s;
            gs.cameraZoom += (gs.cameraTargetZoom - gs.cameraZoom) * s;
            // Clamp zoom
-           if (gs.cameraZoom < 0.5) { gs.cameraZoom = 0.5; gs.cameraTargetZoom = 0.5; }
+           if (gs.cameraZoom < 0.3) { gs.cameraZoom = 0.3; gs.cameraTargetZoom = 0.3; }
            if (gs.cameraZoom > 3) { gs.cameraZoom = 3; gs.cameraTargetZoom = 3; }
        }
 
@@ -5775,14 +5775,21 @@
                                                 _worldCtx.fill();
                                             }
                                             _worldCtx.globalAlpha = 1;
-          
-                                            // Draw Egypt map on world (no translate - map draws at 0,0)
-                                            if (eraId === 'egypt') {
-                                                drawEgyptMapBackground(_worldW, _worldH, _worldCtx);
-                                            } else {
-                                                drawTopDownBackground(eraId, _worldW, _worldH, ERA_LANDS[eraId]);
-                                            }
-                  }
+         
+                                                                                        // Draw Egypt map on world (centered, 60% of world size — void visible at edges)
+                                                                                        if (eraId === 'egypt') {
+                                                                                            // Save and translate to center of world
+                                                                                            _worldCtx.save();
+                                                                                            _worldCtx.translate(_worldW/2, _worldH/2);
+                                                                                            // Draw map at 60% scale (leaving 20% void margin on each side)
+                                                                                            var mapScale = 0.6;
+                                                                                            _worldCtx.scale(mapScale, mapScale);
+                                                                                            drawEgyptMapBackground(_worldW, _worldH, _worldCtx);
+                                                                                            _worldCtx.restore();
+                                                                                        } else {
+                                                                                            drawTopDownBackground(eraId, _worldW, _worldH, ERA_LANDS[eraId]);
+                                                                                        }
+                                                              }
 
                   function renderGame() {
                       if (!ctx || !canvas) return;
