@@ -4455,8 +4455,8 @@
                    var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
                    
                    // Blade properties
-                   var bh = w * (0.010 + ((bs * 4253) % 100) / 100 * 0.012); // 1%-2.2% width
-                   var bw = w * 0.001;
+                   var bh = w * (0.014 + ((bs * 4253) % 100) / 100 * 0.012); // 1.4%-2.6% width
+                   var bw = w * 0.0012;
                    var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.6 - Math.PI * 0.3;
                    
                    ctx.globalAlpha = 0.2 + density * 0.35;
@@ -4545,7 +4545,22 @@
                vx = vCx + vOff;
                vy = (vn0[0] + (vn1[0] - vn0[0]) * vFrac) * h;
 
-               // 3-4 small houses per village
+               // CLEAR GRASS around village (circular cleared area)
+               var clearR = vs * 3.5; // radius to clear grass
+               ctx.save();
+               ctx.globalCompositeOperation = 'destination-out';
+               ctx.beginPath();
+               ctx.arc(vx, vy, clearR, 0, Math.PI * 2);
+               ctx.fill();
+               ctx.restore();
+
+               // VILLAGE BASE — clean dirt foundation
+               ctx.fillStyle = '#c4a870';
+               ctx.beginPath();
+               ctx.arc(vx, vy, vs * 2.8, 0, Math.PI * 2);
+               ctx.fill();
+
+               // 3-4 small houses per village (neat grid)
                for (var hi = 0; hi < 4; hi++) {
                    var hs = vs * 0.6;
                    var hox = (hi % 2 - 0.5) * vs * 1.2;
