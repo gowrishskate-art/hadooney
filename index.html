@@ -4717,70 +4717,70 @@
                    var bw = w * 0.0012;
                    var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.6 - Math.PI * 0.3;
                    
-                   ctx.globalAlpha = 0.2 + density * 0.35;
-                   ctx.strokeStyle = bladeColors[bs % bladeColors.length];
-                   ctx.lineWidth = Math.max(1, Math.floor(bw));
+                   ctxToUse.globalAlpha = 0.2 + density * 0.35;
+                                      ctxToUse.strokeStyle = bladeColors[bs % bladeColors.length];
+                                      ctxToUse.lineWidth = Math.max(1, Math.floor(bw));
                    
-                   ctx.beginPath();
-                   ctx.moveTo(bx, by);
-                   ctx.lineTo(
-                       bx + Math.sin(angle) * bh,
-                       by - Math.cos(angle) * bh
-                   );
-                   ctx.stroke();
-               }
-           }
+                                      ctxToUse.beginPath();
+                                      ctxToUse.moveTo(bx, by);
+                                      ctxToUse.lineTo(
+                                          bx + Math.sin(angle) * bh,
+                                          by - Math.cos(angle) * bh
+                                      );
+                                      ctxToUse.stroke();
+                                  }
+                              }
            
-           // Sparse desert grass clumps (very rare)
-           for (var gc = 0; gc < 50; gc++) {
-               var gs = gc * 24593 + 71;
-               var gx = ((gs * 2654435761) % 10000) / 10000 * w;
-               var gy = (((gs * 65521) % 10000) / 10000) * h;
+                              // Sparse desert grass clumps (very rare)
+                              for (var gc = 0; gc < 50; gc++) {
+                                  var gs = gc * 24593 + 71;
+                                  var gx = ((gs * 2654435761) % 10000) / 10000 * w;
+                                  var gy = (((gs * 65521) % 10000) / 10000) * h;
                
-               var gT = gy / h;
-               var gIdx = Math.min(nw.length - 2, Math.floor(gT * (nw.length - 1)));
-               var gFrac = (gT * (nw.length - 1)) - gIdx;
-               var rn0 = nw[gIdx], rn1 = nw[gIdx + 1] || nw[gIdx];
-               var riverCx = (rn0[1] + (rn1[1] - rn0[1]) * gFrac) * w;
-               var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
-               var distFromRiver = Math.abs(gx - riverCx) - riverHW;
+                                  var gT = gy / h;
+                                  var gIdx = Math.min(nw.length - 2, Math.floor(gT * (nw.length - 1)));
+                                  var gFrac = (gT * (nw.length - 1)) - gIdx;
+                                  var rn0 = nw[gIdx], rn1 = nw[gIdx + 1] || nw[gIdx];
+                                  var riverCx = (rn0[1] + (rn1[1] - rn0[1]) * gFrac) * w;
+                                  var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
+                                  var distFromRiver = Math.abs(gx - riverCx) - riverHW;
                
-               // Only far from river (>25% of width)
-               if (distFromRiver < w * 0.25) continue;
+                                  // Only far from river (>25% of width)
+                                  if (distFromRiver < w * 0.25) continue;
                
-               var sparseNoise = gfBm(gx * 0.01, gy * 0.01, 3, 555);
-               if (sparseNoise < 0.55) continue;
+                                  var sparseNoise = gfBm(gx * 0.01, gy * 0.01, 3, 555);
+                                  if (sparseNoise < 0.55) continue;
                
-               var bladeCount = 2 + Math.floor(sparseNoise * 3);
-               var clumpR = w * 0.01;
+                                  var bladeCount = 2 + Math.floor(sparseNoise * 3);
+                                  var clumpR = w * 0.01;
                
-               for (var bi = 0; bi < bladeCount; bi++) {
-                   var bs = bi * 37 + gs;
-                   var bx = gx + (Math.sin(bs * 0.5) * ((bs * 104729) % 100) / 100) * clumpR;
-                   var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
+                                  for (var bi = 0; bi < bladeCount; bi++) {
+                                      var bs = bi * 37 + gs;
+                                      var bx = gx + (Math.sin(bs * 0.5) * ((bs * 104729) % 100) / 100) * clumpR;
+                                      var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
                    
-                   var bh = w * (0.005 + ((bs * 4253) % 100) / 100 * 0.008);
-                   var bw = w * 0.0007;
-                   var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.5 - Math.PI * 0.25;
+                                      var bh = w * (0.005 + ((bs * 4253) % 100) / 100 * 0.008);
+                                      var bw = w * 0.0007;
+                                      var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.5 - Math.PI * 0.25;
                    
-                   ctx.globalAlpha = 0.12;
-                   ctx.strokeStyle = bladeColors[bs % bladeColors.length];
-                   ctx.lineWidth = Math.max(1, Math.floor(bw));
+                                      ctxToUse.globalAlpha = 0.12;
+                                      ctxToUse.strokeStyle = bladeColors[bs % bladeColors.length];
+                                      ctxToUse.lineWidth = Math.max(1, Math.floor(bw));
                    
-                   ctx.beginPath();
-                   ctx.moveTo(bx, by);
-                   ctx.lineTo(
-                       bx + Math.sin(angle) * bh,
-                       by - Math.cos(angle) * bh
-                   );
-                   ctx.stroke();
-               }
-           }
+                                      ctxToUse.beginPath();
+                                      ctxToUse.moveTo(bx, by);
+                                      ctxToUse.lineTo(
+                                          bx + Math.sin(angle) * bh,
+                                          by - Math.cos(angle) * bh
+                                      );
+                                      ctxToUse.stroke();
+                                  }
+                              }
            
-           ctx.restore();
-
-           // 7. Villages along the Nile (white mud-brick houses with thatch roofs)
-           ctx.save();
+                              ctxToUse.restore();
+           
+                              // 7. Villages along the Nile (white mud-brick houses with thatch roofs)
+                              ctxToUse.save();
            var villagePositions = [
                [0.95, 0.50], [0.85, 0.49], [0.75, 0.50], [0.65, 0.51],
                [0.55, 0.49], [0.45, 0.50], [0.35, 0.49], [0.25, 0.50],
@@ -4819,45 +4819,45 @@
                ctx.fill();
 
                // 3-4 small houses per village (neat grid)
-               for (var hi = 0; hi < 4; hi++) {
-                   var hs = vs * 0.6;
-                   var hox = (hi % 2 - 0.5) * vs * 1.2;
-                   var hoy = (Math.floor(hi / 2) - 0.5) * vs * 1.0;
-                   // Thatch roof (brown-green)
-                   ctx.fillStyle = '#8a6a2a';
-                   ctx.beginPath();
-                   ctx.moveTo(vx + hox - hs * 0.6, vy + hoy + hs * 0.2);
-                   ctx.lineTo(vx + hox, vy + hoy - hs * 0.4);
-                   ctx.lineTo(vx + hox + hs * 0.6, vy + hoy + hs * 0.2);
-                   ctx.closePath();
-                   ctx.fill();
-                   // Mud-brick wall (tan/white)
-                   ctx.fillStyle = '#e0d0a8';
-                   ctx.fillRect(vx + hox - hs * 0.45, vy + hoy + hs * 0.2, hs * 0.9, hs * 0.6);
-               }
-               // Palm tree next to village
-               ctx.fillStyle = '#3a5a18';
-               ctx.beginPath();
-               ctx.arc(vx + vs * 1.8, vy + vs * 0.5, vs * 0.5, 0, Math.PI * 2);
-               ctx.fill();
-           }
-           ctx.restore();
-
-           // 8. Golden tint + vignette
-           ctx.save();
-           ctx.globalAlpha = 0.06;
-           ctx.fillStyle = '#ffdd88';
-           ctx.fillRect(0, 0, w, h);
-           ctx.restore();
-           ctx.save();
-           var vGrad = ctx.createRadialGradient(w*0.5, h*0.5, w*0.25, w*0.5, h*0.5, w*0.85);
-           vGrad.addColorStop(0, 'rgba(0,0,0,0)');
-           vGrad.addColorStop(0.6, 'rgba(0,0,0,0.08)');
-           vGrad.addColorStop(1, 'rgba(60,40,10,0.3)');
-           ctx.fillStyle = vGrad;
-           ctx.fillRect(0, 0, w, h);
-           ctx.restore();
-       }
+                              for (var hi = 0; hi < 4; hi++) {
+                                  var hs = vs * 0.6;
+                                  var hox = (hi % 2 - 0.5) * vs * 1.2;
+                                  var hoy = (Math.floor(hi / 2) - 0.5) * vs * 1.0;
+                                  // Thatch roof (brown-green)
+                                  ctxToUse.fillStyle = '#8a6a2a';
+                                  ctxToUse.beginPath();
+                                  ctxToUse.moveTo(vx + hox - hs * 0.6, vy + hoy + hs * 0.2);
+                                  ctxToUse.lineTo(vx + hox, vy + hoy - hs * 0.4);
+                                  ctxToUse.lineTo(vx + hox + hs * 0.6, vy + hoy + hs * 0.2);
+                                  ctxToUse.closePath();
+                                  ctxToUse.fill();
+                                  // Mud-brick wall (tan/white)
+                                  ctxToUse.fillStyle = '#e0d0a8';
+                                  ctxToUse.fillRect(vx + hox - hs * 0.45, vy + hoy + hs * 0.2, hs * 0.9, hs * 0.6);
+                              }
+                              // Palm tree next to village
+                              ctxToUse.fillStyle = '#3a5a18';
+                              ctxToUse.beginPath();
+                              ctxToUse.arc(vx + vs * 1.8, vy + vs * 0.5, vs * 0.5, 0, Math.PI * 2);
+                              ctxToUse.fill();
+                          }
+                          ctxToUse.restore();
+           
+                          // 8. Golden tint + vignette
+                          ctxToUse.save();
+                          ctxToUse.globalAlpha = 0.06;
+                          ctxToUse.fillStyle = '#ffdd88';
+                          ctxToUse.fillRect(0, 0, w, h);
+                          ctxToUse.restore();
+                          ctxToUse.save();
+                          var vGrad = ctxToUse.createRadialGradient(w*0.5, h*0.5, w*0.25, w*0.5, h*0.5, w*0.85);
+                          vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                          vGrad.addColorStop(0.6, 'rgba(0,0,0,0.08)');
+                          vGrad.addColorStop(1, 'rgba(60,40,10,0.3)');
+                          ctxToUse.fillStyle = vGrad;
+                          ctxToUse.fillRect(0, 0, w, h);
+                          ctxToUse.restore();
+                      }
 
        function drawTopDownBackground(eraId, w, h, land) {
            // Full-canvas top-down terrain background for all non-Egypt eras
