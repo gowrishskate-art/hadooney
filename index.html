@@ -2999,7 +2999,11 @@
            weaponTargetMode: null, pausedAt: null,
            timedEffects: [],
            endMessage: '',
-           territories: []
+           territories: [],
+           // Camera system for pannable 3D map (Polytopia-style)
+           cameraX: 0, cameraY: 0, cameraZoom: 1,
+           cameraTargetX: 0, cameraTargetY: 0, cameraTargetZoom: 1,
+           cameraSmoothing: 0.15
        };
 
        function addTimedEffect(ms, callback) {
@@ -3960,11 +3964,16 @@
            ctx = canvas.getContext('2d');
            _territoryPaths = []; invalidateBgCache(); invalidateMapCache();
            if (!canvasInitialized) {
-               canvas.addEventListener('click', handleCanvasClick);
+               // Pan/Zoom handlers (Polytopia-style)
+               canvas.addEventListener('wheel', handleWheel, { passive: false });
+               canvas.addEventListener('mousedown', handleMouseDown);
+               canvas.addEventListener('mousemove', handleMouseMove);
+               canvas.addEventListener('mouseup', handleMouseUp);
+               canvas.addEventListener('mouseleave', handleMouseUp);
                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
                canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
                canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-               canvas.addEventListener('mousemove', handleMouseMove);
+               canvas.addEventListener('click', handleCanvasClick);
                window.addEventListener('resize', handleWindowResize);
                canvasInitialized = true;
            }
@@ -3975,9 +3984,9 @@
 
        function ensureCanvasSized() {
            if (!canvas) return;
-           const container = document.querySelector('.game-canvas-container');
+           var container = document.querySelector('.game-canvas-container');
            if (!container) return;
-           const rect = container.getBoundingClientRect();
+           var rect = container.getBoundingClientRect();
            if (rect.width > 0 && rect.height > 0 && canvas.width > 0 && canvas.height > 0) return;
            canvas.width = Math.max(1, rect.width || window.innerWidth);
            canvas.height = Math.max(1, rect.height || window.innerHeight);
@@ -3985,26 +3994,145 @@
 
        function handleWindowResize() {
            if (gameState.screen !== 'game' || !canvas) return;
-           const container = document.querySelector('.game-canvas-container');
-           const rect = container.getBoundingClientRect();
-           const oldW = canvas.width, oldH = canvas.height;
+           var container = document.querySelector('.game-canvas-container');
+           var rect = container.getBoundingClientRect();
+           var oldW = canvas.width, oldH = canvas.height;
            canvas.width = Math.max(1, rect.width || window.innerWidth);
            canvas.height = Math.max(1, rect.height || window.innerHeight);
-           const scaleX = canvas.width / Math.max(1, oldW), scaleY = canvas.height / Math.max(1, oldH);
+           var scaleX = canvas.width / Math.max(1, oldW), scaleY = canvas.height / Math.max(1, oldH);
            gameState.player.x *= scaleX; gameState.player.y *= scaleY;
-           gameState.opponents.forEach(o => { o.x *= scaleX; o.y *= scaleY; });
+           gameState.opponents.forEach(function(o) { o.x *= scaleX; o.y *= scaleY; });
            gameState.armyScale = Math.min(canvas.width, canvas.height) / 5;
            _territoryPaths = []; invalidateBgCache(); invalidateMapCache(); renderGame();
        }
 
+       // ==================== PAN/ZOOM INPUT HANDLERS ====================
+       var _isPanning = false, _panStartX = 0, _panStartY = 0;
+       var _lastTouchDist = 0, _lastTouchMidX = 0, _lastTouchMidY = 0;
+
+       function handleMouseDown(e) {
+           if (e.button !== 0) return; // Only left click
+           e.preventDefault();
+           _isPanning = true;
+           _panStartX = e.clientX;
+           _panStartY = e.clientY;
+           canvas.style.cursor = 'grabbing';
+       }
+
+       function handleMouseMove(e) {
+           var rect = canvas.getBoundingClientRect();
+           var x = (e.clientX - rect.left) * (canvas.width / rect.width);
+           var y = (e.clientY - rect.top) * (canvas.height / rect.height);
+           
+           if (_isPanning) {
+               // Pan camera
+               var dx = (e.clientX - _panStartX) / gameState.cameraZoom;
+               var dy = (e.clientY - _panStartY) / gameState.cameraZoom;
+               gameState.cameraTargetX -= dx;
+               gameState.cameraTargetY -= dy;
+               _panStartX = e.clientX;
+               _panStartY = e.clientY;
+               markDirty();
+           } else {
+               // Update hover for tooltips
+               _hoverX = x; _hoverY = y;
+               var f = getArmyAtPosition(x, y);
+               canvas.style.cursor = f ? 'pointer' : 'default';
+               if (gameState.selectedArmy && f && f.id !== 'player') markDirty();
+           }
+       }
+
+       function handleMouseUp(e) {
+           if (_isPanning) {
+               _isPanning = false;
+               canvas.style.cursor = 'default';
+           }
+       }
+
+       function handleWheel(e) {
+           e.preventDefault();
+           var rect = canvas.getBoundingClientRect();
+           var x = (e.clientX - rect.left) * (canvas.width / rect.width);
+           var y = (e.clientY - rect.top) * (canvas.height / rect.height);
+           
+           // Zoom towards mouse position
+           var zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+           var newZoom = gameState.cameraTargetZoom * zoomFactor;
+           newZoom = Math.max(0.5, Math.min(3, newZoom));
+           
+           // Adjust camera target to zoom towards mouse
+           var cx = canvas.width / 2, cy = canvas.height / 2;
+           var worldBefore = screenToWorld(x, y);
+           gameState.cameraTargetZoom = newZoom;
+           var worldAfter = screenToWorld(x, y);
+           gameState.cameraTargetX += worldBefore.x - worldAfter.x;
+           gameState.cameraTargetY += worldBefore.y - worldAfter.y;
+           markDirty();
+       }
+
        function handleTouchStart(e) {
            e.preventDefault();
-           const touch = e.touches[0];
-           const rect = canvas.getBoundingClientRect();
-           handleCanvasInteraction((touch.clientX - rect.left) * (canvas.width / rect.width), (touch.clientY - rect.top) * (canvas.height / rect.height));
+           if (e.touches.length === 1) {
+               // Single touch - could be pan or tap
+               var touch = e.touches[0];
+               var rect = canvas.getBoundingClientRect();
+               _panStartX = touch.clientX;
+               _panStartY = touch.clientY;
+               var x = (touch.clientX - rect.left) * (canvas.width / rect.width);
+               var y = (touch.clientY - rect.top) * (canvas.height / rect.height);
+               _hoverX = x; _hoverY = y;
+           } else if (e.touches.length === 2) {
+               // Two fingers - pinch zoom
+               var t1 = e.touches[0], t2 = e.touches[1];
+               _lastTouchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+               _lastTouchMidX = (t1.clientX + t2.clientX) / 2;
+               _lastTouchMidY = (t1.clientY + t2.clientY) / 2;
+           }
        }
-       function handleTouchMove(e) { e.preventDefault(); }
-       function handleTouchEnd(e) { e.preventDefault(); }
+
+       function handleTouchMove(e) {
+           e.preventDefault();
+           if (e.touches.length === 1 && _isPanning) {
+               // Pan
+               var touch = e.touches[0];
+               var dx = (touch.clientX - _panStartX) / gameState.cameraZoom;
+               var dy = (touch.clientY - _panStartY) / gameState.cameraZoom;
+               gameState.cameraTargetX -= dx;
+               gameState.cameraTargetY -= dy;
+               _panStartX = touch.clientX;
+               _panStartY = touch.clientY;
+               markDirty();
+           } else if (e.touches.length === 2) {
+               // Pinch zoom
+               var t1 = e.touches[0], t2 = e.touches[1];
+               var dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+               var midX = (t1.clientX + t2.clientX) / 2;
+               var midY = (t1.clientY + t2.clientY) / 2;
+               
+               if (_lastTouchDist > 0) {
+                   var zoomFactor = dist / _lastTouchDist;
+                   var newZoom = gameState.cameraTargetZoom * zoomFactor;
+                   newZoom = Math.max(0.5, Math.min(3, newZoom));
+                   
+                   // Zoom towards pinch center
+                   var worldBefore = screenToWorld(_lastTouchMidX, _lastTouchMidY);
+                   gameState.cameraTargetZoom = newZoom;
+                   var worldAfter = screenToWorld(midX, midY);
+                   gameState.cameraTargetX += worldBefore.x - worldAfter.x;
+                   gameState.cameraTargetY += worldBefore.y - worldAfter.y;
+                   markDirty();
+               }
+               _lastTouchDist = dist;
+               _lastTouchMidX = midX;
+               _lastTouchMidY = midY;
+           }
+       }
+
+       function handleTouchEnd(e) {
+           e.preventDefault();
+           _isPanning = false;
+           _lastTouchDist = 0;
+       }
 
        // ==================== BATTLE EFFECTS ====================
        let battleAnimations = [];
@@ -4162,6 +4290,9 @@
        // ==================== OFFSCREEN CANVAS CACHE ====================
        let _bgCache = null, _bgCacheW = 0, _bgCacheH = 0, _bgCacheEra = '';
        let _mapCache = null, _mapCacheW = 0, _mapCacheH = 0;
+       // World caches (2x screen for pan/zoom)
+       let _worldBgCache = null, _worldBgCacheW = 0, _worldBgCacheH = 0, _worldBgCacheEra = '';
+       let _worldMapCache = null, _worldMapCacheW = 0, _worldMapCacheH = 0;
        let _mapDirty = true;
        let _territoryById = new Map();
        let _territoryPaths = [];
@@ -4173,7 +4304,103 @@
        function invalidateBgCache() { _bgCacheEra = ''; _renderDirty = true; }
        function markDirty() { _renderDirty = true; }
 
-       function buildTerritoryLookup() {
+       // ==================== CAMERA & WORLD SYSTEM (Polytopia-style) ====================
+       var _worldCanvas = null, _worldCtx = null;
+       var _worldW = 0, _worldH = 0;
+       var _voidStars = [];
+
+       function initWorldCanvas(w, h) {
+                  // World is 1.5x screen size - small enough to see void around it when zoomed out
+                  var scale = 1.5;
+                  _worldW = Math.round(w * scale);
+                  _worldH = Math.round(h * scale);
+                  if (!_worldCanvas || _worldCanvas.width !== _worldW || _worldCanvas.height !== _worldH) {
+                      _worldCanvas = document.createElement('canvas');
+                      _worldCanvas.width = _worldW;
+                      _worldCanvas.height = _worldH;
+                      _worldCtx = _worldCanvas.getContext('2d');
+                      // Generate void stars once
+                      _voidStars = [];
+                      for (var i = 0; i < 300; i++) {
+                          _voidStars.push({
+                              x: Math.random() * _worldW,
+                              y: Math.random() * _worldH,
+                              size: 0.5 + Math.random() * 1.5,
+                              brightness: 0.3 + Math.random() * 0.7,
+                              twinkleSpeed: 0.002 + Math.random() * 0.008,
+                              twinklePhase: Math.random() * Math.PI * 2
+                          });
+                      }
+                  }
+              }
+
+              function updateCamera() {
+                  // Smooth camera follow
+                  var s = gameState.cameraSmoothing;
+                  gameState.cameraX += (gameState.cameraTargetX - gameState.cameraX) * s;
+                  gameState.cameraY += (gameState.cameraTargetY - gameState.cameraY) * s;
+                  gameState.cameraZoom += (gameState.cameraTargetZoom - gameState.cameraZoom) * s;
+           
+                  // Clamp zoom: 0.3 (see whole world in void) to 3 (close detail)
+                  if (gameState.cameraZoom < 0.3) { gameState.cameraZoom = 0.3; gameState.cameraTargetZoom = 0.3; }
+                  if (gameState.cameraZoom > 3) { gameState.cameraZoom = 3; gameState.cameraTargetZoom = 3; }
+           
+                  // Clamp pan to world bounds (allow seeing void around world at low zoom)
+                  var margin = 100;
+                  var maxX = (_worldW - canvas.width / gameState.cameraZoom) / 2 + margin;
+                  var maxY = (_worldH - canvas.height / gameState.cameraZoom) / 2 + margin;
+                  gameState.cameraX = Math.max(-maxX, Math.min(maxX, gameState.cameraX));
+                  gameState.cameraY = Math.max(-maxY, Math.min(maxY, gameState.cameraY));
+              }
+       function screenToWorld(screenX, screenY) {
+           var cx = canvas.width / 2, cy = canvas.height / 2;
+           var wx = cx - gameState.cameraX * gameState.cameraZoom;
+           var wy = cy - gameState.cameraY * gameState.cameraZoom;
+           return {
+               x: (screenX - wx) / gameState.cameraZoom,
+               y: (screenY - wy) / gameState.cameraZoom
+           };
+       }
+
+       function drawVoidBackground(ctx, w, h, time) {
+           // Deep space void
+           var grad = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, Math.max(w,h)*0.8);
+           grad.addColorStop(0, '#0a0515');
+           grad.addColorStop(0.4, '#05020d');
+           grad.addColorStop(1, '#000000');
+           ctx.fillStyle = grad;
+           ctx.fillRect(0, 0, w, h);
+           
+           // Twinkling stars
+           for (var i = 0; i < _voidStars.length; i++) {
+               var s = _voidStars[i];
+               var brightness = s.brightness * (0.5 + 0.5 * Math.sin(time * s.twinkleSpeed + s.twinklePhase));
+               ctx.globalAlpha = brightness;
+               ctx.fillStyle = '#ffffff';
+               ctx.beginPath();
+               ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+               ctx.fill();
+           }
+           ctx.globalAlpha = 1;
+           
+           // Subtle nebula clouds
+           ctx.save();
+           ctx.globalAlpha = 0.03;
+           var nebulaGrad = ctx.createRadialGradient(w*0.3, h*0.3, 0, w*0.3, h*0.3, w*0.6);
+           nebulaGrad.addColorStop(0, '#8844ff');
+           nebulaGrad.addColorStop(1, 'transparent');
+           ctx.fillStyle = nebulaGrad;
+           ctx.fillRect(0, 0, w, h);
+           
+           nebulaGrad = ctx.createRadialGradient(w*0.7, h*0.7, 0, w*0.7, h*0.7, w*0.5);
+           nebulaGrad.addColorStop(0, '#ff4488');
+           nebulaGrad.addColorStop(1, 'transparent');
+           ctx.fillStyle = nebulaGrad;
+           ctx.fillRect(0, 0, w, h);
+           ctx.restore();
+                  }
+
+                  function buildTerritoryLookup() {
            _territoryById = new Map();
            if (!gameState.territories) return;
            for (const t of gameState.territories) _territoryById.set(t.id, t);
@@ -4267,6 +4494,7 @@
        ];
 
        // Smooth river outline — left then right bank
+              // Smooth river outline — left then right bank
        function nileOutline(ctx, nw, sc, w, h) {
            ctx.beginPath();
            // Left bank
@@ -4303,115 +4531,124 @@
            }
            ctx.closePath();
        }
-
-       function drawEgyptMapBackground(w, h) {
-           ctx.save();
+function drawEgyptMapBackground(w, h, targetCtx) {
+           var ctxToUse = targetCtx || ctx;
+           ctxToUse.save();
            var nw = nileWaypoints;
-
-           // 1. Desert background with dune bands
-           ctx.fillStyle = '#c4a870';
-           ctx.fillRect(0, 0, w, h);
-           ctx.save();
-           ctx.globalAlpha = 0.05;
-           for (var d = 0; d < 25; d++) {
-               var dy = (d / 25) * h;
-               var wave = Math.sin(d * 0.5) * h * 0.012;
-               ctx.fillStyle = d % 2 === 0 ? '#d4b880' : '#b8a060';
-               ctx.fillRect(0, dy + wave, w, h * 0.05);
-           }
-           ctx.restore();
-
-           // 2. Sandy mud banks (wider than water)
-           ctx.save();
-           ctx.globalAlpha = 0.4;
-           ctx.fillStyle = '#a89058';
-           nileOutline(ctx, nw, 1.8, w, h);
-           ctx.fill();
-           ctx.restore();
-
-           // 3. River water — 5 depth layers (light edges → dark center)
-           var depthLayers = [
-               { scale: 1.0,  color: '#3a90cc' },
-               { scale: 0.78, color: '#2070b0' },
-               { scale: 0.55, color: '#105088' },
-               { scale: 0.35, color: '#0a3868' },
-               { scale: 0.18, color: '#042045' }
-           ];
-           for (var dl = 0; dl < depthLayers.length; dl++) {
-               ctx.fillStyle = depthLayers[dl].color;
-               nileOutline(ctx, nw, depthLayers[dl].scale, w, h);
-               ctx.fill();
-           }
-
-           // 4. Foam banks — bright water edges
-           ctx.save();
-           ctx.globalAlpha = 0.5;
-           ctx.strokeStyle = '#d0e8f8';
-           ctx.lineWidth = Math.max(1.5, w * 0.003);
-           // Left edge
-           ctx.beginPath();
-           for (var i = 0; i < nw.length; i++) {
-               var lx = (nw[i][1] - nw[i][2]) * w;
-               var ly = nw[i][0] * h;
-               if (i === 0) ctx.moveTo(lx, ly);
-               else {
-                   var pv = nw[i-1];
-                   var plx = (pv[1] - pv[2]) * w, ply = pv[0] * h;
-                   ctx.quadraticCurveTo(plx, ply, (plx+lx)/2, (ply+ly)/2);
-               }
-           }
-           ctx.stroke();
-           // Right edge
-           ctx.beginPath();
-           for (var i = 0; i < nw.length; i++) {
-               var rx = (nw[i][1] + nw[i][2]) * w;
-               var ry = nw[i][0] * h;
-               if (i === 0) ctx.moveTo(rx, ry);
-               else {
-                   var pv = nw[i-1];
-                   var prx = (pv[1] + pv[2]) * w, pry = pv[0] * h;
-                   ctx.quadraticCurveTo(prx, pry, (prx+rx)/2, (pry+ry)/2);
-               }
-           }
-           ctx.stroke();
-           ctx.restore();
-
-           // 5. Specular shimmer — light reflections
-           ctx.save();
-           ctx.globalAlpha = 0.15;
-           ctx.fillStyle = '#a8e0f0';
-           for (var sp = 0; sp < 50; sp++) {
-               var spT = sp / 50;
-               var spIdx = Math.min(nw.length - 2, Math.floor(spT * (nw.length - 1)));
-               var spFrac = (spT * (nw.length - 1)) - spIdx;
-               var n0 = nw[spIdx], n1 = nw[spIdx + 1] || nw[spIdx];
-               var spY = (n0[0] + (n1[0] - n0[0]) * spFrac) * h;
-               var spX = (n0[1] + (n1[1] - n0[1]) * spFrac) * w;
-               var spW = (n0[2] + (n1[2] - n0[2]) * spFrac) * w * 0.5;
-               var spLen = spW * (0.3 + Math.abs(Math.sin(sp * 137)) * 0.4);
-               ctx.beginPath();
-               ctx.ellipse(spX, spY, spLen, spLen * 0.15, 0, 0, Math.PI * 2);
-               ctx.fill();
-           }
-           ctx.restore();
-
-           // 6. REALISTIC GRASS — individual blades, noise-driven, like real world
-           ctx.save();
            
-           // Noise function for grass clumping
-           function gnse(x, y, s) {
-               var n = Math.sin(x * 12.9898 + y * 78.233 + s) * 43758.5453;
-               return n - Math.floor(n);
-           }
-           // FBM noise for natural clumping
-           function gfBm(x, y, oct, seed) {
-               var v = 0, a = 0.5, f = 1;
-               for (var o = 0; o < oct; o++) {
-                   v += a * gnse(x * f, y * f, seed + o);
-                   f *= 2; a *= 0.5;
-               }
-               return v;
-           }
+                              ctxToUse.save();
+                              ctxToUse.globalAlpha = 0.05;
+                              for (var d = 0; d < 25; d++) {
+                                  var dy = (d / 25) * h;
+                                  var wave = Math.sin(d * 0.5) * h * 0.012;
+                                  ctxToUse.fillStyle = d % 2 === 0 ? '#d4b880' : '#b8a060';
+                                  ctxToUse.fillRect(0, dy + wave, w, h * 0.05);
+                              }
+                              ctxToUse.restore();
+
+                              // 2. Sandy mud banks (wider than water)
+                              ctxToUse.save();
+                              ctxToUse.globalAlpha = 0.4;
+                              ctxToUse.fillStyle = '#a89058';
+                              nileOutline(ctxToUse, nw, 1.8, w, h);
+                              ctxToUse.fill();
+                              ctxToUse.restore();
+
+                              // 2b. Nile Valley vegetation — thin green strip along river (fertile floodplain)
+                              ctxToUse.save();
+                              ctxToUse.globalAlpha = 0.35;
+                              ctxToUse.fillStyle = '#1a5c1a';
+                              nileOutline(ctxToUse, nw, 2.2, w, h);
+                              ctxToUse.fill();
+                              // Thinner brighter strip at water's edge
+                              ctxToUse.globalAlpha = 0.25;
+                              ctxToUse.fillStyle = '#2a7a2a';
+                              nileOutline(ctxToUse, nw, 1.15, w, h);
+                              ctxToUse.fill();
+                              ctxToUse.restore();
+
+                              // 3. River water — 5 depth layers (light edges → dark center)
+                              var depthLayers = [
+                                  { scale: 1.0,  color: '#3a90cc' },
+                                  { scale: 0.78, color: '#2070b0' },
+                                  { scale: 0.55, color: '#105088' },
+                                  { scale: 0.35, color: '#0a3868' },
+                                  { scale: 0.18, color: '#042045' }
+                              ];
+                              for (var dl = 0; dl < depthLayers.length; dl++) {
+                                  ctxToUse.fillStyle = depthLayers[dl].color;
+                                  nileOutline(ctxToUse, nw, depthLayers[dl].scale, w, h);
+                                  ctxToUse.fill();
+                              }
+
+                              // 4. Foam banks — bright water edges
+                              ctxToUse.save();
+                              ctxToUse.globalAlpha = 0.5;
+                              ctxToUse.strokeStyle = '#d0e8f8';
+                              ctxToUse.lineWidth = Math.max(1.5, w * 0.003);
+                              // Left edge
+                              ctxToUse.beginPath();
+                              for (var i = 0; i < nw.length; i++) {
+                                  var lx = (nw[i][1] - nw[i][2]) * w;
+                                  var ly = nw[i][0] * h;
+                                  if (i === 0) ctxToUse.moveTo(lx, ly);
+                                  else {
+                                      var pv = nw[i-1];
+                                      var plx = (pv[1] - pv[2]) * w, ply = pv[0] * h;
+                                      ctxToUse.quadraticCurveTo(plx, ply, (plx+lx)/2, (ply+ly)/2);
+                                  }
+                              }
+                              ctxToUse.stroke();
+                              // Right edge
+                              ctxToUse.beginPath();
+                              for (var i = 0; i < nw.length; i++) {
+                                  var rx = (nw[i][1] + nw[i][2]) * w;
+                                  var ry = nw[i][0] * h;
+                                  if (i === 0) ctxToUse.moveTo(rx, ry);
+                                  else {
+                                      var pv = nw[i-1];
+                                      var prx = (pv[1] + pv[2]) * w, pry = pv[0] * h;
+                                      ctxToUse.quadraticCurveTo(prx, pry, (prx+rx)/2, (pry+ry)/2);
+                                  }
+                              }
+                              ctxToUse.stroke();
+                              ctxToUse.restore();
+
+                              // 5. Specular shimmer — light reflections
+                              ctxToUse.save();
+                              ctxToUse.globalAlpha = 0.15;
+                              ctxToUse.fillStyle = '#a8e0f0';
+                              for (var sp = 0; sp < 50; sp++) {
+                                  var spT = sp / 50;
+                                  var spIdx = Math.min(nw.length - 2, Math.floor(spT * (nw.length - 1)));
+                                  var spFrac = (spT * (nw.length - 1)) - spIdx;
+                                  var n0 = nw[spIdx], n1 = nw[spIdx + 1] || nw[spIdx];
+                                  var spY = (n0[0] + (n1[0] - n0[0]) * spFrac) * h;
+                                  var spX = (n0[1] + (n1[1] - n0[1]) * spFrac) * w;
+                                  var spW = (n0[2] + (n1[2] - n0[2]) * spFrac) * w * 0.5;
+                                  var spLen = spW * (0.3 + Math.abs(Math.sin(sp * 137)) * 0.4);
+                                  ctxToUse.beginPath();
+                                  ctxToUse.ellipse(spX, spY, spLen, spLen * 0.15, 0, 0, Math.PI * 2);
+                                  ctxToUse.fill();
+                              }
+                              ctxToUse.restore();
+
+                              // 6. Golden tint + vignette
+                              ctxToUse.save();
+                              ctxToUse.globalAlpha = 0.06;
+                              ctxToUse.fillStyle = '#ffdd88';
+                              ctxToUse.fillRect(0, 0, w, h);
+                              ctxToUse.restore();
+                              ctxToUse.save();
+                              var vGrad = ctxToUse.createRadialGradient(w*0.5, h*0.5, w*0.25, w*0.5, h*0.5, w*0.85);
+                              vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+                              vGrad.addColorStop(0.6, 'rgba(0,0,0,0.08)');
+                              vGrad.addColorStop(1, 'rgba(60,40,10,0.3)');
+                              ctxToUse.fillStyle = vGrad;
+                              ctxToUse.fillRect(0, 0, w, h);
+                              ctxToUse.restore();
+
+                              ctxToUse.restore();
            
            // Draw individual grass blades in clumps
            var bladeColors = [
@@ -4598,8 +4835,6 @@
            vGrad.addColorStop(1, 'rgba(60,40,10,0.3)');
            ctx.fillStyle = vGrad;
            ctx.fillRect(0, 0, w, h);
-           ctx.restore();
-
            ctx.restore();
        }
 
@@ -5466,65 +5701,138 @@
            return [gameState.player, ...gameState.opponents].filter(f => !f.eliminated);
        }
 
-       function renderGame() {
-           if (!ctx || !canvas) return;
-           const w = canvas.width, h = canvas.height;
-           ctx.clearRect(0, 0, w, h);
-           const eraId = gameState.selectedEra ? gameState.selectedEra.id : 'rome';
-           // Cached background
-           if (!_bgCache || _bgCacheW !== w || _bgCacheH !== h || _bgCacheEra !== eraId) {
-               _bgCache = document.createElement('canvas');
-               _bgCache.width = w; _bgCache.height = h;
-               const bgCtx = _bgCache.getContext('2d');
-               const origCtx = ctx;
-               ctx = bgCtx;
-               drawEraBackground(eraId, w, h);
-               ctx = origCtx;
-               _bgCacheW = w; _bgCacheH = h; _bgCacheEra = eraId;
-           }
-           ctx.drawImage(_bgCache, 0, 0);
-           // Cached territory map (territory fills + borders + buildings)
-           if (_mapDirty || !_mapCache || _mapCacheW !== w || _mapCacheH !== h) {
-               _mapCache = document.createElement('canvas');
-               _mapCache.width = w; _mapCache.height = h;
-               const mCtx = _mapCache.getContext('2d');
-               const origCtx = ctx;
-               ctx = mCtx;
-               drawTerritoryMap(eraId, w, h);
-               ctx = origCtx;
-               _mapCacheW = w; _mapCacheH = h;
-               _mapDirty = false;
-           }
-           ctx.drawImage(_mapCache, 0, 0);
-           // Selection highlight: show adjacent territories to attack
-           if (gameState.selectedArmy) {
-               const pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.1);
-               ctx.globalAlpha = 0.4 + pulse * 0.4;
-               // Highlight adjacent territories (no army ring, just territory borders)
-               const adjIds = getAdjacentTerritoryIds('player');
-               if (adjIds.length > 0 && _territoryPaths.length > 0) {
-                   ctx.globalAlpha = 0.15 + pulse * 0.15;
-                   ctx.strokeStyle = '#22d3ee';
-                   ctx.lineWidth = 3;
-                   for (const adjId of adjIds) {
-                       const adjTp = _territoryPaths.find(p => p.id === adjId);
-                       if (adjTp) { ctx.stroke(adjTp.path); }
-                   }
-                   ctx.globalAlpha = 1;
-               }
-               ctx.globalAlpha = 1;
-               // Combat prediction tooltip on hover
-               if (_hoverX > 0 && _hoverY > 0) {
-                   const hoverFaction = getArmyAtPosition(_hoverX, _hoverY);
-                   if (hoverFaction && hoverFaction.id !== 'player') {
-                       const fTerr = getFactionTerritory(hoverFaction.id);
-                       const isAdj = !fTerr || adjIds.length === 0 || adjIds.includes(fTerr.id);
-                       if (isAdj) drawCombatTooltip(gameState.selectedArmy, hoverFaction, w, h);
-                   }
-               }
-           }
-           // Particles and battle animations (no troop movements, no warriors)
-           drawParticles(); drawBattleAnimations();
+       // Camera system — smooth pan/zoom like Polytopia
+       function updateCamera() {
+           var gs = gameState;
+           var s = gs.cameraSmoothing;
+           gs.cameraX += (gs.cameraTargetX - gs.cameraX) * s;
+           gs.cameraY += (gs.cameraTargetY - gs.cameraY) * s;
+           gs.cameraZoom += (gs.cameraTargetZoom - gs.cameraZoom) * s;
+           // Clamp zoom
+           if (gs.cameraZoom < 0.5) { gs.cameraZoom = 0.5; gs.cameraTargetZoom = 0.5; }
+           if (gs.cameraZoom > 3) { gs.cameraZoom = 3; gs.cameraTargetZoom = 3; }
+       }
+
+       // Convert screen coords to world coords
+       function screenToWorld(sx, sy) {
+           var w = canvas.width, h = canvas.height;
+           var gs = gameState;
+           var cx = w / 2, cy = h / 2;
+           var wx = (sx - cx) / gs.cameraZoom + cx - gs.cameraX;
+           var wy = (sy - cy) / gs.cameraZoom + cy - gs.cameraY;
+           function renderWorldMap(eraId) {
+                      if (!_worldCanvas) return;
+                      // Clear world canvas
+                      _worldCtx.clearRect(0, 0, _worldW, _worldH);
+           
+                      // Draw void background on world canvas (fills entire world)
+                      var w = _worldW, h = _worldH;
+                      _worldCtx.fillStyle = '#050510';
+                      _worldCtx.fillRect(0, 0, w, h);
+                      // Stars on world
+                      _worldCtx.fillStyle = '#ffffff';
+                      for (var i = 0; i < 300; i++) {
+                          var seed = i * 9973 + 12345;
+                          var sx = ((seed * 2654435761) % 10000) / 10000 * w;
+                          var sy = (((seed * 65521) % 10000) / 10000) * h;
+                          var size = (seed % 3) * 0.5 + 0.5;
+                          var alpha = 0.2 + (seed % 100) / 100 * 0.6;
+                          _worldCtx.globalAlpha = alpha;
+                          _worldCtx.beginPath();
+                          _worldCtx.arc(sx, sy, size, 0, Math.PI * 2);
+                          _worldCtx.fill();
+                      }
+                      _worldCtx.globalAlpha = 1;
+                      // Subtle nebula glow
+                      var grad = _worldCtx.createRadialGradient(w*0.5, h*0.5, 0, w*0.5, h*0.5, w*0.8);
+                      grad.addColorStop(0, 'rgba(30,20,60,0.15)');
+                      grad.addColorStop(0.5, 'rgba(20,15,40,0.08)');
+                      grad.addColorStop(1, 'rgba(10,10,20,0)');
+                      _worldCtx.fillStyle = grad;
+                      _worldCtx.fillRect(0, 0, w, h);
+           
+                      // Draw Egypt map centered on world
+                      _worldCtx.save();
+                      _worldCtx.translate(_worldW/2, _worldH/2);
+           
+                      if (eraId === 'egypt') {
+                          drawEgyptMapBackground(_worldW, _worldH);
+                      } else {
+                          drawTopDownBackground(eraId, _worldW, _worldH, ERA_LANDS[eraId]);
+                      }
+           
+                      // Draw territories on world
+                      if (_territoryPaths.length && gameState.territories) {
+                          buildTerritoryPaths(eraId, _worldW, _worldH);
+                          drawTerritoryMap(eraId, _worldW, _worldH);
+                      }
+           
+                      _worldCtx.restore();
+                  }
+
+                  function renderGame() {
+                      if (!ctx || !canvas) return;
+                      var w = canvas.width, h = canvas.height;
+                      var gs = gameState;
+                      var eraId = gs.selectedEra ? gs.selectedEra.id : 'rome';
+           
+                      // Update camera smoothing
+                      updateCamera();
+           
+                      // Initialize world canvas if needed
+                      initWorldCanvas(w, h);
+           
+                      // Render world map to offscreen canvas (includes void + map + territories)
+                      renderWorldMap(eraId);
+           
+                      ctx.clearRect(0, 0, w, h);
+           
+                      // Apply camera transform and draw world canvas
+                      ctx.save();
+                      ctx.translate(w/2, h/2);
+                      ctx.scale(gs.cameraZoom, gs.cameraZoom);
+                      ctx.translate(-w/2 - gs.cameraX, -h/2 - gs.cameraY);
+           
+                      // Draw world canvas centered
+                      ctx.drawImage(_worldCanvas, (w - _worldW)/2, (h - _worldH)/2);
+           
+                      ctx.restore();
+           
+                      // UI overlays (selection, tooltips) - in screen space
+                      if (gs.selectedArmy) {
+                          var pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.1);
+                          ctx.globalAlpha = 0.4 + pulse * 0.4;
+                          var adjIds = getAdjacentTerritoryIds('player');
+                          if (adjIds.length > 0 && _territoryPaths.length > 0) {
+                              ctx.globalAlpha = 0.15 + pulse * 0.15;
+                              ctx.strokeStyle = '#22d3ee';
+                              ctx.lineWidth = 3 / gs.cameraZoom;
+                              for (var i = 0; i < adjIds.length; i++) {
+                                  var adjId = adjIds[i];
+                                  var adjTp = _territoryPaths.find(function(p) { return p.id === adjId; });
+                                  if (adjTp) {
+                                      ctx.save();
+                                      ctx.translate(w/2, h/2);
+                                      ctx.scale(gs.cameraZoom, gs.cameraZoom);
+                                      ctx.translate(-w/2 - gs.cameraX, -h/2 - gs.cameraY);
+                                      ctx.stroke(adjTp.path);
+                                      ctx.restore();
+                                  }
+                              }
+                              ctx.globalAlpha = 1;
+                          }
+                          ctx.globalAlpha = 1;
+                          if (_hoverX > 0 && _hoverY > 0) {
+                              var hoverFaction = getArmyAtPosition(_hoverX, _hoverY);
+                              if (hoverFaction && hoverFaction.id !== 'player') {
+                                  var fTerr = getFactionTerritory(hoverFaction.id);
+                                  var isAdj = !fTerr || adjIds.length === 0 || adjIds.includes(fTerr.id);
+                                  if (isAdj) drawCombatTooltip(gs.selectedArmy, hoverFaction, w, h);
+                              }
+                          }
+                      }
+                      drawParticles(); drawBattleAnimations();
+                  }
        }
 
        // Draw an Egyptian village on a territory — mudbrick houses, temple, palm trees
@@ -5538,17 +5846,7 @@
            const seed = tDef.id * 137 + 42;
            const terrain = tDef.terrain;
 
-           // Enclosed courtyard wall (mudbrick compound)
-           const compoundR = scale * 2.5;
-           ctx.strokeStyle = '#b08555';
-           ctx.lineWidth = Math.max(1, scale * 0.06);
-           ctx.globalAlpha = 0.4;
-           ctx.beginPath();
-           ctx.arc(cx, cy, compoundR, 0, Math.PI * 2);
-           ctx.stroke();
-           ctx.globalAlpha = 1;
-
-           // Draw 2-4 mudbrick houses arranged in a cluster inside courtyard
+           // Draw 2-4 mudbrick houses arranged in a cluster
            const houseCount = 2 + (seed % 3);
            for (let i = 0; i < houseCount; i++) {
                const angle = (i / houseCount) * Math.PI * 2 + seed * 0.1;
