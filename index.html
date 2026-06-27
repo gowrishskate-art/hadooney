@@ -4531,28 +4531,49 @@
            }
            ctx.closePath();
        }
-function drawEgyptMapBackground(w, h, targetCtx) {
-           var ctxToUse = targetCtx || ctx;
-           ctxToUse.save();
-           var nw = nileWaypoints;
-           
-                              ctxToUse.save();
-                              ctxToUse.globalAlpha = 0.05;
-                              for (var d = 0; d < 25; d++) {
-                                  var dy = (d / 25) * h;
-                                  var wave = Math.sin(d * 0.5) * h * 0.012;
-                                  ctxToUse.fillStyle = d % 2 === 0 ? '#d4b880' : '#b8a060';
-                                  ctxToUse.fillRect(0, dy + wave, w, h * 0.05);
-                              }
-                              ctxToUse.restore();
 
-                              // 2. Sandy mud banks (wider than water)
-                              ctxToUse.save();
-                              ctxToUse.globalAlpha = 0.4;
-                              ctxToUse.fillStyle = '#a89058';
-                              nileOutline(ctxToUse, nw, 1.8, w, h);
-                              ctxToUse.fill();
-                              ctxToUse.restore();
+       // Fractal Brownian Motion noise for natural grass distribution
+       function gfBm(x, y, octaves, seed) {
+           var n = 0, amp = 1, freq = 1, maxAmp = 0;
+           var h = seed || 1337;
+           for (var o = 0; o < octaves; o++) {
+               var hx = x * freq + h;
+               var hy = y * freq + h;
+               var n1 = Math.sin(hx * 12.9898 + hy * 78.233) * 43758.5453;
+               n1 = n1 - Math.floor(n1);
+               n += n1 * amp;
+               maxAmp += amp;
+               amp *= 0.5;
+               freq *= 2;
+           }
+           return n / maxAmp;
+       }
+
+       function drawEgyptMapBackground(w, h, targetCtx) {
+                  var ctxToUse = targetCtx || ctx;
+                  ctxToUse.save();
+                  var nw = nileWaypoints;
+
+                  // 1. Desert background with dune bands
+                  ctxToUse.fillStyle = '#c4a870';
+                  ctxToUse.fillRect(0, 0, w, h);
+                  ctxToUse.save();
+                  ctxToUse.globalAlpha = 0.05;
+                  for (var d = 0; d < 25; d++) {
+                      var dy = (d / 25) * h;
+                      var wave = Math.sin(d * 0.5) * h * 0.012;
+                      ctxToUse.fillStyle = d % 2 === 0 ? '#d4b880' : '#b8a060';
+                      ctxToUse.fillRect(0, dy + wave, w, h * 0.05);
+                  }
+                  ctxToUse.restore();
+
+                  // 2. Sandy mud banks (wider than water)
+                  ctxToUse.save();
+                  ctxToUse.globalAlpha = 0.4;
+                  ctxToUse.fillStyle = '#a89058';
+                  nileOutline(ctxToUse, nw, 1.8, w, h);
+                  ctxToUse.fill();
+                  ctxToUse.restore();
 
                               // 2b. Nile Valley vegetation — thin green strip along river (fertile floodplain)
                               ctxToUse.save();
@@ -5720,54 +5741,47 @@ function drawEgyptMapBackground(w, h, targetCtx) {
            var cx = w / 2, cy = h / 2;
            var wx = (sx - cx) / gs.cameraZoom + cx - gs.cameraX;
            var wy = (sy - cy) / gs.cameraZoom + cy - gs.cameraY;
-           function renderWorldMap(eraId) {
+           return { x: wx, y: wy };
+       }
+
+       // Render world map to offscreen canvas (includes void + map + territories)
+       function renderWorldMap(eraId) {
                       if (!_worldCanvas) return;
                       // Clear world canvas
                       _worldCtx.clearRect(0, 0, _worldW, _worldH);
            
                       // Draw void background on world canvas (fills entire world)
-                      var w = _worldW, h = _worldH;
-                      _worldCtx.fillStyle = '#050510';
-                      _worldCtx.fillRect(0, 0, w, h);
-                      // Stars on world
-                      _worldCtx.fillStyle = '#ffffff';
-                      for (var i = 0; i < 300; i++) {
-                          var seed = i * 9973 + 12345;
-                          var sx = ((seed * 2654435761) % 10000) / 10000 * w;
-                          var sy = (((seed * 65521) % 10000) / 10000) * h;
-                          var size = (seed % 3) * 0.5 + 0.5;
-                          var alpha = 0.2 + (seed % 100) / 100 * 0.6;
-                          _worldCtx.globalAlpha = alpha;
-                          _worldCtx.beginPath();
-                          _worldCtx.arc(sx, sy, size, 0, Math.PI * 2);
-                          _worldCtx.fill();
-                      }
-                      _worldCtx.globalAlpha = 1;
-                      // Subtle nebula glow
-                      var grad = _worldCtx.createRadialGradient(w*0.5, h*0.5, 0, w*0.5, h*0.5, w*0.8);
-                      grad.addColorStop(0, 'rgba(30,20,60,0.15)');
-                      grad.addColorStop(0.5, 'rgba(20,15,40,0.08)');
-                      grad.addColorStop(1, 'rgba(10,10,20,0)');
-                      _worldCtx.fillStyle = grad;
-                      _worldCtx.fillRect(0, 0, w, h);
-           
-                      // Draw Egypt map centered on world
-                      _worldCtx.save();
-                      _worldCtx.translate(_worldW/2, _worldH/2);
-           
-                      if (eraId === 'egypt') {
-                          drawEgyptMapBackground(_worldW, _worldH);
-                      } else {
-                          drawTopDownBackground(eraId, _worldW, _worldH, ERA_LANDS[eraId]);
-                      }
-           
-                      // Draw territories on world
-                      if (_territoryPaths.length && gameState.territories) {
-                          buildTerritoryPaths(eraId, _worldW, _worldH);
-                          drawTerritoryMap(eraId, _worldW, _worldH);
-                      }
-           
-                      _worldCtx.restore();
+                                            var w = _worldW, h = _worldH;
+                                            _worldCtx.fillStyle = '#050510';
+                                            _worldCtx.fillRect(0, 0, w, h);
+                                            // Subtle nebula glow
+                                            var grad = _worldCtx.createRadialGradient(w*0.5, h*0.5, 0, w*0.5, h*0.5, w*0.8);
+                                            grad.addColorStop(0, 'rgba(30,20,60,0.15)');
+                                            grad.addColorStop(0.5, 'rgba(20,15,40,0.08)');
+                                            grad.addColorStop(1, 'rgba(10,10,20,0)');
+                                            _worldCtx.fillStyle = grad;
+                                            _worldCtx.fillRect(0, 0, w, h);
+                                            // Stars on world (on top of nebula)
+                                            _worldCtx.fillStyle = '#ffffff';
+                                            for (var i = 0; i < 300; i++) {
+                                                var seed = i * 9973 + 12345;
+                                                var sx = ((seed * 2654435761) % 10000) / 10000 * w;
+                                                var sy = (((seed * 65521) % 10000) / 10000) * h;
+                                                var size = (seed % 3) * 0.5 + 0.5;
+                                                var alpha = 0.3 + (seed % 100) / 100 * 0.7;
+                                                _worldCtx.globalAlpha = alpha;
+                                                _worldCtx.beginPath();
+                                                _worldCtx.arc(sx, sy, size, 0, Math.PI * 2);
+                                                _worldCtx.fill();
+                                            }
+                                            _worldCtx.globalAlpha = 1;
+          
+                                            // Draw Egypt map on world (no translate - map draws at 0,0)
+                                            if (eraId === 'egypt') {
+                                                drawEgyptMapBackground(_worldW, _worldH, _worldCtx);
+                                            } else {
+                                                drawTopDownBackground(eraId, _worldW, _worldH, ERA_LANDS[eraId]);
+                                            }
                   }
 
                   function renderGame() {
@@ -5784,19 +5798,19 @@ function drawEgyptMapBackground(w, h, targetCtx) {
            
                       // Render world map to offscreen canvas (includes void + map + territories)
                       renderWorldMap(eraId);
-           
-                      ctx.clearRect(0, 0, w, h);
-           
-                      // Apply camera transform and draw world canvas
-                      ctx.save();
-                      ctx.translate(w/2, h/2);
-                      ctx.scale(gs.cameraZoom, gs.cameraZoom);
-                      ctx.translate(-w/2 - gs.cameraX, -h/2 - gs.cameraY);
-           
-                      // Draw world canvas centered
-                      ctx.drawImage(_worldCanvas, (w - _worldW)/2, (h - _worldH)/2);
-           
-                      ctx.restore();
+          
+                                            ctx.clearRect(0, 0, w, h);
+          
+                                            // Apply camera transform: screen center -> world camera position
+                                            ctx.save();
+                                            ctx.translate(w/2, h/2);
+                                            ctx.scale(gs.cameraZoom, gs.cameraZoom);
+                                            ctx.translate(-gs.cameraX, -gs.cameraY);
+          
+                                            // Draw world canvas centered at world origin (0,0)
+                                            ctx.drawImage(_worldCanvas, -_worldW/2, -_worldH/2);
+          
+                                            ctx.restore();
            
                       // UI overlays (selection, tooltips) - in screen space
                       if (gs.selectedArmy) {
@@ -5833,7 +5847,6 @@ function drawEgyptMapBackground(w, h, targetCtx) {
                       }
                       drawParticles(); drawBattleAnimations();
                   }
-       }
 
        // Draw an Egyptian village on a territory — mudbrick houses, temple, palm trees
        function drawEgyptVillage(cx, cy, tDef, w, h, rt) {
