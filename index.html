@@ -5784,7 +5784,8 @@
                                                                                             // Draw map at 60% scale (leaving 20% void margin on each side)
                                                                                             var mapScale = 0.6;
                                                                                             _worldCtx.scale(mapScale, mapScale);
-                                                                                            drawEgyptMapBackground(_worldW, _worldH, _worldCtx);
+                                                                                            // Pass scaled dimensions so villages/grass use correct sizes
+                                                                                            drawEgyptMapBackground(_worldW * mapScale, _worldH * mapScale, _worldCtx);
                                                                                             _worldCtx.restore();
                                                                                         } else {
                                                                                             drawTopDownBackground(eraId, _worldW, _worldH, ERA_LANDS[eraId]);
