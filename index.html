@@ -4500,31 +4500,31 @@
            // Left bank
            for (var i = 0; i < nw.length; i++) {
                var lx = (nw[i][1] - nw[i][2] * sc) * w;
-               var ly = nw[i][0] * h;
+               var ly = (1 - nw[i][0]) * h;  // Invert Y: Nile waypoints y=1=top, canvas y=0=top
                if (i === 0) {
                    ctx.moveTo(lx, ly);
                } else {
                    // Smooth quadratic curve through midpoints
                    var pv = nw[i - 1];
                    var plx = (pv[1] - pv[2] * sc) * w;
-                   var ply = pv[0] * h;
+                   var ply = (1 - pv[0]) * h;
                    var mx = (plx + lx) / 2, my = (ply + ly) / 2;
                    ctx.quadraticCurveTo(plx, ply, mx, my);
                }
            }
            // Last point
            var last = nw[nw.length - 1];
-           ctx.lineTo((last[1] - last[2] * sc) * w, last[0] * h);
+           ctx.lineTo((last[1] - last[2] * sc) * w, (1 - last[0]) * h);
            // Right bank (reverse)
            for (var i = nw.length - 1; i >= 0; i--) {
                var rx = (nw[i][1] + nw[i][2] * sc) * w;
-               var ry = nw[i][0] * h;
+               var ry = (1 - nw[i][0]) * h;
                if (i === nw.length - 1) {
                    ctx.lineTo(rx, ry);
                } else {
                    var nv = nw[i + 1];
                    var nrx = (nv[1] + nv[2] * sc) * w;
-                   var nry = nv[0] * h;
+                   var nry = (1 - nv[0]) * h;
                    var mx = (nrx + rx) / 2, my = (nry + ry) / 2;
                    ctx.quadraticCurveTo(nrx, nry, mx, my);
                }
@@ -4787,11 +4787,9 @@
                [0.18, 0.48], [0.12, 0.45], [0.08, 0.40]
            ];
            for (var vi = 0; vi < villagePositions.length; vi++) {
-               var vy = villagePositions[vi][0] * h;
-               var vx = villagePositions[vi][1] * w;
-               var vs = Math.max(3, w * 0.012); // village size
-               // Find river center at this y
-               var vT = villagePositions[vi][0];
+               // Village positions use y=1 at top, y=0 at bottom; Nile waypoints array index 0=top, n-1=bottom
+               // Invert: village y=0.95 (top) → index 0 (top); village y=0.08 (bottom) → index n-1 (bottom)
+               var vT = 1 - villagePositions[vi][0];
                var vIdx = Math.min(nw.length - 2, Math.floor(vT * (nw.length - 1)));
                var vFrac = (vT * (nw.length - 1)) - vIdx;
                var vn0 = nw[vIdx], vn1 = nw[vIdx + 1] || nw[vIdx];
@@ -4800,23 +4798,24 @@
                // Offset village onto LAND: river half-width + mud bank (1.8x) + village radius + gap
                var landOffset = vHW * 1.8 + vs * 2.5;
                var vOff = (vi % 2 === 0 ? 1 : -1) * landOffset;
-               vx = vCx + vOff;
-               vy = (vn0[0] + (vn1[0] - vn0[0]) * vFrac) * h;
+               var vx = vCx + vOff;
+               // Invert Y: Nile waypoints y=1=top, canvas y=0=top
+               var vy = (1 - (vn0[0] + (vn1[0] - vn0[0]) * vFrac)) * h;
 
                // CLEAR GRASS around village (circular cleared area)
                var clearR = vs * 3.5; // radius to clear grass
-               ctx.save();
-               ctx.globalCompositeOperation = 'destination-out';
-               ctx.beginPath();
-               ctx.arc(vx, vy, clearR, 0, Math.PI * 2);
-               ctx.fill();
-               ctx.restore();
+               ctxToUse.save();
+               ctxToUse.globalCompositeOperation = 'destination-out';
+               ctxToUse.beginPath();
+               ctxToUse.arc(vx, vy, clearR, 0, Math.PI * 2);
+               ctxToUse.fill();
+               ctxToUse.restore();
 
                // VILLAGE BASE — clean dirt foundation
-               ctx.fillStyle = '#c4a870';
-               ctx.beginPath();
-               ctx.arc(vx, vy, vs * 2.8, 0, Math.PI * 2);
-               ctx.fill();
+               ctxToUse.fillStyle = '#c4a870';
+               ctxToUse.beginPath();
+               ctxToUse.arc(vx, vy, vs * 2.8, 0, Math.PI * 2);
+               ctxToUse.fill();
 
                // 3-4 small houses per village (neat grid)
                               for (var hi = 0; hi < 4; hi++) {
@@ -5784,8 +5783,12 @@
                                                                                             // Draw map at 60% scale (leaving 20% void margin on each side)
                                                                                             var mapScale = 0.6;
                                                                                             _worldCtx.scale(mapScale, mapScale);
+                                                                                            // Shift so map top-left is at (-w/2, -h/2) in world coords
+                                                                                            var mapW = _worldW * mapScale;
+                                                                                            var mapH = _worldH * mapScale;
+                                                                                            _worldCtx.translate(-mapW/2, -mapH/2);
                                                                                             // Pass scaled dimensions so villages/grass use correct sizes
-                                                                                            drawEgyptMapBackground(_worldW * mapScale, _worldH * mapScale, _worldCtx);
+                                                                                            drawEgyptMapBackground(mapW, mapH, _worldCtx);
                                                                                             _worldCtx.restore();
                                                                                         } else {
                                                                                             drawTopDownBackground(eraId, _worldW, _worldH, ERA_LANDS[eraId]);
