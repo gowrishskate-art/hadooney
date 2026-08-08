@@ -3001,8 +3001,8 @@
            endMessage: '',
            territories: [],
            // Camera system for pannable 3D map (Polytopia-style)
-           cameraX: 0, cameraY: -200, cameraZoom: 0.4,
-           cameraTargetX: 0, cameraTargetY: -200, cameraTargetZoom: 0.4,
+           cameraX: 0, cameraY: 0, cameraZoom: 0.4,
+           cameraTargetX: 0, cameraTargetY: 0, cameraTargetZoom: 0.4,
            cameraSmoothing: 0.15
        };
 
@@ -5751,9 +5751,18 @@
                                             }
                                             _worldCtx.globalAlpha = 1;
          
-                                                                                        // Draw Egypt map on world canvas — full size, no scale/translate mismatch
+                                                                                        // Draw Egypt map on world canvas — 63% size (37% smaller), centered with void around
                                                                                         if (eraId === 'egypt') {
+                                                                                            var mapScale = 0.63;
+                                                                                            var mapW = _worldW * mapScale;
+                                                                                            var mapH = _worldH * mapScale;
+                                                                                            var mapX = (_worldW - mapW) / 2;
+                                                                                            var mapY = (_worldH - mapH) / 2;
+                                                                                            _worldCtx.save();
+                                                                                            _worldCtx.translate(mapX, mapY);
+                                                                                            _worldCtx.scale(mapScale, mapScale);
                                                                                             drawEgyptMapBackground(_worldW, _worldH, _worldCtx);
+                                                                                            _worldCtx.restore();
                                                                                         } else {
                                                                                             drawTopDownBackground(eraId, _worldW, _worldH, ERA_LANDS[eraId]);
                                                                                         }
