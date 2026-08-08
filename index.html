@@ -4660,8 +4660,8 @@
                '#2a7a1a', '#3a8a24', '#1a4a0a', '#5a9a30'
            ];
            
-           // Grass clumps — sparse, ~7% map coverage, concentrated near Nile
-           for (var gc = 0; gc < 2000; gc++) {
+           // Grass clumps — sparse patches ONLY near Nile, ~7% coverage
+           for (var gc = 0; gc < 800; gc++) {
                var gs = gc * 13331 + 43;
                var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                var gy = (((gs * 65521) % 10000) / 10000) * h;
@@ -4677,15 +4677,15 @@
                
                // Skip if in water or mud bank
                if (distFromRiver < riverHW * 0.8) continue;
+               // ONLY near river — skip far away
+               if (distFromRiver > w * 0.12) continue;
                
-               // Density: concentrated near Nile, falls off fast
-               var rivDensity = Math.max(0, 1 - distFromRiver / (w * 0.15));
-               // Noise-based patchiness
+               // Density: concentrated near Nile only
+               var rivDensity = Math.max(0, 1 - distFromRiver / (w * 0.12));
                var patchNoise = gfBm(gx * 0.006, gy * 0.006, 4, 888);
-               // Target ~7% coverage in center
-               var density = 0.42 + patchNoise * 0.3 + rivDensity * 0.45;
+               var density = 0.3 + patchNoise * 0.3 + rivDensity * 0.4;
                
-               if (density < 0.25) continue;
+               if (density < 0.3) continue;
                
                // Each clump: 5-9 blades (sparser than before)
                var bladeCount = 5 + Math.floor(density * 4 + ((gs * 7919) % 100) / 100 * 4);
@@ -4701,7 +4701,7 @@
                    var bw = w * 0.0012;
                    var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.6 - Math.PI * 0.3;
                    
-                   ctxToUse.globalAlpha = 0.2 + density * 0.35;
+                   ctxToUse.globalAlpha = 0.8 + density * 0.2;
                                       ctxToUse.strokeStyle = bladeColors[bs % bladeColors.length];
                                       ctxToUse.lineWidth = Math.max(1, Math.floor(bw));
                    
@@ -4715,8 +4715,8 @@
                                   }
                               }
            
-                              // Very sparse desert grass (only ~1% coverage)
-                              for (var gc = 0; gc < 200; gc++) {
+                              // Very sparse desert grass (near zero)
+                              for (var gc = 0; gc < 40; gc++) {
                                   var gs = gc * 24593 + 71;
                                   var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                                   var gy = (((gs * 65521) % 10000) / 10000) * h;
