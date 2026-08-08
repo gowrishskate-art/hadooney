@@ -3001,8 +3001,8 @@
            endMessage: '',
            territories: [],
            // Camera system for pannable 3D map (Polytopia-style)
-           cameraX: 0, cameraY: 0, cameraZoom: 0.4,
-           cameraTargetX: 0, cameraTargetY: 0, cameraTargetZoom: 0.4,
+           cameraX: 0, cameraY: 0, cameraZoom: 0.25,
+           cameraTargetX: 0, cameraTargetY: 0, cameraTargetZoom: 0.25,
            cameraSmoothing: 0.15
        };
 
@@ -5725,31 +5725,19 @@
            
                       // Draw void background on world canvas (fills entire world)
                                             var w = _worldW, h = _worldH;
-                                            _worldCtx.fillStyle = '#050510';
+                                            // Deep space void
+                                            _worldCtx.fillStyle = '#030308';
                                             _worldCtx.fillRect(0, 0, w, h);
-                                            // Subtle nebula glow
-                                            var grad = _worldCtx.createRadialGradient(w*0.5, h*0.5, 0, w*0.5, h*0.5, w*0.8);
-                                            grad.addColorStop(0, 'rgba(30,20,60,0.15)');
-                                            grad.addColorStop(0.5, 'rgba(20,15,40,0.08)');
-                                            grad.addColorStop(1, 'rgba(10,10,20,0)');
+                                            // Animated nebula glow (subtle pulse)
+                                            var pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.02);
+                                            var grad = _worldCtx.createRadialGradient(w*0.5, h*0.5, 0, w*0.5, h*0.5, w*0.75);
+                                            grad.addColorStop(0, 'rgba(40,25,70,' + (0.08 + pulse * 0.04) + ')');
+                                            grad.addColorStop(0.4, 'rgba(25,20,45,' + (0.04 + pulse * 0.02) + ')');
+                                            grad.addColorStop(1, 'rgba(10,8,20,0)');
                                             _worldCtx.fillStyle = grad;
                                             _worldCtx.fillRect(0, 0, w, h);
-                                            // Stars on world (on top of nebula)
-                                            _worldCtx.fillStyle = '#ffffff';
-                                            for (var i = 0; i < 300; i++) {
-                                                var seed = i * 9973 + 12345;
-                                                var sx = ((seed * 2654435761) % 10000) / 10000 * w;
-                                                var sy = (((seed * 65521) % 10000) / 10000) * h;
-                                                var size = (seed % 3) * 0.5 + 0.5;
-                                                var alpha = 0.3 + (seed % 100) / 100 * 0.7;
-                                                _worldCtx.globalAlpha = alpha;
-                                                _worldCtx.beginPath();
-                                                _worldCtx.arc(sx, sy, size, 0, Math.PI * 2);
-                                                _worldCtx.fill();
-                                            }
-                                            _worldCtx.globalAlpha = 1;
          
-                                                                                        // Draw Egypt map on world canvas — 63% size (37% smaller), centered with void around
+                                                                                        // Draw Egypt map on world canvas — floating island in void (63% size)
                                                                                         if (eraId === 'egypt') {
                                                                                             var mapScale = 0.63;
                                                                                             var mapW = _worldW * mapScale;
@@ -5759,6 +5747,15 @@
                                                                                             _worldCtx.save();
                                                                                             _worldCtx.translate(mapX, mapY);
                                                                                             _worldCtx.scale(mapScale, mapScale);
+                                                                                            
+                                                                                            // Drop shadow UNDER map (floating island effect)
+                                                                                            var shadowGrad = _worldCtx.createRadialGradient(_worldW/2, _worldH/2 + 20, 0, _worldW/2, _worldH/2 + 20, Math.max(_worldW, _worldH)*0.55);
+                                                                                            shadowGrad.addColorStop(0, 'rgba(0,0,0,0.25)');
+                                                                                            shadowGrad.addColorStop(0.6, 'rgba(0,0,0,0.1)');
+                                                                                            shadowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+                                                                                            _worldCtx.fillStyle = shadowGrad;
+                                                                                            _worldCtx.fillRect(-_worldW*0.1, -_worldH*0.1, _worldW*1.2, _worldH*1.2);
+                                                                                            
                                                                                             drawEgyptMapBackground(_worldW, _worldH, _worldCtx);
                                                                                             _worldCtx.restore();
                                                                                         } else {
@@ -5790,11 +5787,31 @@
                                             ctx.translate(-gs.cameraX, -gs.cameraY);
           
                                             // Draw world canvas centered at world origin (0,0)
-                                            ctx.drawImage(_worldCanvas, -_worldW/2, -_worldH/2);
-          
-                                            ctx.restore();
-           
-                      // UI overlays (selection, tooltips) - in screen space
+                                                                                        ctx.drawImage(_worldCanvas, -_worldW/2, -_worldH/2);
+         
+                                                                                        ctx.restore();
+
+                                                                                        // Stars in screen space (on top of everything, twinkle)
+                                                                                        ctx.fillStyle = '#ffffff';
+                                                                                        for (var i = 0; i < _voidStars.length; i++) {
+                                                                                            var s = _voidStars[i];
+                                                                                            // Convert world star pos to screen pos
+                                                                                            var sx = (s.x - _worldW/2 + gs.cameraX) * gs.cameraZoom + w/2;
+                                                                                            var sy = (s.y - _worldH/2 + gs.cameraY) * gs.cameraZoom + h/2;
+                                                                                            // Only draw if on screen
+                                                                                            if (sx > -5 && sx < w+5 && sy > -5 && sy < h+5) {
+                                                                                                var alpha = s.brightness * (0.5 + 0.5 * Math.sin(animFrame * s.twinkleSpeed + s.twinklePhase));
+                                                                                                ctx.globalAlpha = alpha;
+                                                                                                ctx.beginPath();
+                                                                                                // Scale star size for visibility (min 1px on screen)
+                                                                                                var screenSize = Math.max(1.0, s.size / gs.cameraZoom);
+                                                                                                ctx.arc(sx, sy, screenSize, 0, Math.PI * 2);
+                                                                                                ctx.fill();
+                                                                                            }
+                                                                                        }
+                                                                                        ctx.globalAlpha = 1;
+
+                                                                  // UI overlays (selection, tooltips) - in screen space
                       if (gs.selectedArmy) {
                           var pulse = 0.5 + 0.5 * Math.sin(animFrame * 0.1);
                           ctx.globalAlpha = 0.4 + pulse * 0.4;
