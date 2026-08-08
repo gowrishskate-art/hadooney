@@ -4764,9 +4764,7 @@
                                                                                                                   ctxToUse.save();
                                                                                                                   ctxToUse.globalAlpha = 1;  // Reset from grass blade alpha
                                                                        var villagePositions = [
-                                             [0.95, 0.50], [0.85, 0.49], [0.75, 0.50], [0.65, 0.51],
-                                             [0.55, 0.49], [0.45, 0.50], [0.35, 0.49], [0.25, 0.50],
-                                             [0.18, 0.48], [0.12, 0.45], [0.08, 0.40]
+                                             [0.90, 0.48], [0.70, 0.52], [0.50, 0.48], [0.30, 0.50], [0.15, 0.47]
                                          ];
                                          // Village scale (relative to map width)
                                          var vs = Math.max(5, w * 0.02);
@@ -4779,8 +4777,8 @@
                var vn0 = nw[vIdx], vn1 = nw[vIdx + 1] || nw[vIdx];
                var vCx = (vn0[1] + (vn1[1] - vn0[1]) * vFrac) * w;
                var vHW = (vn0[2] + (vn1[2] - vn0[2]) * vFrac) * w;
-               // Offset village onto LAND: river half-width + mud bank (1.8x) + village radius + gap
-               var landOffset = vHW * 1.8 + vs * 2.5;
+               // Offset village onto LAND: river half-width * 2.5 + village radius * 3 (ensures on land)
+               var landOffset = vHW * 2.5 + vs * 3.0;
                var vOff = (vi % 2 === 0 ? 1 : -1) * landOffset;
                var vx = vCx + vOff;
                // Invert Y: Nile waypoints y=1=top, canvas y=0=top
