@@ -4660,7 +4660,7 @@
                '#2a7a1a', '#3a8a24', '#1a4a0a', '#5a9a30'
            ];
            
-           // Grass clumps spread evenly across entire map — lush near river, sparse far away
+           // Grass clumps — sparse, ~7% map coverage, concentrated near Nile
            for (var gc = 0; gc < 2000; gc++) {
                var gs = gc * 13331 + 43;
                var gx = ((gs * 2654435761) % 10000) / 10000 * w;
@@ -4678,12 +4678,12 @@
                // Skip if in water or mud bank
                if (distFromRiver < riverHW * 0.8) continue;
                
-               // Density: lush near river but EVERYWHERE on the map
-               var rivDensity = Math.max(0, 1 - distFromRiver / (w * 0.3));
-               // Noise-based patchiness across the whole map
+               // Density: concentrated near Nile, falls off fast
+               var rivDensity = Math.max(0, 1 - distFromRiver / (w * 0.15));
+               // Noise-based patchiness
                var patchNoise = gfBm(gx * 0.006, gy * 0.006, 4, 888);
-               // Base density everywhere + boost near river
-               var density = 0.35 + patchNoise * 0.4 + rivDensity * 0.4;
+               // Target ~7% coverage in center
+               var density = 0.42 + patchNoise * 0.3 + rivDensity * 0.45;
                
                if (density < 0.25) continue;
                
@@ -4715,8 +4715,8 @@
                                   }
                               }
            
-                              // Sparse desert grass clumps (spread across desert)
-                              for (var gc = 0; gc < 400; gc++) {
+                              // Very sparse desert grass (only ~1% coverage)
+                              for (var gc = 0; gc < 200; gc++) {
                                   var gs = gc * 24593 + 71;
                                   var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                                   var gy = (((gs * 65521) % 10000) / 10000) * h;
@@ -4729,8 +4729,8 @@
                                   var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
                                   var distFromRiver = Math.abs(gx - riverCx) - riverHW;
               
-                                  // Only far from river (>15% of width)
-                                  if (distFromRiver < w * 0.15) continue;
+                                  // Only far from river (>25% of width)
+                                  if (distFromRiver < w * 0.25) continue;
                
                                   var sparseNoise = gfBm(gx * 0.01, gy * 0.01, 3, 555);
                                   if (sparseNoise < 0.55) continue;
