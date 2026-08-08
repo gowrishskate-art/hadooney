@@ -4660,8 +4660,8 @@
                '#2a7a1a', '#3a8a24', '#1a4a0a', '#5a9a30'
            ];
            
-           // Grass clumps along floodplain (near river) — natural spacing, not too dense
-           for (var gc = 0; gc < 400; gc++) {
+           // Grass clumps spread evenly across entire map — lush near river, sparse far away
+           for (var gc = 0; gc < 2000; gc++) {
                var gs = gc * 13331 + 43;
                var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                var gy = (((gs * 65521) % 10000) / 10000) * h;
@@ -4678,13 +4678,14 @@
                // Skip if in water or mud bank
                if (distFromRiver < riverHW * 0.8) continue;
                
-               // Density falls off with distance from river
-               var density = Math.max(0, 1 - distFromRiver / (w * 0.18));
-               // Noise-based patchiness
+               // Density: lush near river but EVERYWHERE on the map
+               var rivDensity = Math.max(0, 1 - distFromRiver / (w * 0.3));
+               // Noise-based patchiness across the whole map
                var patchNoise = gfBm(gx * 0.006, gy * 0.006, 4, 888);
-               density *= (0.3 + patchNoise * 0.7);
+               // Base density everywhere + boost near river
+               var density = 0.35 + patchNoise * 0.4 + rivDensity * 0.4;
                
-               if (density < 0.18) continue;
+               if (density < 0.25) continue;
                
                // Each clump: 5-9 blades (sparser than before)
                var bladeCount = 5 + Math.floor(density * 4 + ((gs * 7919) % 100) / 100 * 4);
@@ -4714,12 +4715,12 @@
                                   }
                               }
            
-                              // Sparse desert grass clumps (very rare)
-                              for (var gc = 0; gc < 50; gc++) {
+                              // Sparse desert grass clumps (spread across desert)
+                              for (var gc = 0; gc < 400; gc++) {
                                   var gs = gc * 24593 + 71;
                                   var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                                   var gy = (((gs * 65521) % 10000) / 10000) * h;
-               
+              
                                   var gT = 1 - (gy / h);  // Invert Y
                                   var gIdx = Math.min(nw.length - 2, Math.floor(gT * (nw.length - 1)));
                                   var gFrac = (gT * (nw.length - 1)) - gIdx;
@@ -4727,9 +4728,9 @@
                                   var riverCx = (rn0[1] + (rn1[1] - rn0[1]) * gFrac) * w;
                                   var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
                                   var distFromRiver = Math.abs(gx - riverCx) - riverHW;
-               
-                                  // Only far from river (>25% of width)
-                                  if (distFromRiver < w * 0.25) continue;
+              
+                                  // Only far from river (>15% of width)
+                                  if (distFromRiver < w * 0.15) continue;
                
                                   var sparseNoise = gfBm(gx * 0.01, gy * 0.01, 3, 555);
                                   if (sparseNoise < 0.55) continue;
@@ -4764,25 +4765,32 @@
                                                                                                                   ctxToUse.save();
                                                                                                                   ctxToUse.globalAlpha = 1;  // Reset from grass blade alpha
                                                                        var villagePositions = [
-                                             [0.90, 0.45], [0.68, 0.55], [0.45, 0.45], [0.25, 0.55], [0.12, 0.45]
+                                             // Villages spread across the ENTIRE map — not tied to Nile
+                                             [0.92, 0.85], [0.88, 0.65], [0.95, 0.40], [0.90, 0.15],
+                                             [0.50, 0.88], [0.45, 0.15], [0.55, 0.55], [0.50, 0.35],
+                                             [0.10, 0.85], [0.15, 0.60], [0.08, 0.30], [0.12, 0.12],
+                                             [0.30, 0.75], [0.70, 0.25], [0.75, 0.75], [0.25, 0.25]
                                          ];
                                          // Village scale (relative to map width)
                                          var vs = Math.max(5, w * 0.015);
                                          for (var vi = 0; vi < villagePositions.length; vi++) {
-               // Village positions use y=1 at top, y=0 at bottom; Nile waypoints array index 0=top, n-1=bottom
-               // Invert: village y=0.95 (top) → index 0 (top); village y=0.08 (bottom) → index n-1 (bottom)
-               var vT = 1 - villagePositions[vi][0];
+               // Village positions are absolute map coordinates [yNorm, xNorm] where 0=top/left, 1=bottom/right
+               var vx = villagePositions[vi][1] * w;
+               var vy = villagePositions[vi][0] * h;
+               
+               // Check if village is too close to the Nile — if so, push away
+               var vT = 1 - (vy / h);
                var vIdx = Math.min(nw.length - 2, Math.floor(vT * (nw.length - 1)));
                var vFrac = (vT * (nw.length - 1)) - vIdx;
                var vn0 = nw[vIdx], vn1 = nw[vIdx + 1] || nw[vIdx];
                var vCx = (vn0[1] + (vn1[1] - vn0[1]) * vFrac) * w;
                var vHW = (vn0[2] + (vn1[2] - vn0[2]) * vFrac) * w;
-               // Offset village onto LAND: river half-width * 3.5 + village radius * 4 (far from river)
-               var landOffset = vHW * 3.5 + vs * 4.0;
-               var vOff = (vi % 2 === 0 ? 1 : -1) * landOffset;
-               var vx = vCx + vOff;
-               // Invert Y: Nile waypoints y=1=top, canvas y=0=top
-               var vy = (1 - (vn0[0] + (vn1[0] - vn0[0]) * vFrac)) * h;
+               var distToRiver = Math.abs(vx - vCx) - vHW;
+               if (distToRiver < vHW * 3.0) {
+                   // Push village away from river
+                   var pushDir = vx > vCx ? 1 : -1;
+                   vx = vCx + pushDir * (vHW * 3.0 + vs * 2.0);
+               }
 
                // VILLAGE BASE — sand-colored dirt foundation covers grass
                ctxToUse.fillStyle = '#d4b880';
