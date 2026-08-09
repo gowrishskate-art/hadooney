@@ -4660,9 +4660,8 @@
                '#2a7a1a', '#3a8a24', '#1a4a0a', '#5a9a30'
            ];
            
-           // Grass — concentrated patches across map, ~7% coverage
-           // Few clump centers, noise threshold = clear sand between patches
-           for (var gc = 0; gc < 2000; gc++) {
+           // Grass — spread across WHOLE map, ~10% coverage
+           for (var gc = 0; gc < 2500; gc++) {
                var gs = gc * 13331 + 43;
                var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                var gy = (((gs * 65521) % 10000) / 10000) * h;
@@ -4678,12 +4677,10 @@
                
                // Skip if in water or mud bank
                if (distFromRiver < riverHW * 0.8) continue;
-               // Only near Nile — within 40% of map width
-               if (distFromRiver > w * 0.40) continue;
                
                // Noise threshold creates patches with bare sand between them
                var patchNoise = gfBm(gx * 0.006, gy * 0.006, 4, 888);
-               if (patchNoise < 0.35) continue;
+               if (patchNoise < 0.38) continue;
                
                var density = patchNoise;
                
