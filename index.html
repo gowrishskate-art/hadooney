@@ -4660,8 +4660,9 @@
                '#2a7a1a', '#3a8a24', '#1a4a0a', '#5a9a30'
            ];
            
-           // Grass clumps — spread across whole map, ~7% coverage, distinct blades
-           for (var gc = 0; gc < 1200; gc++) {
+           // Grass — concentrated patches across map, ~7% coverage
+           // Few clump centers, noise threshold = clear sand between patches
+           for (var gc = 0; gc < 2000; gc++) {
                var gs = gc * 13331 + 43;
                var gx = ((gs * 2654435761) % 10000) / 10000 * w;
                var gy = (((gs * 65521) % 10000) / 10000) * h;
@@ -4677,16 +4678,18 @@
                
                // Skip if in water or mud bank
                if (distFromRiver < riverHW * 0.8) continue;
+               // Only near Nile — within 40% of map width
+               if (distFromRiver > w * 0.40) continue;
                
-               // Density: noise-based patches spread across entire map
-               var patchNoise = gfBm(gx * 0.005, gy * 0.005, 4, 888);
-               var density = 0.15 + patchNoise * 0.5;
+               // Noise threshold creates patches with bare sand between them
+               var patchNoise = gfBm(gx * 0.006, gy * 0.006, 4, 888);
+               if (patchNoise < 0.35) continue;
                
-               if (density < 0.25) continue;
+               var density = patchNoise;
                
-               // Each clump: 5-9 blades (sparser than before)
-               var bladeCount = 5 + Math.floor(density * 4 + ((gs * 7919) % 100) / 100 * 4);
-               var clumpR = w * 0.01; // slightly larger clump radius for natural spread
+               // Each clump: 8-12 blades in tight cluster
+               var bladeCount = 8 + Math.floor(density * 4);
+               var clumpR = w * 0.008;
                
                for (var bi = 0; bi < bladeCount; bi++) {
                    var bs = bi * 37 + gs;
@@ -4694,70 +4697,70 @@
                    var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
                    
                    // Blade properties
-                   var bh = w * (0.014 + ((bs * 4253) % 100) / 100 * 0.012); // 1.4%-2.6% width
+                   var bh = w * (0.012 + ((bs * 4253) % 100) / 100 * 0.008);
                    var bw = w * 0.0012;
                    var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.6 - Math.PI * 0.3;
                    
-                   ctxToUse.globalAlpha = 0.8 + density * 0.2;
-                                      ctxToUse.strokeStyle = bladeColors[bs % bladeColors.length];
-                                      ctxToUse.lineWidth = Math.max(1, Math.floor(bw));
+                   ctxToUse.globalAlpha = 0.9;
+                   ctxToUse.strokeStyle = bladeColors[bs % bladeColors.length];
+                   ctxToUse.lineWidth = Math.max(1, Math.floor(bw));
                    
-                                      ctxToUse.beginPath();
-                                      ctxToUse.moveTo(bx, by);
-                                      ctxToUse.lineTo(
-                                          bx + Math.sin(angle) * bh,
-                                          by - Math.cos(angle) * bh
-                                      );
-                                      ctxToUse.stroke();
-                                  }
-                              }
+                   ctxToUse.beginPath();
+                   ctxToUse.moveTo(bx, by);
+                   ctxToUse.lineTo(
+                       bx + Math.sin(angle) * bh,
+                       by - Math.cos(angle) * bh
+                   );
+                   ctxToUse.stroke();
+               }
+           }
            
-                              // Very sparse desert grass (near zero)
-                              for (var gc = 0; gc < 40; gc++) {
-                                  var gs = gc * 24593 + 71;
-                                  var gx = ((gs * 2654435761) % 10000) / 10000 * w;
-                                  var gy = (((gs * 65521) % 10000) / 10000) * h;
-              
-                                  var gT = 1 - (gy / h);  // Invert Y
-                                  var gIdx = Math.min(nw.length - 2, Math.floor(gT * (nw.length - 1)));
-                                  var gFrac = (gT * (nw.length - 1)) - gIdx;
-                                  var rn0 = nw[gIdx], rn1 = nw[gIdx + 1] || nw[gIdx];
-                                  var riverCx = (rn0[1] + (rn1[1] - rn0[1]) * gFrac) * w;
-                                  var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
-                                  var distFromRiver = Math.abs(gx - riverCx) - riverHW;
-              
-                                  // Only far from river (>25% of width)
-                                  if (distFromRiver < w * 0.25) continue;
+           // Scattered desert oases — spread across desert far from river
+           for (var gc = 0; gc < 150; gc++) {
+               var gs = gc * 24593 + 71;
+               var gx = ((gs * 2654435761) % 10000) / 10000 * w;
+               var gy = (((gs * 65521) % 10000) / 10000) * h;
                
-                                  var sparseNoise = gfBm(gx * 0.01, gy * 0.01, 3, 555);
-                                  if (sparseNoise < 0.55) continue;
+               var gT = 1 - (gy / h);
+               var gIdx = Math.min(nw.length - 2, Math.floor(gT * (nw.length - 1)));
+               var gFrac = (gT * (nw.length - 1)) - gIdx;
+               var rn0 = nw[gIdx], rn1 = nw[gIdx + 1] || nw[gIdx];
+               var riverCx = (rn0[1] + (rn1[1] - rn0[1]) * gFrac) * w;
+               var riverHW = (rn0[2] + (rn1[2] - rn0[2]) * gFrac) * w;
+               var distFromRiver = Math.abs(gx - riverCx) - riverHW;
                
-                                  var bladeCount = 2 + Math.floor(sparseNoise * 3);
-                                  var clumpR = w * 0.01;
+               if (distFromRiver < w * 0.15) continue;
                
-                                  for (var bi = 0; bi < bladeCount; bi++) {
-                                      var bs = bi * 37 + gs;
-                                      var bx = gx + (Math.sin(bs * 0.5) * ((bs * 104729) % 100) / 100) * clumpR;
-                                      var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
+               var sparseNoise = gfBm(gx * 0.01, gy * 0.01, 3, 555);
+               if (sparseNoise < 0.5) continue;
+               
+               var bladeCount = 3 + Math.floor(sparseNoise * 3);
+               var clumpR = w * 0.006;
+               
+               for (var bi = 0; bi < bladeCount; bi++) {
+                   var bs = bi * 37 + gs;
+                   var bx = gx + (Math.sin(bs * 0.5) * ((bs * 104729) % 100) / 100) * clumpR;
+                   var by = gy + (Math.cos(bs * 0.7) * ((bs * 13337) % 100) / 100) * clumpR;
                    
-                                      var bh = w * (0.005 + ((bs * 4253) % 100) / 100 * 0.008);
-                                      var bw = w * 0.0007;
-                                      var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.5 - Math.PI * 0.25;
+                   var bh = w * (0.005 + ((bs * 4253) % 100) / 100 * 0.008);
+                   var bw = w * 0.0008;
+                   var angle = ((bs * 1237) % 100) / 100 * Math.PI * 0.5 - Math.PI * 0.25;
                    
-                                      ctxToUse.globalAlpha = 0.12;
-                                      ctxToUse.strokeStyle = bladeColors[bs % bladeColors.length];
-                                      ctxToUse.lineWidth = Math.max(1, Math.floor(bw));
+                   ctxToUse.globalAlpha = 0.85;
+                   ctxToUse.strokeStyle = bladeColors[bs % bladeColors.length];
+                   ctxToUse.lineWidth = Math.max(1, Math.floor(bw));
                    
-                                      ctxToUse.beginPath();
-                                      ctxToUse.moveTo(bx, by);
-                                      ctxToUse.lineTo(
-                                          bx + Math.sin(angle) * bh,
-                                          by - Math.cos(angle) * bh
-                                      );
-                                      ctxToUse.stroke();
-                                                          }
-                                                      }
-          
+                   ctxToUse.beginPath();
+                   ctxToUse.moveTo(bx, by);
+                   ctxToUse.lineTo(
+                       bx + Math.sin(angle) * bh,
+                       by - Math.cos(angle) * bh
+                   );
+                   ctxToUse.stroke();
+               }
+           }
+           ctxToUse.globalAlpha = 1;
+           
                                                                                                                   // 7. Villages along the Nile (white mud-brick houses with thatch roofs)
                                                                                                                   ctxToUse.save();
                                                                                                                   ctxToUse.globalAlpha = 1;  // Reset from grass blade alpha
